@@ -211,10 +211,10 @@ function tmInv(x,y,lon0,north){
   return [lon0+lam/D2R, phi/D2R];
 }
 var CRS={
-  '4326':{name:'WGS 84 geographic', code:'EPSG:4326', unit:'°', px:0.0001, maxLat:90, upd:1,
+  '4326':{name:'WGS 84 geographic', code:'EPSG:4326', unit:'°', px:0.01, maxLat:90, upd:1,
           fwd:function(lon,lat){return [lon,lat];}, inv:function(x,y){return [x,y];}},
-  '3857':{name:'Web Mercator', code:'EPSG:3857', unit:'m', px:10, maxLat:85, upd:111320, fwd:merFwd, inv:merInv},
-  'utm': {name:'UTM', unit:'m', px:10, maxLat:84, upd:111320,
+  '3857':{name:'Web Mercator', code:'EPSG:3857', unit:'m', px:1000, maxLat:85, upd:111320, fwd:merFwd, inv:merInv},
+  'utm': {name:'UTM', unit:'m', px:1000, maxLat:84, upd:111320,
           fwd:function(lon,lat){return tmFwd(lon,lat,utmLon0(),crs.north);}, inv:function(x,y){return tmInv(x,y,utmLon0(),crs.north);}}
 };
 function crsDef(){return CRS[crs.id];}
@@ -292,7 +292,7 @@ document.getElementById('tilt').addEventListener('click',function(){
 document.getElementById('resetrow').addEventListener('click',function(){T.g=0; T.h=0; T.i=1; writeInputs(); fitRaster();});
 
 // ----- presets ------------------------------------------------------------
-// pixel size comes from the CRS (0.0001° or 10 m); the raster centre pixel lands on Worcester
+// pixel size comes from the CRS (0.01° or 1000 m); the raster centre pixel lands on Worcester
 function applyPreset(name){
   var p=crsDef().px, r=name==='rot'?20*Math.PI/180:0, c=proj(WORC[0],WORC[1]);
   T.a=p*Math.cos(r); T.b=p*Math.sin(r)+(name==='shear'?0.4*p:0); T.d=p*Math.sin(r); T.e=(name==='south'?p:-p)*Math.cos(r);
