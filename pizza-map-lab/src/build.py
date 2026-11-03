@@ -23,6 +23,7 @@ PAGES = [
     "02-twenty-five-of-each.html",
     "03-sampling-design-lab.html",
     "04-how-many-tastes.html",
+    "05-every-square-its-own-pizza.html",
 ]
 MARK = "/* @@KIT@@ */"
 TEX = re.compile(r"<tex( display)?>(.*?)</tex>", re.S)

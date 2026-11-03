@@ -113,16 +113,18 @@ The host does no building. The built pages are committed, so the demos repo's ru
 | `TABLE5`, `MAP_SHARE` | Table 5 (% of area, rows map, columns reference) and 60/25/10/5 |
 | `rng(seed)` | Seeded PRNG (mulberry32) |
 | `nb4(i)` | 4-neighbours of pixel index `i` |
-| `bakePaperPizza(seed)` | Returns the object below (~60 ms) |
+| `bakePaperPizza(seed, opt?)` | Returns the object below (~20–60 ms). Optional `opt.clumpTop` and `opt.clumpErr` (0–1) are 05's dials: toppings pile around hot spots (two for mushroom, two for pepperoni, one for anchovy), and mistakes gather under a glare spot. Table 5 stays exact at every setting; at 0 the pizza is the same spot for spot (checked by fingerprint in `tests/check.js`) |
 | `hexRGB`, `cssVar`, `pizzaPalette()` | Read topping colours from CSS tokens |
 | `paintPizza(canvas, colorAt)` | `colorAt(i)` returns `[r,g,b,alpha]` or `null`. Draws crisp pixels plus knife cuts and returns the 2D context so you can draw overlays |
 | `SIDE`, `mapStrata(P)` | Study-area side (120); pixel lists for each map class (the strata) |
 | `pickFrom(list, n, r)`, `allocate(n, shares)` | `n` distinct picks, all equally likely; split `n` by shares so the parts add to `n` |
-| `sampleSRS(P,n,r)`, `sampleSystematic(P,n,r)`, `sampleStratified(strata,alloc,r)`, `sampleClusters(m,b,r)` | Samplers. Systematic needs `n` in 100/144/225/400 (random start). Clusters tile the study area with `b`×`b` blocks and return one pixel list per block |
+| `sampleSRS(P,n,r)`, `sampleSystematic(P,n,r)`, `sampleStratified(strata,alloc,r)`, `sampleClusters(m,b,r)` | Samplers. Systematic needs a square `n` whose root divides 120 (64, 100, 144, 225, 400, 576…; random start). Clusters tile the study area with `b`×`b` blocks and return one pixel list per block; `b = 15` gives whole squares |
+| `SQUARE_SPOTS`, `sampleBySquare(b,r)`, `sampleTwoStage(m,k,r)` | The spots of each of the 64 squares; `b` random bites in every square (spatial strata, one list per square); `m` random squares with `k` bites each (two-stage, one list per square) |
 | `edgePieceSpots(P)` | Pixels in the outer ring of squares (the 28 pieces with crust); 03's convenience taster picks only from these |
 | `countMatrix(P, ids)` | Sample counts, rows map, columns reference |
 | `stratEstimate(c, W, Nh?)` | Eqs. 12–20 with SEs, as proportions. `n_i+ − 1` in every variance. `ok` is false if a row has no tastes. Optional `Nh` (spots per stratum) applies the finite population correction `1 − n_i+/N_i+` to each stratum's term; the paper leaves it out, and only 04 uses it |
-| `clusterEstimate(P, groups)` | One-stage cluster estimator for equal-size blocks (block means, ratio estimators, SEs from the spread between blocks) |
+| `clusterEstimate(P, groups)` | One-stage cluster estimator for equal-size blocks (block means, ratio estimators, SEs from the spread between blocks). Also the usual estimator for two-stage samples with equal bites per square |
+| `strataEstimate(P, groups)` | Plain-share estimator for equal-size strata with equal bites in each (05's squares as strata), SEs from the spread within each stratum. One group gives the simple random estimator. For overall accuracy it is Eq. 16 with `W_h = 1/H`. NaN SEs with one bite per stratum |
 | `drawRepeats(canvas, rows, truth, opt)` | The shared repeats histogram: one row per method on a fixed 0–100% axis, dashed truth line, triangle at each average |
 
 `bakePaperPizza(seed)` returns:
@@ -138,6 +140,7 @@ The host does no building. The built pages are committed, so the demos repo's ru
 - `dist[k]`: 4-neighbour distance to the nearest real topping `k`.
 - `jit`: a fixed random number per pixel.
 - `tex`: the two-tone texture.
+- `hot`, `glare`: the hot-spot centres per topping and the glare centre (from their own seeded stream), plus the `clumpTop` and `clumpErr` used.
 
 Pixel index is `y*N + x`. Changing the kit changes every page. Rebuild, rerun `tests/check.js` and look at every page afterwards.
 
@@ -361,10 +364,25 @@ Each plan opens with **Based on**: the parts of the papers it draws from, with p
 | — | Paper equations (live MathML) on 01 and 02 | Done |
 | 03 | The Sampling Design Lab (`03-sampling-design-lab.html`) | Built on `lab-03`; page copy is a draft for the author to rewrite; not merged |
 | 04 | How Many Tastes? (`04-how-many-tastes.html`) | Built on `lab-04`; page copy is a draft for the author to rewrite; not merged |
-| 05–10 | See plans above (checked against the papers) | Not started |
+| 05 | Every Square Its Own Pizza (`05-every-square-its-own-pizza.html`) | Built on `pizza-map-lab`; page copy is a draft for the author to rewrite; not merged |
+| 06–10 | See plans above (checked against the papers) | Not started |
 | B1 | Round Pizza, Square Cuts | Later |
 
 ## Changelog
+
+- **2026-11-03** 05 session (on `pizza-map-lab`, no new branch).
+  - Kit: `bakePaperPizza(seed, {clumpTop, clumpErr})`. Clumped toppings drop a share of each topping near its hot spots (kept apart, so one topping doesn't fill another's). Clumped mistakes add the distance to a glare spot to the edge-distance rule that places each Table 5 mistake, weighted (ce/(1 − ce))²/10, so the dial moves smoothly. Mistake counts per cell are fixed, so Table 5 stays exact at every setting. The dials at 0 take no random draws and run the old code, so 01–04 are unchanged.
+  - Kit: `SQUARE_SPOTS`, `sampleBySquare`, `sampleTwoStage`, `strataEstimate`. `sampleSystematic` also takes 64 and 576 (one and nine per square).
+  - `tests/check.js`: fingerprints of today's pizza for three seeds at dials 0; Table 5 exact at five dial settings and two seeds; one stratum equals the simple random estimator; squares as strata give Eq. 16 with W_h = 1/64; one bite per square has no SE; with mistakes clumped every design is unbiased, whole squares spread 6.7 → 21.0 points, systematic and every-square spread less than random (1.6 vs 2.5), and the random formula overstates systematic (2.7 vs 1.6); with toppings clumped, whole squares' anchovy area spreads 6.2 → 9.2 and stays unbiased.
+  - 05 page (before review): Step 1, the two dials with presets, the map / real pizza / mistakes views with the glare drawn, and an 8×8 map of each square's accuracy or anchovy share. Step 2, five designs at 64, 256 or 576 tastes (whole squares, two-stage with 16 squares, simple random, systematic grid, bites in every square), one sample of each in a table. Step 3, 1,000 repeats as histograms plus spread, formula SE and "worth" in random tastes. Step 4, each design's spread as one dial goes 0–100%. Step 5, Sec. 4.7: each square's accuracy from 1–100 bites per square against the truth. Cards for Eq. 16 with squares as strata, the one-stage cluster SE, the SE you get if you ignore the clusters, and "worth". "Check against the paper" tests Sec. 2.2, 2.4 and 4.2's claims at the current dials, plus Table 2's matching designs.
+  - Every design on this page gives each spot the same chance, so all use plain shares; the page says the paper would poststratify simple random and systematic samples (Sec. 4.2).
+  - Whole squares can't hit 64 or 256 tastes (a square is 225 spots, and two are needed for an SE), so they take 450; 576 gives three squares (675). Systematic at 256 uses 225, the nearest grid. The table shows actual tastes, and "worth" evens it out.
+  - Found: with 2–3 whole squares, their own SE averages well below their real spread (13.6 vs 19.5 at 60% mistakes). The variance itself is right on average (mean estimated / real variance 1.03, now a check); the square root of a variance from 2 clusters runs low. For ratios the SE is unreliable too.
+  - Found: user's and producer's accuracy from 2–3 whole squares lean low, a small-sample ratio effect: user's D averages about 46–52% against 63.9, producer's D about 31–40% against 43.2. The page marks these with * and says shares stay unbiased; the masthead says ratios are the one catch.
+  - Review (a Fable sub-agent read the page against the paper) led to these changes: the masthead and Step 3 qualify "never biases" for ratios from few clusters; the SE caption says the variance is right on average; the check table says systematic's gain needs positive correlation, and that the paper's "usually too big" is said of the poststratified formulas; Table 2 rows now say Fichet et al. (2014) and Wickham et al. (2004) take one cluster per cell; two-stage notes its SE runs a little high (a quarter of the squares picked); a sixth design, 5 × 5 blocks (3/10/23 blocks, 75/250/575 tastes), gives a cluster design that fits the budget. Poststratifying was checked and kept out: it tightens area and producer's accuracy by about 12–20% for random, systematic and every-square alike, without changing their order.
+  - Found: clumped toppings move overall accuracy only a little, because mistakes sit at topping edges and follow them. Clumped mistakes don't move anchovy area at all (it doesn't depend on the map). Step 4 says which dial matters for which number.
+  - Found: at the default pizza, systematic at 64 (one bite per square, same place in every square) spreads slightly more than random for overall accuracy (5.8 vs 5.0); it wins clearly once mistakes clump.
+  - All page text is a draft in the guide's voice; the author writes the final copy (see README).
 
 - **2026-11-03** 04 session (on `lab-04`; no new branch, per the author's new rule).
   - Workflow: the author dropped the branch-per-explainer rule. `CLAUDE.md` and this guide now say to build on the checked-out branch.

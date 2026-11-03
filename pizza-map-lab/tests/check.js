@@ -7,6 +7,8 @@
 // 5. Every probability design in the kit is unbiased over many repeats; the convenience design is not.
 // 6. Eq. 1 gives the paper's 246 and 384, Table 4 gives Table 5's 69.5-89.7% interval, and 95% intervals
 //    catch the truth about 95% of the time once the sample is big (explainer 04).
+// 7. The clumping dials keep Table 5 exact, leave today's pizza unchanged at 0, and change precision but not bias:
+//    whole squares spread more as mistakes clump, spread-out designs less (explainer 05).
 const fs = require("fs"), path = require("path"), vm = require("vm");
 const root = path.join(__dirname, "..");
 let failed = 0;
@@ -33,7 +35,7 @@ for (const p of pages) {
 }
 
 const kit = fs.readFileSync(path.join(root, "src", "kit.js"), "utf8");
-const K = new Function(kit + "; return {bakePaperPizza, SEED, TABLE5, MAP_SHARE, N, CUTS, rng, mapStrata, sampleSRS, sampleSystematic, allocate, sampleStratified, sampleClusters, pickFrom, edgePieceSpots, countMatrix, stratEstimate, clusterEstimate};")();
+const K = new Function(kit + "; return {bakePaperPizza, SEED, TABLE5, MAP_SHARE, N, CUTS, rng, mapStrata, sampleSRS, sampleSystematic, allocate, sampleStratified, sampleClusters, pickFrom, edgePieceSpots, countMatrix, stratEstimate, clusterEstimate, sampleBySquare, sampleTwoStage, strataEstimate};")();
 
 console.log("Paper pizza matches Table 5");
 for (const seed of [K.SEED, 12345, 987654]) {
@@ -125,6 +127,62 @@ console.log("Sample size and intervals (explainer 04)");
   ok(Math.abs(f.U3 - 95) < 2, `with the small-pizza correction, user's D coverage is back near 95% (${f.U3}%)`);
   const s5 = cover(5, false);
   ok(s5.U0 < 85, `at 5 per topping, user's A intervals overpromise (${s5.U0}%)`);
+}
+
+console.log("Clumped toppings and mistakes (explainer 05)");
+{
+  // fingerprints of today's pizza, taken before the dials existed
+  const fp = a => { let x = 2166136261 >>> 0; for (const v of a) { x ^= (v & 255); x = Math.imul(x, 16777619) >>> 0; } return x.toString(16); };
+  const want = { [K.SEED]: ["41055a28", "1798ad01"], 12345: ["822d96fe", "28285959"], 987654: ["f95128ee", "883271bf"] };
+  for (const [seed, [t, m]] of Object.entries(want)) {
+    const P = K.bakePaperPizza(+seed, { clumpTop: 0, clumpErr: 0 });
+    ok(fp(P.truth) === t && fp(P.map) === m, `seed ${seed}: dials at 0 give today's pizza spot for spot`);
+  }
+  for (const seed of [K.SEED, 12345]) for (const [ct, ce] of [[0.5, 0], [1, 0], [0, 0.5], [0, 1], [1, 1]]) {
+    const P = K.bakePaperPizza(seed, { clumpTop: ct, clumpErr: ce }), M = [[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]];
+    for (const i of P.ids) M[P.map[i]][P.truth[i]]++;
+    let worst = 0; for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++) worst = Math.max(worst, Math.abs(100 * M[i][j] / P.T - K.TABLE5[i][j]));
+    ok(worst < 0.01, `seed ${seed}, toppings ${ct}, mistakes ${ce}: Table 5 exact (worst ${worst.toFixed(4)})`);
+  }
+  // the stratified estimator: one stratum is the simple random one; squares as strata is Eq. 16 with W_h = 1/64
+  const P0 = K.bakePaperPizza(K.SEED), r = K.rng(21), ids = K.sampleSRS(P0, 300, r);
+  const a = K.strataEstimate(P0, [ids]), b = K.clusterEstimate(P0, ids.map(i => [i]));
+  const close = (x, y) => Math.abs(x - y) < 1e-12;
+  ok(close(a.O, b.O) && close(a.se.O, b.se.O) && [0, 1, 2, 3].every(k => close(a.U[k], b.U[k]) && close(a.se.U[k], b.se.U[k]) && close(a.se.P[k], b.se.P[k]) && close(a.se.area[k], b.se.area[k])),
+    "one stratum gives the simple random estimates and SEs");
+  const g = K.sampleBySquare(4, r), e = K.strataEstimate(P0, g);
+  let v = 0; for (const s of g) { const o = s.filter(i => P0.map[i] === P0.truth[i]).length / 4; v += o * (1 - o) / 3; }
+  ok(close(e.se.O, Math.sqrt(v) / 64), "squares as strata: overall SE is Eq. 16 with W_h = 1/64");
+  ok(isNaN(K.strataEstimate(P0, K.sampleBySquare(1, r)).se.O), "one bite per square has no SE (criterion 6)");
+  // 2,000 repeats at 256 tastes
+  const m = a => a.reduce((x, y) => x + y, 0) / a.length, sd = a => { const u = m(a); return Math.sqrt(a.reduce((x, y) => x + (y - u) ** 2, 0) / (a.length - 1)); };
+  const run = (P, f, key) => { const o = [], se = []; for (let k = 0; k < 2000; k++) { const e = f(P); o.push(key === "O" ? e.O : e.area[3]); se.push(key === "O" ? e.se.O : e.se.area[3]); } return { m: m(o), sd: sd(o), se: m(se.filter(isFinite)) }; };
+  const D = {
+    random: P => K.strataEstimate(P, [K.sampleSRS(P, 256, r)]),
+    systematic: P => K.strataEstimate(P, [K.sampleSystematic(P, 225, r)]),
+    "every square": P => K.strataEstimate(P, K.sampleBySquare(4, r)),
+    "two-stage": P => K.clusterEstimate(P, K.sampleTwoStage(16, 16, r)),
+    "whole squares": P => K.clusterEstimate(P, K.sampleClusters(2, 15, r)),
+    "5x5 blocks": P => K.clusterEstimate(P, K.sampleClusters(10, 5, r)),
+  };
+  const Pe = K.bakePaperPizza(K.SEED, { clumpErr: 1 }), Pt = K.bakePaperPizza(K.SEED, { clumpTop: 1 }), res = {};
+  for (const [name, f] of Object.entries(D)) {
+    const o = res[name] = run(Pe, f, "O");
+    ok(Math.abs(o.m - 0.796) < 3 * o.sd / Math.sqrt(2000) + 0.002, `mistakes clumped, ${name}: unbiased (overall ${(100 * o.m).toFixed(1)}%)`);
+  }
+  const w0 = run(P0, D["whole squares"], "O");
+  ok(res["whole squares"].sd > 2 * w0.sd, `whole squares spread more as mistakes clump (${(100 * w0.sd).toFixed(1)} -> ${(100 * res["whole squares"].sd).toFixed(1)} points)`);
+  ok(res.systematic.sd < 0.8 * res.random.sd && res["every square"].sd < 0.8 * res.random.sd,
+    `spread-out designs beat random (systematic ${(100 * res.systematic.sd).toFixed(1)}, every square ${(100 * res["every square"].sd).toFixed(1)}, random ${(100 * res.random.sd).toFixed(1)})`);
+  ok(res.systematic.se > 1.3 * res.systematic.sd, `the simple random formula overstates systematic's error (${(100 * res.systematic.se).toFixed(1)} vs ${(100 * res.systematic.sd).toFixed(1)})`);
+  // with 2 whole squares the variance formula is right on average (its square root runs low), but ratios lean
+  { const v = [], o = [], u = [];
+    for (let k = 0; k < 6000; k++) { const e = D["whole squares"](Pe); v.push(e.se.O ** 2); o.push(e.O); if (isFinite(e.U[3])) u.push(e.U[3]); }
+    const ratio = m(v) / sd(o) ** 2, tU = P0.cell[3][3] / P0.rowT[3];
+    ok(Math.abs(ratio - 1) < 0.15 && m(v.map(Math.sqrt)) < 0.9 * sd(o), `2 whole squares: mean variance / real variance ${ratio.toFixed(2)}, mean SE ${(100 * m(v.map(Math.sqrt))).toFixed(1)} below spread ${(100 * sd(o)).toFixed(1)}`);
+    ok(m(u) < tU - 0.05, `2 whole squares: user's D, a ratio, leans low (${(100 * m(u)).toFixed(1)}% vs ${(100 * tU).toFixed(1)}%)`); }
+  const a0 = run(P0, D["whole squares"], "A"), a1 = run(Pt, D["whole squares"], "A");
+  ok(a1.sd > 1.2 * a0.sd && Math.abs(a1.m - 0.074) < 3 * a1.sd / Math.sqrt(2000) + 0.001, `toppings clumped: whole squares' anchovy area spreads more (${(100 * a0.sd).toFixed(1)} -> ${(100 * a1.sd).toFixed(1)}) and stays unbiased (${(100 * a1.m).toFixed(2)}%)`);
 }
 
 console.log(failed ? `\n${failed} check(s) failed` : "\nAll checks passed");

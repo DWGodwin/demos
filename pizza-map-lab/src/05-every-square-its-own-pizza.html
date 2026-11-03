@@ -1,0 +1,728 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Every Square Its Own Pizza</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&family=IBM+Plex+Mono:ital,wght@0,400;0,600;1,400&display=swap">
+<style>
+/* Layout: same lab bench as 01-04. Two clumping dials beside the pizza and its square-by-square map, five designs
+   tasting it once, 1,000 repeats of each, the dial swept from 0 to 100%, accuracy square by square (Sec. 4.7),
+   the formulas, then the paper check beside the notes. */
+:root{
+  --bg:#efe2c8; --check:rgba(196,52,32,.085); --panel:#fffaf0; --ink:#2b1b12; --muted:#6e584a;
+  --line:#2b1b12; --shadow:#2b1b12; --tomato:#c4341f;
+  --spread:#118a36; --clus:#e0189e;
+  --tint-g:rgba(17,138,54,.12); --tint-b:rgba(224,24,158,.12); --tint-d:rgba(43,27,18,.06);
+  --cheese-a:#f2c23c; --cheese-b:#f7d567; --mush-a:#cbb59a; --mush-b:#a68c70;
+  --pep-a:#b3261e; --pep-b:#8c1a14; --anch-a:#8ea3ba; --anch-b:#647891;
+  --crust-a:#c98a4b; --crust-b:#ad7036;
+  --f-display:"Silkscreen","Courier New",ui-monospace,monospace;
+  --f-body:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#1b1310; --check:rgba(196,52,32,.13); --panel:#2a1e18; --ink:#f3e7d3; --muted:#c3ae98;
+  --line:#f3e7d3; --shadow:#8a2a16; --tomato:#ff6a4d; --spread:#3ddc6e; --clus:#ff52c9;
+  --tint-g:rgba(61,220,110,.15); --tint-b:rgba(255,82,201,.15); --tint-d:rgba(243,231,211,.07);
+  color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --bg:#1b1310; --check:rgba(196,52,32,.13); --panel:#2a1e18; --ink:#f3e7d3; --muted:#c3ae98;
+  --line:#f3e7d3; --shadow:#8a2a16; --tomato:#ff6a4d; --spread:#3ddc6e; --clus:#ff52c9;
+  --tint-g:rgba(61,220,110,.15); --tint-b:rgba(255,82,201,.15); --tint-d:rgba(243,231,211,.07);
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{margin:0; background-color:var(--bg); color:var(--ink); font-family:var(--f-body); font-size:15px; line-height:1.55;
+  background-image:linear-gradient(90deg,var(--check) 50%,transparent 50%),linear-gradient(var(--check) 50%,transparent 50%);
+  background-size:56px 56px}
+.wrap{max-width:1120px; margin:0 auto; padding-block:28px 56px;
+  padding-left:max(16px,env(safe-area-inset-left,0px)); padding-right:max(16px,env(safe-area-inset-right,0px));
+  display:grid; gap:22px}
+h1,h2,h3,.eyebrow,.lbl,.btn,.seg label,th,.tag,.crumb,.big{font-family:var(--f-display); font-weight:400; letter-spacing:.02em}
+h1{font-size:clamp(28px,5.4vw,52px); line-height:1.05; margin:0; text-wrap:balance}
+h2{font-size:20px; margin:0 0 10px; text-wrap:balance}
+h3{font-size:15px; margin:18px 0 6px}
+p{margin:0 0 10px; max-width:66ch}
+a{color:var(--tomato)}
+.box{background:var(--panel); border:3px solid var(--line); box-shadow:6px 6px 0 var(--shadow); padding:18px; min-width:0}
+.mast{display:grid; gap:12px}
+.crumb{font-size:12px; color:var(--ink); justify-self:start}
+.eyebrow{font-size:13px; display:inline-block; background:var(--tomato); color:#fffaf0; padding:4px 8px; justify-self:start}
+.mast p{font-size:16px}
+.lab{display:grid; grid-template-columns:minmax(0,300px) minmax(0,1fr); gap:22px}
+@media (max-width:820px){.lab{grid-template-columns:minmax(0,1fr)}}
+.lab > h2{grid-column:1/-1; margin:0}
+.controls{display:grid; gap:16px; align-content:start}
+.ctl{display:grid; gap:6px}
+.lbl{font-size:13px; display:flex; justify-content:space-between; gap:8px}
+.lbl output{font-family:var(--f-body); font-weight:600; font-size:14px}
+.hint{font-size:12.5px; color:var(--muted); margin:0}
+input[type=range]{-webkit-appearance:none; appearance:none; width:100%; height:24px; background:transparent; margin:0}
+input[type=range]::-webkit-slider-runnable-track{height:10px; background:var(--tint-d); border:2px solid var(--line)}
+input[type=range]::-moz-range-track{height:6px; background:var(--tint-d); border:2px solid var(--line)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none; width:20px; height:20px; margin-top:-7px; background:var(--tomato); border:2px solid var(--line); border-radius:0}
+input[type=range]::-moz-range-thumb{width:16px; height:16px; background:var(--tomato); border:2px solid var(--line); border-radius:0}
+input[type=range]:focus-visible{outline:3px dashed var(--tomato); outline-offset:3px}
+.seg{display:grid; grid-template-columns:minmax(0,1fr); gap:6px; border:0; padding:0; margin:0; min-width:0}
+.seg.two{grid-template-columns:repeat(2,minmax(0,1fr))}
+.seg.three{grid-template-columns:repeat(3,minmax(0,1fr))}
+.seg.five{grid-template-columns:repeat(5,minmax(0,1fr))}
+.seg legend{padding:0; margin-bottom:6px}
+.seg input{position:absolute; opacity:0; pointer-events:none}
+.seg label{border:2px solid var(--line); padding:7px 8px; font-size:12px; cursor:pointer; display:flex; align-items:center; justify-content:space-between; gap:7px; background:var(--panel)}
+.seg.two label,.seg.three label,.seg.five label{justify-content:center; text-align:center}
+.seg label:hover{background:var(--tint-d)}
+.seg input:checked + label{background:var(--ink); color:var(--panel)}
+.seg input:focus-visible + label{outline:3px dashed var(--tomato); outline-offset:2px}
+.seg label small{font-family:var(--f-body); font-size:11px; opacity:.75}
+.dhint{border:2px dashed var(--line); padding:8px 10px; font-size:13px; margin:0}
+.btns{display:flex; flex-wrap:wrap; gap:8px}
+.btn{font-size:12px; border:2px solid var(--line); background:var(--panel); color:var(--ink); padding:7px 9px; cursor:pointer; box-shadow:3px 3px 0 var(--shadow); border-radius:0}
+.btn:hover{background:var(--tint-d)}
+.btn:active{transform:translate(3px,3px); box-shadow:0 0 0 var(--shadow)}
+.btn:focus-visible{outline:3px dashed var(--tomato); outline-offset:2px}
+select{font-family:var(--f-body); font-size:14px; border:2px solid var(--line); background:var(--panel); color:var(--ink); padding:6px 8px; border-radius:0; max-width:100%}
+select:focus-visible{outline:3px dashed var(--tomato); outline-offset:2px}
+.views{display:grid; gap:12px; align-content:start; min-width:0}
+.pies{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px}
+@media (max-width:560px){.pies{grid-template-columns:minmax(0,1fr)}}
+.readout{display:flex; flex-wrap:wrap; align-items:baseline; gap:6px 14px}
+.big{font-size:clamp(30px,5vw,44px); line-height:1; color:var(--tomato)}
+.readout span:not(.big){font-size:14px}
+figure{margin:0; display:grid; gap:8px; min-width:0; justify-items:start; align-content:start}
+figcaption{font-size:12.5px; color:var(--muted)}
+figcaption b{font-family:var(--f-display); font-weight:400; font-size:13px; color:var(--ink)}
+canvas{display:block; border:2px solid var(--line); background:var(--tint-d)}
+.pie{width:100%; max-width:420px; aspect-ratio:1; image-rendering:pixelated; image-rendering:crisp-edges}
+.chart{width:100%}
+.legend{display:flex; flex-wrap:wrap; gap:6px 14px; font-size:12.5px}
+.legend span{display:inline-flex; align-items:center; gap:6px}
+.sw{width:12px; height:12px; border:2px solid var(--line); flex:none; display:inline-block}
+.sw.ring{background:var(--panel)}
+.sw.miss{background:var(--tomato)}
+.sw.mist{background:var(--clus)}
+.sw.spread{background:var(--spread)} .sw.clus{background:var(--clus)} .sw.mid{background:var(--muted)}
+.sw.ramp{width:60px; background:linear-gradient(90deg,var(--clus),var(--panel))}
+.sw.ramp.an{background:linear-gradient(90deg,var(--panel),var(--anch-b))}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse; font-variant-numeric:tabular-nums; width:100%}
+th,td{border:2px solid var(--line); padding:7px 6px; text-align:center; font-size:13.5px}
+th{font-size:11.5px; background:var(--tint-d)}
+th.rowh{text-align:left}
+th .sw{vertical-align:-1px; margin-right:5px}
+td.acc{font-weight:600}
+.truth{border-style:dashed}
+td.dim{color:var(--muted)}
+tr.cur th,tr.cur td{background:var(--tint-g)}
+tr.pick{cursor:pointer}
+tr.pick:hover th,tr.pick:hover td{background:var(--tint-d)}
+#res{min-width:640px} #sumtab{min-width:640px} #chk{min-width:520px}
+.lower{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:22px; align-items:start}
+@media (max-width:980px){.lower{grid-template-columns:minmax(0,1fr)}}
+.histctl{display:flex; flex-wrap:wrap; gap:10px 16px; align-items:center; margin-bottom:12px}
+.histctl .seg{min-width:min(100%,360px)}
+.sum{font-size:14px; margin-top:10px}
+.busy{color:var(--muted); font-style:italic}
+.notes p{font-size:14px}
+.formula{display:inline-block; border:2px solid var(--line); padding:4px 8px; margin:2px 0 8px; font-weight:600; background:var(--tint-d)}
+/* Paper equations: MathML that build.py makes from tex tags. Live numbers are tagged \id{...} and set with setEq. */
+math{font-family:"STIX Two Math","Cambria Math","Latin Modern Math",math; font-size:1.15em; font-style:normal; font-weight:normal; line-height:normal; letter-spacing:normal; text-transform:none; direction:ltr; font-feature-settings:"dtls" off}
+mfrac > :nth-child(2), msqrt, mover > :first-child{math-shift:compact}
+.eqs{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px}
+@media (max-width:820px){.eqs{grid-template-columns:minmax(0,1fr)}}
+.eq{border:2px solid var(--line); background:var(--tint-d); padding:10px 12px; display:grid; gap:6px; align-content:start; min-width:0}
+.eq.off{opacity:.55}
+.eq-tag{font-family:var(--f-display); font-size:11.5px; letter-spacing:.02em; display:flex; justify-content:space-between; gap:4px 10px; flex-wrap:wrap}
+.eq-tag i{font-style:normal; color:var(--muted)}
+.eq-m{overflow-x:auto; overflow-y:hidden; padding:3px 0}
+@media (max-width:480px){.eq-m math{font-size:1em}}
+.eq-cap{font-size:12.5px; color:var(--muted); margin:0}
+footer{font-size:13px; color:var(--muted)}
+footer p{max-width:none}
+@media (prefers-reduced-motion:reduce){.btn:active{transform:none}}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <header class="mast">
+    <a class="crumb" href="index.html">← Pizza Map Lab</a>
+    <span class="eyebrow">Pizza Map Lab · Explainer 05</span>
+    <h1>Every Square Its Own Pizza</h1>
+    <p>Toppings pile up, and a classifier's mistakes pile up too: under a glare on the photo, every spot can come out wrong. Neighbouring spots agree with each other. Section 2.4 says this never biases a probability sample's estimates, but it changes how much one sample can be trusted. The one catch is ratios such as user's accuracy: from only two or three squares they lean, as Step 3 shows. Eating whole squares gets worse, and spreading bites across the pizza gets better. Turn the two dials and watch it happen.</p>
+  </header>
+
+  <section class="box lab" aria-label="Clump the toppings and the mistakes">
+    <h2>Step 1 · Clump the pizza</h2>
+    <div class="controls">
+      <div class="ctl">
+        <label class="lbl" for="ct"><span>Clumped toppings</span><output id="ct-v">0%</output></label>
+        <input type="range" id="ct" min="0" max="1" step="0.05" value="0">
+        <p class="hint">Mushroom, pepperoni and anchovy each pile around their own spots on the pizza. The map's mistakes stay at topping edges, so they move with the toppings.</p>
+      </div>
+      <div class="ctl">
+        <label class="lbl" for="ce"><span>Clumped mistakes</span><output id="ce-v">0%</output></label>
+        <input type="range" id="ce" min="0" max="1" step="0.05" value="0">
+        <p class="hint">The photo the map came from has a glare. Turn this up and the map's mistakes gather under it instead of along topping edges.</p>
+      </div>
+      <div class="ctl">
+        <span class="lbl">Try</span>
+        <div class="btns">
+          <button class="btn" type="button" data-ct="0" data-ce="0">The paper pizza</button>
+          <button class="btn" type="button" data-ct="0" data-ce="0.6">Glare</button>
+          <button class="btn" type="button" data-ct="1" data-ce="0">Topping corners</button>
+          <button class="btn" type="button" data-ct="1" data-ce="1">Both, all the way</button>
+        </div>
+      </div>
+      <div class="btns"><button class="btn" type="button" id="newpie">Bake a new pizza</button></div>
+      <fieldset class="seg three" id="view">
+        <legend class="lbl">Show</legend>
+        <input type="radio" name="view" id="v-map" value="map" checked><label for="v-map">The map</label>
+        <input type="radio" name="view" id="v-truth" value="truth"><label for="v-truth">Real pizza</label>
+        <input type="radio" name="view" id="v-err" value="err"><label for="v-err">Mistakes</label>
+      </fieldset>
+    </div>
+    <div class="views">
+      <div class="pies">
+        <figure>
+          <canvas class="pie" id="cv1" width="512" height="512" aria-label="The pizza at these dial settings"></canvas>
+          <figcaption id="cv1-cap"><b>The map</b></figcaption>
+        </figure>
+        <figure>
+          <canvas class="pie" id="heat" width="512" height="512" aria-label="Each square's share, from checking every spot"></canvas>
+          <figcaption id="heat-cap"><b>Square by square</b></figcaption>
+        </figure>
+      </div>
+      <fieldset class="seg two" id="heatk">
+        <legend class="lbl">Squares show</legend>
+        <input type="radio" name="heatk" id="h-ok" value="ok" checked><label for="h-ok">Map right</label>
+        <input type="radio" name="heatk" id="h-an" value="an"><label for="h-an">Real anchovy</label>
+      </fieldset>
+      <div class="legend" id="legend1"></div>
+      <div class="readout"><span class="big" id="sq-sd">9.7</span><span id="sq-say"></span></div>
+    </div>
+  </section>
+
+  <section class="box lab" aria-label="Taste the pizza five ways">
+    <h2>Step 2 · Taste it five ways</h2>
+    <div class="controls">
+      <fieldset class="seg" id="designs">
+        <legend class="lbl">Sampling design</legend>
+      </fieldset>
+      <p class="dhint" id="dhint"></p>
+      <fieldset class="seg three" id="sizes">
+        <legend class="lbl">Tastes</legend>
+      </fieldset>
+      <p class="hint">64 is one bite per square, 256 four, 576 nine.</p>
+      <div class="btns"><button class="btn" type="button" id="draw">Taste again</button></div>
+    </div>
+    <div class="views">
+      <figure>
+        <canvas class="pie" id="cv" width="512" height="512" aria-label="The map with this design's tasted spots lit up"></canvas>
+        <figcaption id="cv-cap"><b>Where the bites land</b></figcaption>
+      </figure>
+      <div class="legend" id="legend2"></div>
+    </div>
+  </section>
+
+  <section class="box">
+    <h2>What each design's sample says</h2>
+    <p id="res-intro"></p>
+    <div class="scroll"><table id="res"></table></div>
+    <p class="sum" id="res-note"></p>
+  </section>
+
+  <section class="box">
+    <h2>Step 3 · Repeat every design 1,000 times</h2>
+    <p>One sample can be lucky. Here every design tastes the pizza 1,000 times. Under every dial setting, shares such as overall accuracy and anchovy area centre on the truth (Sec. 2.4: correlation never biases a probability sample). What changes is how wide the piles are. Ratios from only two or three clusters are the exception, marked with *.</p>
+    <div class="histctl">
+      <label class="lbl" for="metric">Show</label>
+      <select id="metric">
+        <option value="oa">Overall accuracy</option>
+        <option value="ar3">Area of anchovy (D)</option>
+        <option value="pa3">Producer's accuracy: anchovy (D)</option>
+        <option value="ua3">User's accuracy: anchovy (D)</option>
+      </select>
+      <button class="btn" type="button" id="rerun">Repeat 1,000 more</button>
+    </div>
+    <canvas id="hist" aria-label="Histograms of 1,000 repeated estimates for every design"></canvas>
+    <div class="legend" style="margin-top:8px"><span><i class="sw clus"></i>Bites bunched in squares</span><span><i class="sw mid"></i>Simple random</span><span><i class="sw spread"></i>Bites spread across the pizza</span></div>
+    <p class="sum" id="hsum"></p>
+    <div class="scroll" style="margin-top:12px"><table id="sumtab"></table></div>
+    <p class="hint" style="margin-top:8px">Spread is the standard deviation of the 1,000 answers: the real sampling error. Formula SE is what each sample reports for itself with its own design's formula, averaged. Worth is the number of simple random tastes with the same spread.</p>
+  </section>
+
+  <section class="box">
+    <h2>Step 4 · Turn the dial all the way</h2>
+    <p>The spread of each design as one dial goes from 0 to 100%, with the other dial where you left it. 300 repeats per point, so the lines wobble a little.</p>
+    <div class="histctl">
+      <fieldset class="seg two" id="sweepk">
+        <legend class="lbl">Turn</legend>
+        <input type="radio" name="sweepk" id="s-ce" value="ce" checked><label for="s-ce">Clumped mistakes</label>
+        <input type="radio" name="sweepk" id="s-ct" value="ct"><label for="s-ct">Clumped toppings</label>
+      </fieldset>
+    </div>
+    <canvas class="chart" id="sweep" aria-label="Spread of each design as the dial turns"></canvas>
+    <div class="legend" style="margin-top:8px"><span><i class="sw clus"></i>Whole squares (solid), 5 × 5 blocks (dotted), two-stage (dashed)</span><span><i class="sw mid"></i>Random</span><span><i class="sw spread"></i>Systematic (solid), every square (dashed)</span><span><i class="sw miss"></i>Your dial</span></div>
+    <p class="sum" id="sweep-sum"></p>
+  </section>
+
+  <section class="box lab" aria-label="Accuracy square by square">
+    <h2>Step 5 · Square by square</h2>
+    <div class="controls">
+      <p>The error matrix gives one number for the whole pizza. It can't say where the map is bad (Sec. 4.7). Estimating each square on its own needs a lot of bites.</p>
+      <fieldset class="seg five" id="per">
+        <legend class="lbl">Bites per square</legend>
+      </fieldset>
+      <div class="btns"><button class="btn" type="button" id="draw5">Taste again</button></div>
+      <p class="sum" id="per-sum"></p>
+    </div>
+    <div class="views">
+      <div class="pies">
+        <figure>
+          <canvas class="pie" id="h-true" width="512" height="512" aria-label="Share the map gets right in each square, from checking every spot"></canvas>
+          <figcaption><b>The truth</b> Every spot checked.</figcaption>
+        </figure>
+        <figure>
+          <canvas class="pie" id="h-est" width="512" height="512" aria-label="Share the map gets right in each square, from the bites"></canvas>
+          <figcaption><b>From the bites</b> <span id="h-est-cap"></span></figcaption>
+        </figure>
+      </div>
+      <div class="legend"><span><i class="sw ramp"></i>0% to 100% right</span></div>
+    </div>
+  </section>
+
+  <section class="box">
+    <h2>The formulas</h2>
+    <p>Each design needs a variance formula that matches it (Sec. 4.2). The paper prints the stratified ones; for clusters it points to Stehman (1997b) and others. These cards follow the samples in Step 2.</p>
+    <div class="eqs">
+      <div class="eq">
+        <div class="eq-tag"><span>Eq. 16 with squares as strata</span><i>bites in every square</i></div>
+        <div class="eq-m"><tex display>\hat{V}(\hat{O}) = \sum_{h=1}^{64} W_h^2 \, \hat{O}_h(1-\hat{O}_h)/(n_h-1), \qquad W_h = 1/64</tex></div>
+        <div class="eq-m"><tex display>\hat{V}(\hat{O}) = (1/64)^2 \times \id{q-s-sum}{0.95} = \id{q-s-v}{0.00023}, \qquad \mathrm{SE} = \id{q-s-se}{1.5} \text{ points}</tex></div>
+        <p class="eq-cap" id="q-s-cap"></p>
+      </div>
+      <div class="eq">
+        <div class="eq-tag"><span>One-stage cluster</span><i>whole squares; Stehman (1997b), not printed in the paper</i></div>
+        <div class="eq-m"><tex display>\hat{O} = \frac{1}{m}\sum_{b=1}^{m} \bar{o}_b, \qquad \mathrm{SE}(\hat{O}) = s_{\bar{o}}/\sqrt{m}</tex></div>
+        <div class="eq-m"><tex display>\hat{O} = \id{q-k-o}{79.6}\%, \qquad \mathrm{SE} = \id{q-k-s}{9.7}/\sqrt{\id{q-k-m}{2}} = \id{q-k-se}{6.9} \text{ points}</tex></div>
+        <p class="eq-cap" id="q-k-cap"></p>
+      </div>
+      <div class="eq">
+        <div class="eq-tag"><span>Ignore the clusters</span><i>what Sec. 4.2 warns against</i></div>
+        <div class="eq-m"><tex display>\mathrm{SE}_{\text{as if random}} = \sqrt{\hat{O}(1-\hat{O})/(n-1)}</tex></div>
+        <div class="eq-m"><tex display>\sqrt{\id{q-n-o}{0.80} \times \id{q-n-x}{0.20} / \id{q-n-d}{449}} = \id{q-n-se}{1.9} \text{ points}</tex></div>
+        <div class="eq-m"><tex display>\text{cluster formula: } \id{q-n-k}{6.9} \text{ points}</tex></div>
+        <p class="eq-cap" id="q-n-cap"></p>
+      </div>
+      <div class="eq">
+        <div class="eq-tag"><span>What a design is worth</span><i>ours, from Step 3</i></div>
+        <div class="eq-m"><tex display>n_{\text{worth}} = n_{\text{random}} \times \left( \frac{\text{spread}_{\text{random}}}{\text{spread}_{\text{design}}} \right)^2</tex></div>
+        <div class="eq-m"><tex display>\id{q-w-n}{256} \times \left( \frac{\id{q-w-a}{2.5}}{\id{q-w-b}{6.8}} \right)^2 = \id{q-w-v}{35} \text{ tastes}</tex></div>
+        <p class="eq-cap" id="q-w-cap"></p>
+      </div>
+    </div>
+  </section>
+
+  <section class="lower">
+    <div class="box">
+      <h2>Check against the paper</h2>
+      <p>What Sections 2.2, 2.4 and 4.2 say about spatial correlation, tested on this pizza at the dials you set. Rows marked <i>ours</i> are not printed in the paper.</p>
+      <div class="scroll"><table id="chk"></table></div>
+      <p class="sum" id="chk-note"></p>
+      <h3>Designs in real assessments (Table 2)</h3>
+      <div class="scroll"><table>
+        <thead><tr><th>Design here</th><th>Example in the paper</th></tr></thead>
+        <tbody>
+          <tr><td>Bites in every square</td><td>Fichet et al. (2014): 20 × 20 km cells as strata, one random 2 × 2 km cluster in each, then points inside it. Wickham et al. (2004): one aerial photograph per 60 × 30 km cell, then pixels. Both take one cluster per cell; this page takes single bites, which Sec. 2.4 also allows ("one pixel or one cluster"). Stehman and Selkowitz (2010) used biomes of Alaska as spatial strata.</td></tr>
+          <tr><td>Two-stage</td><td>Edwards Jr. et al. (1998): USGS quadrangles picked at random within strata, then 1 ha blocks inside them.</td></tr>
+          <tr><td>Systematic grid</td><td>Nusser and Klaas (2003): systematic picks at both stages.</td></tr>
+        </tbody>
+      </table></div>
+    </div>
+    <div class="box notes">
+      <h2>What Sections 2.4 and 4.7 say</h2>
+      <h3>Correlation changes precision, never bias</h3>
+      <p>Estimates and their variance formulas stay unbiased however strong the spatial correlation is (Sec. 2.4, citing De Gruijter and Ter Braak 1990). There's no need to space bites apart to make the maths valid. Turn both dials all the way and the piles in Step 3 still centre on the truth.</p>
+      <h3>Neighbours agree, so clusters cost precision</h3>
+      <p>Positive correlation raises the standard errors of cluster samples, because the spots inside a cluster are alike (Sec. 2.4). Section 2.2 adds that each cluster may be worth only a modest number of separate points. Look at the Worth column for whole squares.</p>
+      <span class="formula">stratify for objectives, cluster for costs</span>
+      <h3>Spread out, and it gets better</h3>
+      <p>The same correlation makes a systematic sample more precise than a simple random one. That's why a spatially well spread sample is design criterion 7 (Sec. 2.2). One unit per spatial stratum is a simple alternative to a grid (Sec. 2.4). The catch with one bite per square is criterion 6: there's no unbiased variance formula.</p>
+      <h3>Don't space bites by hand</h3>
+      <p>Drawing a random sample and then moving or throwing out bites that land close together makes the chances of each spot very hard to work out. Without those chances it isn't a probability sample any more (Sec. 2.4). Use a documented design instead, like the grid or the squares here.</p>
+      <h3>The matrix can't say where</h3>
+      <p>An error matrix is a summary of the whole map (Sec. 4.7). Accuracy for parts of the map needs a large sample. Methods that predict accuracy at unsampled places lean on spatial correlation, and real reference samples are often too sparse for them.</p>
+    </div>
+  </section>
+
+  <footer>
+    <p>Based on Stehman, S.V. &amp; Foody, G.M. (2019). Key issues in rigorous accuracy assessment of land cover products. <i>Remote Sensing of Environment</i> 231, 111199, Sections 2.2, 2.4, 4.2 and 4.7, Eq. 16, Table 2. <a href="https://doi.org/10.1016/j.rse.2019.05.018">doi:10.1016/j.rse.2019.05.018</a></p>
+    <p>Previous: <a href="04-how-many-tastes.html">04 · How Many Tastes?</a>. Next up: 06 · how much anchovy is there?</p>
+  </footer>
+</main>
+
+<script>
+(function(){
+"use strict";
+/* @@KIT@@ */
+const BUDGETS=[64,256,576];
+const SYS={64:64,256:225,576:576}; /* systematic needs a square grid that fits the 120 x 120 pizza */
+const PER=[1,4,9,25,100];
+const REPS=1000, SWEEP_REPS=300, LEVELS=[0,.2,.4,.6,.8,1];
+const METRIC={oa:"overall accuracy", ar3:"the area of anchovy", pa3:"producer's accuracy for anchovy", ua3:"user's accuracy for anchovy"};
+const DESIGNS=[
+  {key:"whole", name:"Whole squares",         short:"Whole squares", grp:"clus"},
+  {key:"blk",   name:"Blocks of 5 × 5",       short:"5×5 blocks",    grp:"clus"},
+  {key:"two",   name:"Two-stage: 16 squares", short:"Two-stage",     grp:"clus"},
+  {key:"srs",   name:"Simple random",         short:"Random",        grp:"mid"},
+  {key:"sys",   name:"Systematic grid",       short:"Systematic",    grp:"spread"},
+  {key:"sq",    name:"Bites in every square", short:"Every square",  grp:"spread"},
+];
+const st={seed:SEED, ct:0, ce:0, view:"map", heat:"ok", design:"sq", n:256, metric:"oa", sweep:"ce", per:9};
+let P, tr, sq, smp={}, reps, sweep=null, sweepJob=0, s5;
+
+const $=id=>document.getElementById(id);
+const D=k=>DESIGNS.find(d=>d.key===k);
+const f1=v=>isFinite(v)?(100*v).toFixed(1)+"%":"–";
+const pt=v=>isFinite(v)?(100*v).toFixed(1):"–";
+const sw=k=>`<i class="sw" style="background:var(${VAR[k][0]})"></i>`;
+const sum=a=>a.reduce((x,y)=>x+y,0);
+const mean=a=>a.length?sum(a)/a.length:NaN;
+const sdev=a=>{if(a.length<2) return NaN; const m=mean(a); return Math.sqrt(sum(a.map(v=>(v-m)**2))/(a.length-1));};
+const setEq=(id,v)=>{$(id).textContent=v;};
+const fmt=v=>Math.round(v).toLocaleString("en");
+const pc=v=>Math.round(100*v)+"%";
+const getM=(o,key)=>key==="oa"?o.O:key==="ua3"?o.U[3]:key==="pa3"?o.P[3]:o.area[3];
+const getSE=(o,key)=>key==="oa"?o.se.O:key==="ua3"?o.se.U[3]:key==="pa3"?o.se.P[3]:o.se.area[3];
+const grpVar=g=>g==="clus"?"--clus":g==="spread"?"--spread":"--muted";
+/* clusters eaten whole, with too few of them for a ratio (user's, producer's) to settle */
+const FEW=4, few=d=>(d.key==="whole"||d.key==="blk")&&plan(d,st.n).m<FEW;
+const isRatio=key=>key==="ua3"||key==="pa3";
+
+/* ---- the pizza, and each square's truth ---- */
+function bake(ct,ce){ return bakePaperPizza(st.seed,{clumpTop:ct,clumpErr:ce}); }
+function setup(){
+  P=bake(st.ct,st.ce);
+  const c=P.cell; tr={O:0,U:[],P:[],area:[]};
+  for(let k=0;k<4;k++){ tr.O+=c[k][k]/P.T; tr.U[k]=c[k][k]/P.rowT[k]; tr.P[k]=c[k][k]/P.colT[k]; tr.area[k]=P.colT[k]/P.T; }
+  const S=CUTS*CUTS; sq={ok:new Array(S).fill(0), an:new Array(S).fill(0)};
+  for(const i of P.ids){ const q=P.piece[i]; if(P.map[i]===P.truth[i]) sq.ok[q]++; if(P.truth[i]===3) sq.an[q]++; }
+  sq.ok=sq.ok.map(v=>v/(CHIP*CHIP)); sq.an=sq.an.map(v=>v/(CHIP*CHIP));
+}
+
+/* ---- the designs at a budget of n tastes ---- */
+function plan(d,n){
+  if(d.key==="srs") return {tastes:n};
+  if(d.key==="sys") return {tastes:SYS[n], step:SIDE/Math.sqrt(SYS[n])};
+  if(d.key==="sq") return {tastes:n, per:n/64};
+  if(d.key==="two") return {tastes:n, m:16, per:n/16};
+  if(d.key==="blk"){ const m=Math.round(n/25); return {tastes:m*25, m, b:5}; }
+  const m=Math.max(2,Math.round(n/(CHIP*CHIP))); return {tastes:m*CHIP*CHIP, m, b:CHIP};
+}
+function drawWith(d,Pz,n,r){
+  const p=plan(d,n);
+  if(d.key==="srs"){ const ids=sampleSRS(Pz,n,r); return {ids, e:strataEstimate(Pz,[ids])}; }
+  if(d.key==="sys"){ const ids=sampleSystematic(Pz,p.tastes,r); return {ids, e:strataEstimate(Pz,[ids])}; }
+  if(d.key==="sq"){ const g=sampleBySquare(p.per,r); return {ids:g.flat(), groups:g, e:strataEstimate(Pz,g)}; }
+  const g=d.key==="two"?sampleTwoStage(p.m,p.per,r):sampleClusters(p.m,p.b,r);
+  return {ids:g.flat(), groups:g, e:clusterEstimate(Pz,g)};
+}
+function drawSamples(){ for(const d of DESIGNS){ const s=drawWith(d,P,st.n,Math.random); s.set=new Set(s.ids); s.squares=new Set(s.ids.map(i=>P.piece[i])).size; smp[d.key]=s; } }
+function runReps(){
+  reps={};
+  for(const d of DESIGNS){ const o={val:{}, se:{}};
+    for(const k in METRIC){o.val[k]=[]; o.se[k]=[];}
+    for(let r=0;r<REPS;r++){ const {e}=drawWith(d,P,st.n,Math.random);
+      for(const k in METRIC){ const v=getM(e,k), s=getSE(e,k); if(isFinite(v)) o.val[k].push(100*v); if(isFinite(s)) o.se[k].push(100*s); } }
+    reps[d.key]=o; }
+}
+
+/* ---- Step 1: the pizza and its squares ---- */
+function drawPizza1(){
+  const cv=$("cv1"), pal=pizzaPalette(), err=hexRGB(cssVar("--clus")), s=cv.width/N, v=st.view;
+  const ctx=paintPizza(cv,i=>{
+    if(P.crust[i]) return pal.crust[P.tex[i]];
+    if(!P.inside[i]) return null;
+    if(v==="err"){ if(P.map[i]!==P.truth[i]) return [err[0],err[1],err[2],255]; const c=pal.top[P.truth[i]][P.tex[i]]; return [c[0],c[1],c[2],60]; }
+    return pal.top[v==="map"?P.map[i]:P.truth[i]][P.tex[i]];
+  });
+  if(v==="map"&&st.ce>0){ /* the glare on the photo */
+    const gx=P.glare[0]*s, gy=P.glare[1]*s, R=40*s, g=ctx.createRadialGradient(gx,gy,0,gx,gy,R);
+    g.addColorStop(0,`rgba(255,255,255,${(.7*st.ce).toFixed(2)})`); g.addColorStop(1,"rgba(255,255,255,0)");
+    ctx.fillStyle=g; ctx.fillRect(0,0,cv.width,cv.height); }
+  $("cv1-cap").innerHTML={map:"<b>The map</b> What the classifier says."+(st.ce>0?" The white haze is the glare.":""),
+    truth:"<b>The real pizza</b> What a taster would find.", err:"<b>Mistakes</b> Spots where the map is wrong."}[v];
+}
+function heatColor(f,an){ /* f in 0-1: share right (panel at 100%, magenta at 0) or share anchovy (panel at 0, anchovy at 50%+) */
+  const a=hexRGB(cssVar("--panel")), b=hexRGB(cssVar(an?"--anch-b":"--clus")), t=an?Math.min(1,f/.5):1-f;
+  return a.map((x,k)=>Math.round(x+(b[k]-x)*t)); }
+function drawHeat(cv,vals,an,label){
+  const ctx=cv.getContext("2d"), W=cv.width, s=W/N, ink=cssVar("--ink"), font=cssVar("--f-body");
+  ctx.clearRect(0,0,W,W); ctx.fillStyle=`rgb(${hexRGB(cssVar("--crust-a")).join(",")})`; ctx.fillRect(0,0,W,W);
+  const c=CHIP*s;
+  vals.forEach((f,q)=>{ const x=(EDGE+(q%CUTS)*CHIP)*s, y=(EDGE+Math.floor(q/CUTS)*CHIP)*s;
+    if(!isFinite(f)){ ctx.fillStyle=cssVar("--panel"); ctx.fillRect(x,y,c,c); return; }
+    const col=heatColor(f,an); ctx.fillStyle=`rgb(${col.join(",")})`; ctx.fillRect(x,y,c,c);
+    if(label){ const dark=(col[0]*.3+col[1]*.59+col[2]*.11)<120; ctx.fillStyle=dark?"#fffaf0":"#2b1b12"; ctx.font=`600 ${Math.round(c*.32)}px ${font}`;
+      ctx.textAlign="center"; ctx.textBaseline="middle"; ctx.fillText(Math.round(100*f),x+c/2,y+c/2+1); } });
+  ctx.strokeStyle=ink; ctx.globalAlpha=.5; ctx.lineWidth=2;
+  for(let k=0;k<=CUTS;k++){ const p=(EDGE+k*CHIP)*s; ctx.beginPath(); ctx.moveTo(p,EDGE*s); ctx.lineTo(p,(EDGE+SIDE)*s); ctx.moveTo(EDGE*s,p); ctx.lineTo((EDGE+SIDE)*s,p); ctx.stroke(); }
+  ctx.globalAlpha=1;
+}
+function renderStep1(){
+  $("ct-v").textContent=pc(st.ct); $("ce-v").textContent=pc(st.ce);
+  drawPizza1();
+  const an=st.heat==="an", vals=an?sq.an:sq.ok;
+  drawHeat($("heat"),vals,an,true);
+  $("heat-cap").innerHTML=an?"<b>Real anchovy in each square</b> Percent of the square's spots.":"<b>Map right in each square</b> Percent of the square's spots.";
+  $("legend1").innerHTML=(st.view==="err"?`<span><i class="sw mist"></i>Map wrong</span>`:NAMES.map((n,k)=>`<span>${sw(k)}${TITLE[k]}</span>`).join(""))+
+    `<span><i class="sw ramp${an?" an":""}"></i>${an?"0% to 50%+ anchovy":"0% to 100% right"}</span>`;
+  const sd=100*sdev(vals), lo=Math.min(...vals), hi=Math.max(...vals);
+  $("sq-sd").textContent="± "+sd.toFixed(1);
+  $("sq-say").innerHTML=an
+    ?`points: how much the squares differ in anchovy. They run from ${pc(lo)} to ${pc(hi)}, around 7.4% for the whole pizza. Table 5 is still exact.`
+    :`points: how much the squares differ in accuracy. They run from ${pc(lo)} to ${pc(hi)} right, around 79.6% for the whole pizza. Table 5 is still exact: the dials only move the mistakes.`;
+}
+
+/* ---- Step 2: one sample of each design ---- */
+function buildControls(){
+  $("designs").insertAdjacentHTML("beforeend",DESIGNS.map(d=>
+    `<input type="radio" name="design" id="d-${d.key}" value="${d.key}"${d.key===st.design?" checked":""}><label for="d-${d.key}">${d.name}<small id="dt-${d.key}"></small></label>`).join(""));
+  $("sizes").insertAdjacentHTML("beforeend",BUDGETS.map(n=>
+    `<input type="radio" name="size" id="n-${n}" value="${n}"${n===st.n?" checked":""}><label for="n-${n}">${n}</label>`).join(""));
+  $("per").insertAdjacentHTML("beforeend",PER.map(n=>
+    `<input type="radio" name="per" id="p-${n}" value="${n}"${n===st.per?" checked":""}><label for="p-${n}">${n}</label>`).join(""));
+}
+function renderHint(){
+  const d=D(st.design), p=plan(d,st.n);
+  for(const e of DESIGNS) $("dt-"+e.key).textContent=fmt(plan(e,st.n).tastes);
+  const H={
+    whole:`Pick ${p.m} squares at random and eat every spot in them: ${fmt(p.tastes)} tastes from ${p.m} places. A whole square is 225 spots, so this design can't come in at ${st.n}; it needs at least two squares to have a standard error.`,
+    blk:`Cut the pizza into 576 blocks of 5 × 5 spots, pick ${p.m} at random and eat every spot in them: ${fmt(p.tastes)} tastes. Smaller clusters than whole squares, so the budget fits and there are more of them to compare.`,
+    two:`Pick ${p.m} squares at random, then ${p.per} random bites in each: ${fmt(p.tastes)} tastes. The squares are the primary units, the bites the secondary ones (Sec. 2.2). Its SE uses only the spread between squares; with a quarter of the squares picked, that runs a little high.`,
+    srs:`${fmt(p.tastes)} spots picked at random from the whole pizza. Some squares get several bites and some none.`,
+    sys:p.step===CHIP
+      ?`A random starting spot, then every ${p.step}th spot across and down: ${fmt(p.tastes)} tastes. That's one bite per square, in the same place in every square, so it's also a one-per-square design, with only 225 possible samples.`
+      :`A random starting spot, then every ${p.step}th spot across and down: ${fmt(p.tastes)} tastes.${st.n===256?" 256 isn't a square grid on this pizza, so the grid takes 225, the nearest one that fits.":""}`,
+    sq:`Every square is a stratum (Sec. 2.4), with ${p.per} random ${p.per>1?"bites":"bite"} in each: ${fmt(p.tastes)} tastes.${p.per===1?" One per stratum is the most spread out, but there's no variance formula for it (criterion 6, Sec. 2.2).":""}`,
+  };
+  $("dhint").textContent=H[d.key];
+}
+function drawPizza2(){
+  const cv=$("cv"), pal=pizzaPalette(), s=cv.width/N, cur=smp[st.design];
+  const ctx=paintPizza(cv,i=>{
+    if(P.crust[i]) return pal.crust[P.tex[i]];
+    if(!P.inside[i]) return null;
+    const c=pal.top[P.map[i]][P.tex[i]]; return [c[0],c[1],c[2],cur.set.has(i)?255:70];
+  });
+  const ink=cssVar("--ink"), panel=cssVar("--panel"), tom=cssVar("--tomato");
+  if(cur.groups&&st.design!=="sq"){ /* outline each picked square or block */
+    for(const g of cur.groups){ let x0=N, y0=N, x1=0, y1=0;
+      if(st.design==="two"){ const q=P.piece[g[0]]; x0=EDGE+(q%CUTS)*CHIP; y0=EDGE+Math.floor(q/CUTS)*CHIP; x1=x0+CHIP; y1=y0+CHIP; }
+      else for(const i of g){ const x=i%N, y=(i/N)|0; x0=Math.min(x0,x); y0=Math.min(y0,y); x1=Math.max(x1,x+1); y1=Math.max(y1,y+1); }
+      ctx.lineWidth=3; ctx.strokeStyle=panel; ctx.strokeRect(x0*s-2,y0*s-2,(x1-x0)*s+4,(y1-y0)*s+4);
+      ctx.lineWidth=2; ctx.strokeStyle=ink; ctx.strokeRect(x0*s-3,y0*s-3,(x1-x0)*s+6,(y1-y0)*s+6); } }
+  const n=cur.ids.length;
+  const whole=st.design==="whole"||st.design==="blk"; /* every spot in a cluster is tasted: just mark the wrong ones */
+  if(whole||n>300){ for(const i of cur.ids) if(P.truth[i]!==P.map[i]){ctx.fillStyle=tom; ctx.fillRect((i%N)*s,((i/N)|0)*s,s,s);} }
+  if(!whole){ const r=n>300?3:5;
+    for(const i of cur.ids){ const cx=(i%N)*s+s/2, cy=((i/N)|0)*s+s/2;
+      ctx.fillStyle=P.truth[i]!==P.map[i]?tom:panel; ctx.fillRect(cx-r,cy-r,2*r,2*r);
+      if(r>3){ctx.lineWidth=2; ctx.strokeStyle=ink; ctx.strokeRect(cx-r,cy-r,2*r,2*r);} } }
+  $("cv-cap").innerHTML=`<b>${D(st.design).name}</b> ${fmt(n)} tastes in ${cur.squares} of the 64 squares.`;
+  $("legend2").innerHTML=NAMES.map((n,k)=>`<span>${sw(k)}${TITLE[k]}</span>`).join("")+
+    `<span><i class="sw ring"></i>Tasted, map right</span><span><i class="sw miss"></i>Tasted, map wrong</span>`;
+}
+function renderResults(){
+  $("res-intro").innerHTML=`One sample from each design at ${st.n} tastes. Every design here gives every spot the same chance, so the estimates are plain shares of the bites. The paper would poststratify a simple random or systematic sample by map class (Sec. 4.2); this page skips that for every design, so the only difference between them is where the bites land. The standard errors come from each design's own formula. Click a row to see its bites.`;
+  const cell=(e,k,d)=>{ const v=getM(e,k), s=getSE(e,k), star=isRatio(k)&&few(d)&&isFinite(v)?" *":""; return `<td class="acc">${f1(v)}${star}</td><td>${isFinite(s)?"± "+pt(s):isFinite(v)?"none":"–"}</td>`; };
+  let h=`<thead><tr><th class="rowh">Design</th><th>Tastes</th><th>Squares visited</th><th>Overall</th><th>SE</th><th>Anchovy area</th><th>SE</th><th>Producer's D</th><th>SE</th></tr></thead><tbody>`;
+  for(const d of DESIGNS){ const s=smp[d.key], e=s.e;
+    h+=`<tr class="pick${d.key===st.design?" cur":""}" data-d="${d.key}"><th class="rowh"><i class="sw ${d.grp}"></i>${d.name}</th><td>${fmt(s.ids.length)}</td><td>${s.squares}</td>${cell(e,"oa",d)}${cell(e,"ar3",d)}${cell(e,"pa3",d)}</tr>`; }
+  h+=`<tr><th class="rowh truth">Truth (Table 5)</th><td class="truth">14,400</td><td class="truth">64</td><td class="truth">${f1(tr.O)}</td><td class="truth"></td><td class="truth">${f1(tr.area[3])}</td><td class="truth"></td><td class="truth">${f1(tr.P[3])}</td><td class="truth"></td></tr>`;
+  $("res").innerHTML=h+"</tbody>";
+  $("res").querySelectorAll("tr[data-d]").forEach(r=>r.addEventListener("click",()=>pickDesign(r.dataset.d)));
+  const w=smp.whole.e;
+  $("res-note").innerHTML=`Whole squares visit only ${smp.whole.squares} places for ${fmt(smp.whole.ids.length)} tastes, the cheapest trip. Their standard error comes from how much those ${smp.whole.squares} squares differ (± ${pt(w.se.O)} for overall accuracy here), not from the number of bites.`+
+    (st.n===64?` With one bite per square there's no SE for the every-square design: each stratum needs two bites to show its own spread.`:"")+
+    (DESIGNS.some(few)?` * Producer's accuracy is a ratio. From fewer than ${FEW} clusters it leans, so treat these numbers with care (Step 3).`:"");
+}
+
+/* ---- Step 3: repeats ---- */
+function renderHist(){
+  const cv=$("hist"), w=cv.clientWidth||900, px=window.devicePixelRatio||1, narrow=w<560, rowH=narrow?52:58, h=DESIGNS.length*rowH+56;
+  cv.style.width="100%"; cv.style.height=h+"px"; cv.width=Math.round(w*px); cv.height=Math.round(h*px);
+  const key=st.metric, rows=DESIGNS.map(d=>({name:d.short+(isRatio(key)&&few(d)?" *":""), vals:reps[d.key].val[key], col:cssVar(grpVar(d.grp)), dim:false}));
+  const t=100*getM(tr,key), stats=drawRepeats(cv,rows,t,{px,left:narrow?112:150,bin:key==="ar3"?.5:1});
+  const sdR=stats[DESIGNS.findIndex(d=>d.key==="srs")].sd;
+  let tab=`<thead><tr><th class="rowh">Design</th><th>Tastes</th><th>Average</th><th class="truth">Truth</th><th>Spread</th><th>Formula SE</th><th>Worth</th></tr></thead><tbody>`;
+  DESIGNS.forEach((d,k)=>{ const s=stats[k], fse=mean(reps[d.key].se[key]), n=plan(d,st.n).tastes, worth=st.n*(sdR/s.sd)**2;
+    d._sd=s.sd; d._worth=worth; d._fse=fse; d._mean=s.mean;
+    tab+=`<tr class="${d.key===st.design?"cur":""}"><th class="rowh"><i class="sw ${d.grp}"></i>${d.name}</th><td>${fmt(n)}</td><td>${s.mean.toFixed(1)}%${isRatio(key)&&few(d)?" *":""}</td><td class="truth">${t.toFixed(1)}%</td>`+
+      `<td class="acc">${s.sd.toFixed(1)}</td><td>${isFinite(fse)?fse.toFixed(1):"none"}</td><td>${fmt(worth)}</td></tr>`; });
+  $("sumtab").innerHTML=tab+"</tbody>";
+  const W_=D("whole"), B_=D("blk"), S_=D("sys"), Q=D("sq"), t0=100*getM(tr,key);
+  let s=`For ${METRIC[key]} at ${st.n} tastes, random bites spread ${sdR.toFixed(1)} points. Whole squares spread ${W_._sd.toFixed(1)}, so their ${fmt(plan(W_,st.n).tastes)} tastes are worth about ${fmt(W_._worth)} random ones, about ${fmt(W_._worth/plan(W_,st.n).m)} per square. Blocks of 5 × 5 spread ${B_._sd.toFixed(1)}. `;
+  if(S_._sd>sdR*1.05) s+=`Here the systematic grid spreads more than random (${S_._sd.toFixed(1)}). Its gain needs neighbours that agree (positive correlation, Sec. 2.4), and at this spacing the pizza has little, so a tie or a small loss doesn't contradict the paper. Every square spreads ${Q._sd.toFixed(1)}. `;
+  else s+=`Spreading the bites does ${Q._sd<sdR*.95&&S_._sd<sdR*.95?"better":"about as well"}: systematic ${S_._sd.toFixed(1)}, every square ${Q._sd.toFixed(1)}. `;
+  if(isFinite(S_._fse)&&S_._fse>S_._sd*1.15) s+=`The systematic grid reports ${S_._fse.toFixed(1)}. Sec. 4.2 says the paper's poststratified formulas usually overstate a systematic sample's variance; the plain formula used here does too. `;
+  const lowSE=DESIGNS.filter(d=>few(d)&&d._fse<d._sd*.85);
+  if(lowSE.length) s+=`${lowSE.map(d=>`${d.name} report ${d._fse.toFixed(1)}`).join(" and ")} on average, below the real spread. `+(isRatio(key)
+    ?`For a ratio from fewer than ${FEW} clusters the SE can't be trusted either. `
+    :`The variance formula is right on average, but it rests on only ${lowSE.map(d=>plan(d,st.n).m).join(" or ")} clusters, and the square root of such a shaky variance comes out too small more often than too big. `);
+  const lean=DESIGNS.filter(d=>isRatio(key)&&few(d)&&Math.abs(d._mean-t0)>2);
+  if(lean.length) s+=`* ${lean.map(d=>`${d.name} average ${d._mean.toFixed(1)}%`).join(", ")} against a truth of ${t0.toFixed(1)}%. ${key==="ua3"?"User's":"Producer's"} accuracy is a ratio of two counts that both swing from cluster to cluster, and with fewer than ${FEW} clusters it leans. Shares such as overall accuracy and area don't. This is a small-sample effect, not spatial correlation biasing the design: with more clusters it fades. `;
+  if(st.ct===0&&st.ce===0) s+=`Turn up a dial in Step 1 and watch the bunched designs widen.`;
+  $("hsum").innerHTML=s;
+}
+
+/* ---- Step 4: sweep a dial (runs in small pieces so the page stays responsive) ---- */
+function startSweep(){
+  const job=++sweepJob, k=st.sweep, other=k==="ce"?st.ct:st.ce, out={k, other, n:st.n, seed:st.seed, sd:{}};
+  for(const d of DESIGNS){ out.sd[d.key]={}; for(const m in METRIC) out.sd[d.key][m]=[]; }
+  sweep={...out, done:0}; drawSweep();
+  let li=0;
+  const step=()=>{ if(job!==sweepJob) return;
+    const lv=LEVELS[li], Pz=k==="ce"?bake(st.ct,lv):bake(lv,st.ce);
+    for(const d of DESIGNS){ const v={}; for(const m in METRIC) v[m]=[];
+      for(let r=0;r<SWEEP_REPS;r++){ const {e}=drawWith(d,Pz,st.n,Math.random); for(const m in METRIC){ const x=getM(e,m); if(isFinite(x)) v[m].push(100*x); } }
+      for(const m in METRIC) sweep.sd[d.key][m][li]=sdev(v[m]); }
+    sweep.done=++li; drawSweep();
+    if(li<LEVELS.length) setTimeout(step,0); else renderCheck(); };
+  setTimeout(step,30);
+}
+function prep(cv,h){ const w=cv.clientWidth||600, px=window.devicePixelRatio||1; cv.style.height=h+"px"; cv.width=Math.round(w*px); cv.height=Math.round(h*px);
+  const ctx=cv.getContext("2d"); ctx.setTransform(px,0,0,px,0,0); ctx.clearRect(0,0,w,h); ctx.font=`12px ${cssVar("--f-body")}`; ctx.textBaseline="middle"; return {ctx,w,h}; }
+function drawSweep(){
+  const cv=$("sweep"), {ctx,w,h}=prep(cv,(cv.clientWidth||600)<520?300:340), ink=cssVar("--ink"), muted=cssVar("--muted"), tom=cssVar("--tomato");
+  const key=st.metric, narrow=w<520, L=46, R=narrow?16:118, T=16, B=46;
+  const all=DESIGNS.flatMap(d=>sweep.sd[d.key][key].filter(isFinite)), top=Math.max(2,Math.ceil((Math.max(0,...all)*1.1)/2)*2);
+  const X=v=>L+v*(w-L-R), Y=v=>T+(1-v/top)*(h-T-B), stepY=top>20?5:top>8?2:1;
+  ctx.fillStyle=muted; ctx.textAlign="right";
+  for(let v=0;v<=top+1e-9;v+=stepY){ ctx.globalAlpha=.25; ctx.fillRect(L,Math.round(Y(v)),w-L-R,1); ctx.globalAlpha=1; ctx.fillText(v,L-8,Y(v)); }
+  ctx.textAlign="center"; for(const v of LEVELS) ctx.fillText(pc(v),X(v),h-B+16);
+  ctx.textAlign="right"; ctx.fillText((sweep.k==="ce"?"clumped mistakes":"clumped toppings")+" →",w-R,h-6);
+  ctx.save(); ctx.translate(12,T+(h-T-B)/2); ctx.rotate(-Math.PI/2); ctx.textAlign="center"; ctx.fillText("spread (points)",0,0); ctx.restore();
+  /* where the dial sits now */
+  const now=sweep.k==="ce"?st.ce:st.ct; ctx.strokeStyle=tom; ctx.lineWidth=2; ctx.setLineDash([4,4]); ctx.beginPath(); ctx.moveTo(X(now),T); ctx.lineTo(X(now),h-B); ctx.stroke(); ctx.setLineDash([]);
+  const ends=[];
+  for(const d of DESIGNS){ const v=sweep.sd[d.key][key], col=cssVar(grpVar(d.grp)), dash=d.key==="two"||d.key==="sq"?[6,4]:d.key==="blk"?[2,3]:[];
+    ctx.strokeStyle=col; ctx.fillStyle=col; ctx.lineWidth=3; ctx.setLineDash(dash); ctx.beginPath(); let on=false;
+    v.forEach((y,i)=>{ if(!isFinite(y)) return; on?ctx.lineTo(X(LEVELS[i]),Y(y)):ctx.moveTo(X(LEVELS[i]),Y(y)); on=true; }); ctx.stroke(); ctx.setLineDash([]);
+    v.forEach((y,i)=>{ if(isFinite(y)) ctx.fillRect(X(LEVELS[i])-3,Y(y)-3,6,6); });
+    const last=v.length-1; if(last>=0&&isFinite(v[last])) ends.push({y:Y(v[last]), x:X(LEVELS[last]), name:d.short, col}); }
+  if(!narrow&&sweep.done===LEVELS.length){ ends.sort((a,b)=>a.y-b.y); for(let i=1;i<ends.length;i++) ends[i].y=Math.max(ends[i].y,ends[i-1].y+14);
+    ctx.textAlign="left"; for(const e of ends){ ctx.fillStyle=e.col; ctx.fillText(e.name,e.x+10,e.y); } }
+  ctx.strokeStyle=ink; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(L,T); ctx.lineTo(L,h-B); ctx.lineTo(w-R,h-B); ctx.stroke();
+  if(sweep.done<LEVELS.length){ ctx.fillStyle=muted; ctx.textAlign="center"; ctx.fillText(`baking pizza ${sweep.done+1} of ${LEVELS.length}…`,L+(w-L-R)/2,T+12); }
+  renderSweepSum();
+}
+function renderSweepSum(){
+  const el=$("sweep-sum");
+  if(sweep.done<LEVELS.length){ el.innerHTML=`<span class="busy">Working…</span>`; return; }
+  const key=st.metric, g=d=>sweep.sd[d][key], last=LEVELS.length-1, dial=sweep.k==="ce"?"clumped mistakes":"clumped toppings";
+  let s=`For ${METRIC[key]}, as ${dial} goes from 0 to 100%: whole squares go from ${g("whole")[0].toFixed(1)} to ${g("whole")[last].toFixed(1)} points, 5 × 5 blocks from ${g("blk")[0].toFixed(1)} to ${g("blk")[last].toFixed(1)}, two-stage from ${g("two")[0].toFixed(1)} to ${g("two")[last].toFixed(1)}. `;
+  s+=`Random bites stay near ${mean(g("srs")).toFixed(1)}, because they don't care where things are. Systematic ends at ${g("sys")[last].toFixed(1)} and every square at ${g("sq")[last].toFixed(1)}. `;
+  const accKey=key==="oa"||key==="ua3"||key==="pa3";
+  if(sweep.k==="ce"&&!accKey) s+=`The anchovy area doesn't depend on the map, so this dial barely moves it. Try clumped toppings. `;
+  if(sweep.k==="ct"&&key==="oa") s+=`Clumped toppings move overall accuracy a little, because the mistakes sit at topping edges and follow them. `;
+  if(sweep.k==="ce"&&key==="oa") s+=`The paper's Sec. 2.4 in one chart: positive correlation raises cluster standard errors and lowers systematic ones.`;
+  el.innerHTML=s;
+}
+
+/* ---- Step 5: square by square ---- */
+function tasteStep5(){ s5=sampleBySquare(st.per,Math.random); drawStep5(); }
+function drawStep5(){
+  const est=s5.map(g=>g.reduce((a,i)=>a+(P.map[i]===P.truth[i]?1:0),0)/g.length);
+  drawHeat($("h-true"),sq.ok,false,true); drawHeat($("h-est"),est,false,true);
+  const err=est.map((v,q)=>v-sq.ok[q]), rms=100*Math.sqrt(mean(err.map(v=>v*v))), off=err.filter(v=>Math.abs(v)>.1).length;
+  const e=strataEstimate(P,s5);
+  $("h-est-cap").textContent=`${st.per} per square, ${fmt(64*st.per)} tastes.`;
+  $("per-sum").innerHTML=`With ${fmt(64*st.per)} tastes the whole-pizza estimate is ${f1(e.O)}${isFinite(e.se.O)?` ± ${pt(e.se.O)}`:""} (truth ${f1(tr.O)}). Square by square, the estimates miss by ${rms.toFixed(1)} points on average, and ${off} of 64 squares are off by more than 10. `+
+    (st.per<25?`Each square has only ${st.per} ${st.per>1?"bites":"bite"}, so its estimate can only be a multiple of ${(100/st.per).toFixed(st.per>4?1:0)}%.`:`Even ${st.per} bites a square leave an SE of about ${(100*Math.sqrt(.8*.2/st.per)).toFixed(0)} points for each one.`);
+}
+
+/* ---- the formulas, from the Step 2 samples ---- */
+function renderEqs(){
+  const q=smp.sq, b=plan(D("sq"),st.n).per;
+  if(b>1){ let s=0; for(const g of q.groups){ const o=g.reduce((a,i)=>a+(P.map[i]===P.truth[i]?1:0),0)/b; s+=o*(1-o)/(b-1); }
+    const v=s/64/64; setEq("q-s-sum",s.toFixed(3)); setEq("q-s-v",v.toFixed(6)); setEq("q-s-se",pt(Math.sqrt(v)));
+    $("q-s-cap").textContent=`${b} bites in each of the 64 squares. Each square adds its own spread, worked out from its own bites. This is the paper's Eq. 16 with squares in place of map classes, each weighted 1/64.`; }
+  else { setEq("q-s-sum","?"); setEq("q-s-v","?"); setEq("q-s-se","?");
+    $("q-s-cap").textContent=`With one bite per square, n_h − 1 = 0 and every term divides by zero. A square with one bite can't show its own spread, so this design has no unbiased variance formula (criterion 6, Sec. 2.2). Pick 256 or 576 tastes.`; }
+  const w=smp.whole, m=w.groups.length, os=w.groups.map(g=>g.reduce((a,i)=>a+(P.map[i]===P.truth[i]?1:0),0)/g.length), so=sdev(os), O=mean(os);
+  setEq("q-k-o",pt(O)); setEq("q-k-s",pt(so)); setEq("q-k-m",m); setEq("q-k-se",pt(so/Math.sqrt(m)));
+  $("q-k-cap").textContent=`The ${m} squares here are ${os.slice(0,-1).map(pc).join(", ")} and ${pc(os[os.length-1])} right. The SE comes from how much they differ: the bites inside a square count as one measurement.`;
+  const n=w.ids.length, naive=Math.sqrt(O*(1-O)/(n-1));
+  setEq("q-n-o",O.toFixed(2)); setEq("q-n-x",(1-O).toFixed(2)); setEq("q-n-d",fmt(n-1)); setEq("q-n-se",pt(naive)); setEq("q-n-k",pt(so/Math.sqrt(m)));
+  $("q-n-cap").textContent=`Treating the ${fmt(n)} bites as if each were picked on its own would claim ${(so/Math.sqrt(m)/naive).toFixed(1)} times too much precision. Sec. 4.2: variances "may be substantially underestimated" if the formula ignores the clusters.`;
+}
+function renderWorth(){
+  const W_=D("whole"), sdR=D("srs")._sd;
+  setEq("q-w-n",st.n); setEq("q-w-a",sdR.toFixed(1)); setEq("q-w-b",W_._sd.toFixed(1)); setEq("q-w-v",fmt(W_._worth));
+  $("q-w-cap").textContent=`For whole squares and ${METRIC[st.metric]}: ${fmt(plan(W_,st.n).tastes)} tastes in ${plan(W_,st.n).m} squares are worth about ${fmt(W_._worth)} random ones, or ${fmt(W_._worth/plan(W_,st.n).m)} per square. Sec. 2.2: each cluster "may be equivalent to only a modest number of unclustered sample points".`;
+}
+
+/* ---- check against the paper ---- */
+function renderCheck(){
+  const M=[[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]]; for(const i of P.ids) M[P.map[i]][P.truth[i]]++;
+  let worst=0; for(let i=0;i<4;i++) for(let j=0;j<4;j++) worst=Math.max(worst,Math.abs(100*M[i][j]/P.T-TABLE5[i][j]));
+  const key=st.metric, t=100*getM(tr,key), W_=D("whole"), S_=D("sys"), R_=D("srs"), Q=D("sq");
+  const fair=DESIGNS.filter(d=>!(isRatio(key)&&few(d))), biasOK=fair.every(d=>Math.abs(d._mean-t)<Math.max(.6,4*d._sd/Math.sqrt(REPS)));
+  const leanNote=isRatio(key)&&DESIGNS.some(few)?`; ${DESIGNS.filter(few).map(d=>d.short.toLowerCase()).join(" and ")} left out: a ratio from fewer than ${FEW} clusters leans (Step 3)`:"";
+  const sw0=sweep&&sweep.done===LEVELS.length?sweep.sd.whole[key]:null;
+  const rows=[
+    ["Table 5 at these dials <i>ours</i>","exact",`every cell within ${worst.toFixed(3)} points`],
+    ["Sec. 2.4: correlation doesn't bias the estimates",`centred on the truth`,`averages ${fair.map(d=>d._mean.toFixed(1)).join(", ")} against ${t.toFixed(1)}${biasOK?"":" (one is off by more than chance)"}${leanNote}`],
+    ["Sec. 2.4: correlation raises cluster SEs",`higher`,sw0?`whole squares ${sw0[0].toFixed(1)} → ${sw0[LEVELS.length-1].toFixed(1)} as ${sweep.k==="ce"?"mistakes":"toppings"} clump (Step 4)`:"working…"],
+    ["Sec. 2.4: systematic beats simple random",`smaller SEs, when neighbours agree`,`spread ${S_._sd.toFixed(1)} against ${R_._sd.toFixed(1)}${S_._sd>R_._sd*.95?" (little correlation at this spacing, so no gain is expected)":""}`],
+    ["Sec. 4.2: variance formulas on a systematic sample","usually too big (said of the poststratified formulas)",`the plain formula here reports ${S_._fse.toFixed(1)}, real spread ${S_._sd.toFixed(1)}`],
+    ["Sec. 2.2: a cluster is worth a few points","a modest number",`${fmt(W_._worth/plan(W_,st.n).m)} random tastes per whole square`],
+    ["Sec. 2.2, criterion 6: one unit per stratum","no unbiased variance",st.n===64?`no SE at 64 tastes (one per square)`:`none at 64 tastes; at ${st.n}, SE ${Q._fse.toFixed(1)} against spread ${Q._sd.toFixed(1)}`],
+  ];
+  $("chk").innerHTML=`<thead><tr><th class="rowh">Claim</th><th>Paper</th><th>This page (${METRIC[key]})</th></tr></thead><tbody>`+
+    rows.map(r=>`<tr><th class="rowh">${r[0]}</th><td>${r[1]}</td><td>${r[2]}</td></tr>`).join("")+"</tbody>";
+  $("chk-note").innerHTML=`The paper gives no numbers for spatial correlation, only directions. This table tests those directions on this pizza with 1,000 repeats per design.`;
+}
+
+/* ---- wiring ---- */
+function pickDesign(k){ st.design=k; $("d-"+k).checked=true; renderHint(); drawPizza2(); renderResults(); renderHist(); }
+function renderSample(){ renderHint(); drawPizza2(); renderResults(); renderEqs(); }
+function renderRepeats(){ renderHist(); renderWorth(); renderCheck(); }
+function heavy(){ drawSamples(); renderSample(); runReps(); renderRepeats(); tasteStep5(); startSweep(); }
+let heavyT=0, frame=0;
+function dialsMoved(){
+  if(!frame) frame=requestAnimationFrame(()=>{frame=0; setup(); renderStep1();});
+  clearTimeout(heavyT); heavyT=setTimeout(()=>{ setup(); renderStep1(); heavy(); },250);
+}
+buildControls();
+$("ct").addEventListener("input",e=>{st.ct=+e.target.value; $("ct-v").textContent=pc(st.ct); dialsMoved();});
+$("ce").addEventListener("input",e=>{st.ce=+e.target.value; $("ce-v").textContent=pc(st.ce); dialsMoved();});
+document.querySelectorAll("[data-ct]").forEach(b=>b.addEventListener("click",()=>{
+  st.ct=+b.dataset.ct; st.ce=+b.dataset.ce; $("ct").value=st.ct; $("ce").value=st.ce;
+  if(st.ce>0&&st.view==="truth"){st.view="map"; $("v-map").checked=true;} dialsMoved(); }));
+$("newpie").addEventListener("click",()=>{st.seed=(Math.random()*1e9)|0; setup(); renderStep1(); heavy();});
+$("view").addEventListener("change",e=>{st.view=e.target.value; drawPizza1(); renderStep1();});
+$("heatk").addEventListener("change",e=>{st.heat=e.target.value; renderStep1();});
+$("designs").addEventListener("change",e=>pickDesign(e.target.value));
+$("sizes").addEventListener("change",e=>{st.n=+e.target.value; drawSamples(); renderSample(); runReps(); renderRepeats(); startSweep();});
+$("draw").addEventListener("click",()=>{drawSamples(); renderSample();});
+$("metric").addEventListener("change",e=>{st.metric=e.target.value; renderRepeats(); drawSweep();});
+$("rerun").addEventListener("click",()=>{runReps(); renderRepeats();});
+$("sweepk").addEventListener("change",e=>{st.sweep=e.target.value; startSweep();});
+$("per").addEventListener("change",e=>{st.per=+e.target.value; tasteStep5();});
+$("draw5").addEventListener("click",tasteStep5);
+const repaint=()=>{renderStep1(); drawPizza2(); renderHist(); drawSweep(); drawStep5();};
+const mq=window.matchMedia("(prefers-color-scheme: dark)"); if(mq.addEventListener) mq.addEventListener("change",repaint);
+new MutationObserver(repaint).observe(document.documentElement,{attributes:true,attributeFilter:["data-theme"]});
+if(document.fonts&&document.fonts.ready) document.fonts.ready.then(()=>{renderHist(); drawSweep();});
+let lastW=0; if(window.ResizeObserver) new ResizeObserver(()=>{const w=$("hist").clientWidth; if(w&&w!==lastW){lastW=w; renderHist(); drawSweep();}}).observe(document.body);
+
+setup(); renderStep1(); heavy();
+})();
+</script>
+</body>
+</html>

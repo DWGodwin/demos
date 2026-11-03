@@ -12,7 +12,22 @@ const TABLE5=[[50.4,7.2,2.4,0],[4.0,18.0,0,3.0],[0,0.8,8.0,1.2],[1.0,0.4,0.4,3.2
 const MAP_SHARE=[60,25,10,5];
 function rng(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
 function nb4(i){const x=i%N,y=(i/N)|0,o=[]; if(x>0)o.push(i-1); if(x<N-1)o.push(i+1); if(y>0)o.push(i-N); if(y<N-1)o.push(i+N); return o;}
-function bakePaperPizza(seed){
+/* opt.clumpTop (0-1) piles each topping around its hot spots; opt.clumpErr (0-1) pulls the map's mistakes toward a
+   camera glare spot. Both leave Table 5 exact. At 0 they take no random draws and change nothing, so the default
+   pizza is the same spot for spot. The hot spots and glare come from their own seeded stream. */
+function bakePaperPizza(seed,opt){
+  const ct=Math.max(0,Math.min(1,(opt&&opt.clumpTop)||0)), ce=Math.max(0,Math.min(1,(opt&&opt.clumpErr)||0));
+  const rc=rng(seed*17+3), S=CUTS*CHIP, spot=m=>[EDGE+m+rc()*(S-2*m), EDGE+m+rc()*(S-2*m)];
+  /* hot spots: two for mushroom, two for pepperoni, one for anchovy, kept apart so one topping doesn't fill another's */
+  const hot=[[],[],[],[]], HOT_R=16;
+  for(const k of [1,1,2,2,3]){ let best=null, far=-1;
+    for(let t=0;t<30;t++){ const p=spot(16), d=Math.min(99,...hot.flat().map(h=>Math.hypot(h[0]-p[0],h[1]-p[1]))); if(d>far){far=d; best=p;} if(d>=44) break; }
+    hot[k].push(best); }
+  const glare=spot(24);
+  /* with chance clumpTop, a topping is dropped near one of its hot spots instead of anywhere */
+  const place=(k,pt,m)=>{ if(!ct||rc()>=ct) return pt; const h=hot[k][Math.floor(rc()*hot[k].length)], a=2*Math.PI*rc(), d=HOT_R*Math.sqrt(-2*Math.log(1-rc()));
+    return [Math.max(EDGE+m,Math.min(EDGE+S-m,h[0]+d*Math.cos(a))), Math.max(EDGE+m,Math.min(EDGE+S-m,h[1]+d*Math.sin(a)))]; };
+  const tries=n=>ct?Math.round(n*(1+2*ct)):n;
   const r=rng(seed), NN=N*N, inside=new Uint8Array(NN), crust=new Uint8Array(NN), piece=new Int16Array(NN).fill(-1), ids=[], END=EDGE+CUTS*CHIP;
   for(let y=0;y<N;y++)for(let x=0;x<N;x++){const i=y*N+x;
     if(x>=EDGE&&x<END&&y>=EDGE&&y<END){inside[i]=1; ids.push(i); piece[i]=Math.floor((y-EDGE)/CHIP)*CUTS+Math.floor((x-EDGE)/CHIP);}
@@ -31,16 +46,16 @@ function bakePaperPizza(seed){
     if(cells.length&&ok/cells.length>=minFrac){keep.forEach(i=>put(i,k)); return true;} return false;};
   const randPt=m=>[EDGE+m+r()*(CUTS*CHIP-2*m), EDGE+m+r()*(CUTS*CHIP-2*m)];
   const peps=[];
-  for(let t=0;t<5000&&count[2]<colT[2]-80;t++){ const [px,py]=randPt(8);
+  for(let t=0;t<tries(5000)&&count[2]<colT[2]-80;t++){ const [px,py]=place(2,randPt(8),8);
     if(!peps.every(p=>Math.hypot(p[0]-px,p[1]-py)>14.5)) continue;
     const cells=[]; for(let y=Math.floor(py-7);y<=py+7;y++) for(let x=Math.floor(px-7);x<=px+7;x++) if(Math.hypot(x+.5-px,y+.5-py)<6.3) cells.push([x,y]);
     if(stamp(cells,2,1)) peps.push([px,py]); }
   const cap=[]; for(let dy=-5;dy<=0;dy++) for(let dx=-7;dx<=7;dx++) if((dx/7.5)**2+(dy/5.5)**2<=1) cap.push([dx,dy]);
   for(let dy=1;dy<=5;dy++) for(let dx=-2;dx<=1;dx++) cap.push([dx,dy]);
   const rots=[cap, cap.map(([a,b])=>[-b,a]), cap.map(([a,b])=>[-a,-b]), cap.map(([a,b])=>[b,-a])];
-  for(let t=0;t<9000&&count[1]<colT[1]-60;t++){ const [mx,my]=randPt(7), o=rots[Math.floor(r()*4)];
+  for(let t=0;t<tries(9000)&&count[1]<colT[1]-60;t++){ const [mx,my]=place(1,randPt(7),7), o=rots[Math.floor(r()*4)];
     stamp(o.map(([a,b])=>[Math.round(mx)+a,Math.round(my)+b]),1,.85); }
-  for(let t=0;t<9000&&count[3]<colT[3]-40;t++){ const [ax,ay]=randPt(10), th=r()*Math.PI, L=16+r()*10, ux=Math.cos(th), uy=Math.sin(th), cells=[];
+  for(let t=0;t<tries(9000)&&count[3]<colT[3]-40;t++){ const [ax,ay]=place(3,randPt(10),10), th=r()*Math.PI, L=16+r()*10, ux=Math.cos(th), uy=Math.sin(th), cells=[];
     for(let y=Math.floor(ay-L/2-2);y<=ay+L/2+2;y++) for(let x=Math.floor(ax-L/2-2);x<=ax+L/2+2;x++){
       const vx=x+.5-ax, vy=y+.5-ay, s=vx*ux+vy*uy, q=Math.abs(-vx*uy+vy*ux); if(Math.abs(s)<=L/2&&q<=1.4) cells.push([x,y]); }
     stamp(cells,3,.9); }
@@ -56,13 +71,17 @@ function bakePaperPizza(seed){
     for(let h=0;h<q.length;h++){const i=q[h]; for(const j of nb4(i)) if(d[j]>d[i]+1){d[j]=d[i]+1; q.push(j);}} return d;});
   const rp=rng(seed*31+7), jit=new Float64Array(NN), tex=new Uint8Array(NN);
   for(let i=0;i<NN;i++){jit[i]=rp(); tex[i]=rp()<.3?1:0;}
-  /* the classifier's map: each Table 5 mistake is placed where that topping's edge is closest */
-  const map=Int8Array.from(truth);
+  /* the classifier's map: each Table 5 mistake is placed where that topping's edge is closest,
+     or, as clumpErr grows, closer to the glare */
+  const map=Int8Array.from(truth), gd=new Float64Array(NN);
+  if(ce) for(const i of ids) gd[i]=Math.hypot(i%N+.5-glare[0],((i/N)|0)+.5-glare[1]);
   for(let j=0;j<4;j++){ let pool=ids.filter(i=>truth[i]===j);
     const order=[0,1,2,3].filter(i=>i!==j&&cell[i][j]>0).sort((a,b)=>cell[b][j]-cell[a][j]);
-    for(const i of order){ pool.sort((a,b)=>(dist[i][a]+4*jit[a])-(dist[i][b]+4*jit[b]));
+    for(const i of order){
+      if(!ce) pool.sort((a,b)=>(dist[i][a]+4*jit[a])-(dist[i][b]+4*jit[b]));
+      else { const g=ce<1?(ce/(1-ce))**2/10:1e6, key=a=>dist[i][a]+4*jit[a]+g*gd[a]; pool.sort((a,b)=>key(a)-key(b)); }
       for(const p of pool.slice(0,cell[i][j])) map[p]=i; pool=pool.slice(cell[i][j]); } }
-  return {inside,crust,piece,ids,T,truth,map,dist,jit,tex,cell,rowT,colT};
+  return {inside,crust,piece,ids,T,truth,map,dist,jit,tex,cell,rowT,colT,hot,glare,clumpTop:ct,clumpErr:ce};
 }
 function hexRGB(h){h=String(h).trim().replace("#",""); if(h.length===3) h=h.split("").map(c=>c+c).join(""); const n=parseInt(h,16); return [n>>16&255,n>>8&255,n&255];}
 function cssVar(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim();}
@@ -102,6 +121,13 @@ function sampleClusters(m,b,r){ const per=SIDE/b; if(per%1) throw new Error("clu
   const blocks=pickFrom([...Array(per*per).keys()],m,r);
   return blocks.map(q=>{const bx=(q%per)*b, by=Math.floor(q/per)*b, g=[];
     for(let y=0;y<b;y++) for(let x=0;x<b;x++) g.push((EDGE+by+y)*N+EDGE+bx+x); return g;}); }
+/* the spots of one square (0-63), and k distinct random spots from it */
+const squareSpots=q=>{const bx=EDGE+(q%CUTS)*CHIP, by=EDGE+Math.floor(q/CUTS)*CHIP, g=[]; for(let y=0;y<CHIP;y++) for(let x=0;x<CHIP;x++) g.push((by+y)*N+bx+x); return g;};
+const SQUARE_SPOTS=[...Array(CUTS*CUTS).keys()].map(squareSpots);
+/* spatial strata (Sec. 2.4): every square is a stratum, b random bites in each. Returns one list per square */
+const sampleBySquare=(b,r)=>SQUARE_SPOTS.map(g=>pickFrom(g,b,r));
+/* two-stage cluster: m random squares, then k random bites in each. Returns one list per picked square */
+const sampleTwoStage=(m,k,r)=>pickFrom([...Array(CUTS*CUTS).keys()],m,r).map(q=>pickFrom(SQUARE_SPOTS[q],k,r));
 /* spots in the outer ring of squares, the pieces with crust: where a convenience taster would grab from */
 const edgePieceSpots=P=>P.ids.filter(i=>{const q=P.piece[i], qx=q%CUTS, qy=Math.floor(q/CUTS); return qx===0||qy===0||qx===CUTS-1||qy===CUTS-1;});
 /* ---- estimators (Sec. 4.2). Rows are the map (strata), columns the reference ---- */
@@ -140,6 +166,27 @@ function clusterEstimate(P,groups){
   for(let k=0;k<K;k++){ [P_[k],seP[k]]=ratio(hit[k],tr[k]); [U[k],seU[k]]=ratio(hit[k],mp[k]); }
   const O=mean(ok), area=tr.map(mean);
   return {ok:true, m, O, U, P:P_, area, se:{O:seMean(ok), U:seU, P:seP, area:tr.map(seMean)}};
+}
+/* Stratified estimator for equal-size strata with the same number of bites in each, such as one stratum per square
+   (Sec. 2.4's spatial strata). With a single stratum it is the simple random sample estimator. Every spot has the same
+   chance, so estimates are plain shares of the bites (ratios for user's and producer's). Standard errors come from
+   the spread within each stratum, so with one bite per stratum there are none (NaN): design criterion 6 in Sec. 2.2.
+   For overall accuracy this is Eq. 16 with the squares as strata, W_h = 1/H. No finite population correction. */
+function strataEstimate(P,groups){
+  const H=groups.length, K=4, Z=()=>[0,0,0,0];
+  const cnt=groups.map(g=>{const c={b:g.length,ok:0,tr:Z(),mp:Z(),hit:Z()};
+    for(const i of g){const a=P.map[i], t=P.truth[i]; c.tr[t]++; c.mp[a]++; if(a===t){c.ok++; c.hit[a]++;}} return c;});
+  const tot=f=>cnt.reduce((s,c)=>s+f(c),0), n=tot(c=>c.b);
+  /* variance of R = sum(y)/sum(x), where a bite with y = 1 always has x = 1: per stratum, the residuals d = y - R x
+     have sum of squares Sy(1 - 2R) + R^2 Sx and mean (Sy - R Sx)/b */
+  const vr=(Y,X,R)=>{ if(!isFinite(R)) return NaN; let s=0;
+    for(const c of cnt){ const b=c.b; if(b<2) return NaN; const y=Y(c), x=X(c), dm=(y-R*x)/b; s+=(y*(1-2*R)+R*R*x-b*dm*dm)/(b-1)/b; }
+    const xb=tot(X)/n; return xb?s/H/H/xb/xb:NaN; };
+  const se=v=>isFinite(v)&&v>=0?Math.sqrt(v):NaN, all=c=>c.b, O=tot(c=>c.ok)/n, U=[], Pa=[], area=[], sU=[], sP=[], sA=[];
+  for(let k=0;k<K;k++){ const hit=c=>c.hit[k], mp=c=>c.mp[k], tr=c=>c.tr[k], h=tot(hit), m=tot(mp), t=tot(tr);
+    U[k]=m?h/m:NaN; Pa[k]=t?h/t:NaN; area[k]=t/n;
+    sU[k]=se(vr(hit,mp,U[k])); sP[k]=se(vr(hit,tr,Pa[k])); sA[k]=se(vr(tr,all,area[k])); }
+  return {ok:true, H, n, O, U, P:Pa, area, se:{O:se(vr(c=>c.ok,all,O)), U:sU, P:sP, area:sA}};
 }
 /* ---- repeats histogram on a fixed 0-100% axis: one row of columns per method, a dashed truth line, a triangle at each row's average.
    rows = [{name, vals (in %), col (CSS colour), dim}]; opt = {bin, left (label width), px (device pixel ratio)}.
