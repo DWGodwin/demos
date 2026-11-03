@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Pizza Map Lab</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&family=IBM+Plex+Mono:ital,wght@0,400;0,600;1,400&display=swap">
+<style>
+/* Layout: masthead with the lab's pixel pizza beside the intro, then one block per stage,
+   each holding a list of square explainer cards. */
+:root{
+  --bg:#efe2c8; --check:rgba(196,52,32,.085); --panel:#fffaf0; --ink:#2b1b12; --muted:#6e584a;
+  --line:#2b1b12; --shadow:#2b1b12; --tomato:#c4341f; --tint-d:rgba(43,27,18,.06);
+  --cheese-a:#f2c23c; --cheese-b:#f7d567; --pep-a:#b3261e; --pep-b:#8c1a14;
+  --mush-a:#cbb59a; --mush-b:#a68c70; --anch-a:#8ea3ba; --anch-b:#647891;
+  --crust-a:#c98a4b; --crust-b:#ad7036;
+  --f-display:"Silkscreen","Courier New",ui-monospace,monospace;
+  --f-body:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#1b1310; --check:rgba(196,52,32,.13); --panel:#2a1e18; --ink:#f3e7d3; --muted:#c3ae98;
+  --line:#f3e7d3; --shadow:#8a2a16; --tomato:#ff6a4d; --tint-d:rgba(243,231,211,.07); color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --bg:#1b1310; --check:rgba(196,52,32,.13); --panel:#2a1e18; --ink:#f3e7d3; --muted:#c3ae98;
+  --line:#f3e7d3; --shadow:#8a2a16; --tomato:#ff6a4d; --tint-d:rgba(243,231,211,.07); color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{margin:0; background-color:var(--bg); color:var(--ink); font-family:var(--f-body); font-size:15px; line-height:1.55;
+  background-image:linear-gradient(90deg,var(--check) 50%,transparent 50%),linear-gradient(var(--check) 50%,transparent 50%);
+  background-size:56px 56px}
+.wrap{max-width:980px; margin:0 auto; padding-block:28px 56px;
+  padding-left:max(16px,env(safe-area-inset-left,0px)); padding-right:max(16px,env(safe-area-inset-right,0px));
+  display:grid; gap:24px}
+h1,h2,.eyebrow,.num,.status,.card b{font-family:var(--f-display); font-weight:400; letter-spacing:.02em}
+h1{font-size:clamp(32px,6.5vw,60px); line-height:1.02; margin:0}
+h2{font-size:18px; margin:0}
+p{margin:0; max-width:64ch}
+a{color:var(--tomato)}
+.box{background:var(--panel); border:3px solid var(--line); box-shadow:6px 6px 0 var(--shadow); padding:20px; min-width:0}
+.mast{display:grid; grid-template-columns:minmax(0,1fr) auto; gap:24px; align-items:center}
+@media (max-width:640px){.mast{grid-template-columns:minmax(0,1fr)} #pie{justify-self:start}}
+.mast-text{display:grid; gap:12px}
+.crumb{font-family:var(--f-display); font-size:12px; color:var(--ink); justify-self:start}
+.eyebrow{font-size:13px; background:var(--tomato); color:#fffaf0; padding:4px 8px; justify-self:start}
+#pie{width:200px; max-width:100%; aspect-ratio:1; image-rendering:pixelated; image-rendering:crisp-edges; display:block}
+.stage{display:grid; gap:12px}
+.stage > p{color:var(--muted); font-size:14px}
+.cards{display:grid; gap:12px}
+.card{display:grid; grid-template-columns:auto minmax(0,1fr) auto; gap:14px; align-items:start; border:2px solid var(--line); padding:12px 14px; color:var(--ink); text-decoration:none; background:var(--panel)}
+a.card{box-shadow:4px 4px 0 var(--shadow)}
+a.card:hover{background:var(--tint-d)}
+a.card:active{transform:translate(4px,4px); box-shadow:none}
+a.card:focus-visible{outline:3px dashed var(--tomato); outline-offset:3px}
+.card.soon{border-style:dashed; color:var(--muted)}
+.num{font-size:22px; line-height:1}
+.card b{font-size:15px; display:block; margin-bottom:2px}
+.card span{font-size:13.5px}
+.status{font-size:11px; border:2px solid currentColor; padding:2px 6px; white-space:nowrap}
+a.card .status{background:var(--ink); color:var(--panel); border-color:var(--ink)}
+footer{font-size:13px; color:var(--muted)}
+@media (max-width:480px){.card{grid-template-columns:auto minmax(0,1fr)} .status{grid-column:2; justify-self:start}}
+@media (prefers-reduced-motion:reduce){a.card:active{transform:none}}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <header class="box mast">
+    <div class="mast-text">
+      <a class="crumb" href="../">← Demos</a>
+      <span class="eyebrow">A study guide with toppings</span>
+      <h1>Pizza Map Lab</h1>
+      <p>Interactive explainers for Stehman &amp; Foody's <i>Key issues in rigorous accuracy assessment of land cover products</i> (2019). A classifier maps the toppings on a pizza, a taster checks a sample, and we work out how good the map really is. Every explainer starts from this same sheet pizza, cut into 64 squares like a raster cut into image chips, and baked so its map's mistakes match the paper's own worked example (Table 5) exactly.</p>
+    </div>
+    <canvas id="pie" width="512" height="512" aria-label="The lab's pixel pizza"></canvas>
+  </header>
+
+  <section class="stage">
+    <h2>Stage 1 · What the numbers mean</h2>
+    <div class="cards">
+      <a class="card" href="01-anchovy-problem.html"><span class="num">01</span><div><b>The Anchovy Problem</b><span>User's vs producer's accuracy on the paper's Table 5 map, why every mistake counts twice, and why overall accuracy can't see a rare topping.</span></div><span class="status">Open</span></a>
+      <a class="card" href="02-twenty-five-of-each.html"><span class="num">02</span><div><b>Twenty-Five of Each</b><span>The paper's Table 4 design: 25 tastes per topping, and why the sample has to be weighted back to the map's real shares.</span></div><span class="status">Open</span></a>
+    </div>
+  </section>
+
+  <section class="stage">
+    <h2>Stage 2 · How sampling design changes results</h2>
+    <div class="cards">
+      <div class="card soon"><span class="num">03</span><div><b>The Sampling Design Lab</b><span>Simple random, systematic, stratified and cluster samples, each repeated a thousand times.</span></div><span class="status">Coming</span></div>
+      <div class="card soon"><span class="num">04</span><div><b>How Many Tastes?</b><span>Eq. 1 sample sizes (246 or 384 tastes), and checking that confidence intervals really cover the truth.</span></div><span class="status">Coming</span></div>
+      <div class="card soon"><span class="num">05</span><div><b>Every Square Its Own Pizza</b><span>When toppings cluster by square: eating whole squares vs one bite per square vs a systematic grid.</span></div><span class="status">Coming</span></div>
+    </div>
+  </section>
+
+  <section class="stage">
+    <h2>Stage 3 · Area and an imperfect taster</h2>
+    <div class="cards">
+      <div class="card soon"><span class="num">06</span><div><b>How Much Anchovy Is There?</b><span>The map says anchovy is 5% of the pizza. The sample says 7.4% ± 3.7%. Who is right?</span></div><span class="status">Coming</span></div>
+      <div class="card soon"><span class="num">07</span><div><b>The Taster Is Wrong Too</b><span>Foody's example: a 95%-accurate taster can make a rare topping look several times bigger than it is.</span></div><span class="status">Coming</span></div>
+    </div>
+  </section>
+
+  <section class="stage">
+    <h2>Stage 4 · Bad habits to unlearn</h2>
+    <div class="cards">
+      <div class="card soon"><span class="num">08</span><div><b>Normalizing and Kappa</b><span>Two traditions the paper asks everyone to drop.</span></div><span class="status">Coming</span></div>
+      <div class="card soon"><span class="num">09</span><div><b>Wrong Amount, Wrong Place</b><span>Splitting disagreement into quantity and allocation.</span></div><span class="status">Coming</span></div>
+      <div class="card soon"><span class="num">10</span><div><b>Tasting the Training Slice</b><span>Why splitting training and test data by pixel inflates accuracy.</span></div><span class="status">Coming</span></div>
+    </div>
+  </section>
+
+  <section class="stage">
+    <h2>Bonus · Twists</h2>
+    <div class="cards">
+      <div class="card soon"><span class="num">B1</span><div><b>Round Pizza, Square Cuts</b><span>A round pizza cut into squares: edge pieces clipped by the crust, like image tiles hanging over a study-area boundary.</span></div><span class="status">Later</span></div>
+    </div>
+  </section>
+
+  <footer><p>Source: Stehman, S.V. &amp; Foody, G.M. (2019). <i>Remote Sensing of Environment</i> 231, 111199. <a href="https://doi.org/10.1016/j.rse.2019.05.018">doi:10.1016/j.rse.2019.05.018</a>. Each explainer is a single static HTML file.</p></footer>
+</main>
+
+<script>
+(function(){
+"use strict";
+/* @@KIT@@ */
+const P=bakePaperPizza(SEED);
+function draw(){ const pal=pizzaPalette();
+  paintPizza(document.getElementById("pie"),i=>P.crust[i]?pal.crust[P.tex[i]]:(P.inside[i]?pal.top[P.truth[i]][P.tex[i]]:null)); }
+draw();
+const mq=window.matchMedia("(prefers-color-scheme: dark)"); if(mq.addEventListener) mq.addEventListener("change",draw);
+})();
+</script>
+</body>
+</html>

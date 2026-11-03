@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Pizza Map Lab</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&family=IBM+Plex+Mono:ital,wght@0,400;0,600;1,400&display=swap">
+<style>
+/* Layout: masthead with the lab's pixel pizza beside the intro, then one block per stage,
+   each holding a list of square explainer cards. */
+:root{
+  --bg:#efe2c8; --check:rgba(196,52,32,.085); --panel:#fffaf0; --ink:#2b1b12; --muted:#6e584a;
+  --line:#2b1b12; --shadow:#2b1b12; --tomato:#c4341f; --tint-d:rgba(43,27,18,.06);
+  --cheese-a:#f2c23c; --cheese-b:#f7d567; --pep-a:#b3261e; --pep-b:#8c1a14;
+  --mush-a:#cbb59a; --mush-b:#a68c70; --anch-a:#8ea3ba; --anch-b:#647891;
+  --crust-a:#c98a4b; --crust-b:#ad7036;
+  --f-display:"Silkscreen","Courier New",ui-monospace,monospace;
+  --f-body:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#1b1310; --check:rgba(196,52,32,.13); --panel:#2a1e18; --ink:#f3e7d3; --muted:#c3ae98;
+  --line:#f3e7d3; --shadow:#8a2a16; --tomato:#ff6a4d; --tint-d:rgba(243,231,211,.07); color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --bg:#1b1310; --check:rgba(196,52,32,.13); --panel:#2a1e18; --ink:#f3e7d3; --muted:#c3ae98;
+  --line:#f3e7d3; --shadow:#8a2a16; --tomato:#ff6a4d; --tint-d:rgba(243,231,211,.07); color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{margin:0; background-color:var(--bg); color:var(--ink); font-family:var(--f-body); font-size:15px; line-height:1.55;
+  background-image:linear-gradient(90deg,var(--check) 50%,transparent 50%),linear-gradient(var(--check) 50%,transparent 50%);
+  background-size:56px 56px}
+.wrap{max-width:980px; margin:0 auto; padding-block:28px 56px;
+  padding-left:max(16px,env(safe-area-inset-left,0px)); padding-right:max(16px,env(safe-area-inset-right,0px));
+  display:grid; gap:24px}
+h1,h2,.eyebrow,.num,.status,.card b{font-family:var(--f-display); font-weight:400; letter-spacing:.02em}
+h1{font-size:clamp(32px,6.5vw,60px); line-height:1.02; margin:0}
+h2{font-size:18px; margin:0}
+p{margin:0; max-width:64ch}
+a{color:var(--tomato)}
+.box{background:var(--panel); border:3px solid var(--line); box-shadow:6px 6px 0 var(--shadow); padding:20px; min-width:0}
+.mast{display:grid; grid-template-columns:minmax(0,1fr) auto; gap:24px; align-items:center}
+@media (max-width:640px){.mast{grid-template-columns:minmax(0,1fr)} #pie{justify-self:start}}
+.mast-text{display:grid; gap:12px}
+.crumb{font-family:var(--f-display); font-size:12px; color:var(--ink); justify-self:start}
+.eyebrow{font-size:13px; background:var(--tomato); color:#fffaf0; padding:4px 8px; justify-self:start}
+#pie{width:200px; max-width:100%; aspect-ratio:1; image-rendering:pixelated; image-rendering:crisp-edges; display:block}
+.stage{display:grid; gap:12px}
+.stage > p{color:var(--muted); font-size:14px}
+.cards{display:grid; gap:12px}
+.card{display:grid; grid-template-columns:auto minmax(0,1fr) auto; gap:14px; align-items:start; border:2px solid var(--line); padding:12px 14px; color:var(--ink); text-decoration:none; background:var(--panel)}
+a.card{box-shadow:4px 4px 0 var(--shadow)}
+a.card:hover{background:var(--tint-d)}
+a.card:active{transform:translate(4px,4px); box-shadow:none}
+a.card:focus-visible{outline:3px dashed var(--tomato); outline-offset:3px}
+.card.soon{border-style:dashed; color:var(--muted)}
+.num{font-size:22px; line-height:1}
+.card b{font-size:15px; display:block; margin-bottom:2px}
+.card span{font-size:13.5px}
+.status{font-size:11px; border:2px solid currentColor; padding:2px 6px; white-space:nowrap}
+a.card .status{background:var(--ink); color:var(--panel); border-color:var(--ink)}
+footer{font-size:13px; color:var(--muted)}
+@media (max-width:480px){.card{grid-template-columns:auto minmax(0,1fr)} .status{grid-column:2; justify-self:start}}
+@media (prefers-reduced-motion:reduce){a.card:active{transform:none}}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <header class="box mast">
+    <div class="mast-text">
+      <a class="crumb" href="../">← Demos</a>
+      <span class="eyebrow">A study guide with toppings</span>
+      <h1>Pizza Map Lab</h1>
+      <p>Interactive explainers for Stehman &amp; Foody's <i>Key issues in rigorous accuracy assessment of land cover products</i> (2019). A classifier maps the toppings on a pizza, a taster checks a sample, and we work out how good the map really is. Every explainer starts from this same sheet pizza, cut into 64 squares like a raster cut into image chips, and baked so its map's mistakes match the paper's own worked example (Table 5) exactly.</p>
+    </div>
+    <canvas id="pie" width="512" height="512" aria-label="The lab's pixel pizza"></canvas>
+  </header>
+
+  <section class="stage">
+    <h2>Stage 1 · What the numbers mean</h2>
+    <div class="cards">
+      <a class="card" href="01-anchovy-problem.html"><span class="num">01</span><div><b>The Anchovy Problem</b><span>User's vs producer's accuracy on the paper's Table 5 map, why every mistake counts twice, and why overall accuracy can't see a rare topping.</span></div><span class="status">Open</span></a>
+      <a class="card" href="02-twenty-five-of-each.html"><span class="num">02</span><div><b>Twenty-Five of Each</b><span>The paper's Table 4 design: 25 tastes per topping, and why the sample has to be weighted back to the map's real shares.</span></div><span class="status">Open</span></a>
+    </div>
+  </section>
+
+  <section class="stage">
+    <h2>Stage 2 · How sampling design changes results</h2>
+    <div class="cards">
+      <div class="card soon"><span class="num">03</span><div><b>The Sampling Design Lab</b><span>Simple random, systematic, stratified and cluster samples, each repeated a thousand times.</span></div><span class="status">Coming</span></div>
+      <div class="card soon"><span class="num">04</span><div><b>How Many Tastes?</b><span>Eq. 1 sample sizes (246 or 384 tastes), and checking that confidence intervals really cover the truth.</span></div><span class="status">Coming</span></div>
+      <div class="card soon"><span class="num">05</span><div><b>Every Square Its Own Pizza</b><span>When toppings cluster by square: eating whole squares vs one bite per square vs a systematic grid.</span></div><span class="status">Coming</span></div>
+    </div>
+  </section>
+
+  <section class="stage">
+    <h2>Stage 3 · Area and an imperfect taster</h2>
+    <div class="cards">
+      <div class="card soon"><span class="num">06</span><div><b>How Much Anchovy Is There?</b><span>The map says anchovy is 5% of the pizza. The sample says 7.4% ± 3.7%. Who is right?</span></div><span class="status">Coming</span></div>
+      <div class="card soon"><span class="num">07</span><div><b>The Taster Is Wrong Too</b><span>Foody's example: a 95%-accurate taster can make a rare topping look several times bigger than it is.</span></div><span class="status">Coming</span></div>
+    </div>
+  </section>
+
+  <section class="stage">
+    <h2>Stage 4 · Bad habits to unlearn</h2>
+    <div class="cards">
+      <div class="card soon"><span class="num">08</span><div><b>Normalizing and Kappa</b><span>Two traditions the paper asks everyone to drop.</span></div><span class="status">Coming</span></div>
+      <div class="card soon"><span class="num">09</span><div><b>Wrong Amount, Wrong Place</b><span>Splitting disagreement into quantity and allocation.</span></div><span class="status">Coming</span></div>
+      <div class="card soon"><span class="num">10</span><div><b>Tasting the Training Slice</b><span>Why splitting training and test data by pixel inflates accuracy.</span></div><span class="status">Coming</span></div>
+    </div>
+  </section>
+
+  <section class="stage">
+    <h2>Bonus · Twists</h2>
+    <div class="cards">
+      <div class="card soon"><span class="num">B1</span><div><b>Round Pizza, Square Cuts</b><span>A round pizza cut into squares: edge pieces clipped by the crust, like image tiles hanging over a study-area boundary.</span></div><span class="status">Later</span></div>
+    </div>
+  </section>
+
+  <footer><p>Source: Stehman, S.V. &amp; Foody, G.M. (2019). <i>Remote Sensing of Environment</i> 231, 111199. <a href="https://doi.org/10.1016/j.rse.2019.05.018">doi:10.1016/j.rse.2019.05.018</a>. Each explainer is a single static HTML file.</p></footer>
+</main>
+
+<script>
+(function(){
+"use strict";
+/* ---- Pizza Map Lab shared kit (src/kit.js), pasted identically into every page ----
+   The "paper pizza": a square sheet pizza, 120x120 spots inside a crust border and cut into
+   an 8x8 grid of 15x15 squares (think image chips), whose true error matrix is exactly
+   Table 5 of Stehman & Foody (2019). Classes A-D are cheese, mushroom, pepperoni, anchovy.
+   Map shares are 60/25/10/5 and reference shares are 55.4/26.4/10.8/7.4. */
+const N=128, EDGE=4, CUTS=8, CHIP=15, SEED=20190518; /* study area is x,y in [EDGE, EDGE+CUTS*CHIP) */
+const NAMES=["cheese","mushroom","pepperoni","anchovy"];
+const TITLE=["Cheese","Mushroom","Pepperoni","Anchovy"];
+const PAPER_CLASS=["A","B","C","D"];
+const VAR=[["--cheese-a","--cheese-b"],["--mush-a","--mush-b"],["--pep-a","--pep-b"],["--anch-a","--anch-b"]];
+const TABLE5=[[50.4,7.2,2.4,0],[4.0,18.0,0,3.0],[0,0.8,8.0,1.2],[1.0,0.4,0.4,3.2]]; /* % of area; rows map, columns reference */
+const MAP_SHARE=[60,25,10,5];
+function rng(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+function nb4(i){const x=i%N,y=(i/N)|0,o=[]; if(x>0)o.push(i-1); if(x<N-1)o.push(i+1); if(y>0)o.push(i-N); if(y<N-1)o.push(i+N); return o;}
+function bakePaperPizza(seed){
+  const r=rng(seed), NN=N*N, inside=new Uint8Array(NN), crust=new Uint8Array(NN), piece=new Int16Array(NN).fill(-1), ids=[], END=EDGE+CUTS*CHIP;
+  for(let y=0;y<N;y++)for(let x=0;x<N;x++){const i=y*N+x;
+    if(x>=EDGE&&x<END&&y>=EDGE&&y<END){inside[i]=1; ids.push(i); piece[i]=Math.floor((y-EDGE)/CHIP)*CUTS+Math.floor((x-EDGE)/CHIP);}
+    else crust[i]=1;}
+  const T=ids.length;
+  /* target cell counts: Table 5 scaled to this pizza, map row totals exactly 60/25/10/5 */
+  const rowT=MAP_SHARE.map(w=>Math.round(w*T/100)); rowT[0]=T-rowT[1]-rowT[2]-rowT[3];
+  const cell=TABLE5.map((row,i)=>row.map((v,j)=>i===j?0:Math.round(v*T/100)));
+  for(let i=0;i<4;i++){let off=0; for(let j=0;j<4;j++) if(j!==i) off+=cell[i][j]; cell[i][i]=rowT[i]-off;}
+  const colT=[0,1,2,3].map(j=>cell[0][j]+cell[1][j]+cell[2][j]+cell[3][j]);
+  /* the real pizza */
+  const truth=new Int8Array(NN).fill(-1); for(const i of ids) truth[i]=0;
+  const count=[T,0,0,0], put=(i,k)=>{count[truth[i]]--; truth[i]=k; count[k]++;};
+  const stamp=(cells,k,minFrac)=>{let ok=0; const keep=[];
+    for(const [x,y] of cells){ if(x<0||y<0||x>=N||y>=N) continue; const i=y*N+x; if(inside[i]&&truth[i]===0){ok++; keep.push(i);} }
+    if(cells.length&&ok/cells.length>=minFrac){keep.forEach(i=>put(i,k)); return true;} return false;};
+  const randPt=m=>[EDGE+m+r()*(CUTS*CHIP-2*m), EDGE+m+r()*(CUTS*CHIP-2*m)];
+  const peps=[];
+  for(let t=0;t<5000&&count[2]<colT[2]-80;t++){ const [px,py]=randPt(8);
+    if(!peps.every(p=>Math.hypot(p[0]-px,p[1]-py)>14.5)) continue;
+    const cells=[]; for(let y=Math.floor(py-7);y<=py+7;y++) for(let x=Math.floor(px-7);x<=px+7;x++) if(Math.hypot(x+.5-px,y+.5-py)<6.3) cells.push([x,y]);
+    if(stamp(cells,2,1)) peps.push([px,py]); }
+  const cap=[]; for(let dy=-5;dy<=0;dy++) for(let dx=-7;dx<=7;dx++) if((dx/7.5)**2+(dy/5.5)**2<=1) cap.push([dx,dy]);
+  for(let dy=1;dy<=5;dy++) for(let dx=-2;dx<=1;dx++) cap.push([dx,dy]);
+  const rots=[cap, cap.map(([a,b])=>[-b,a]), cap.map(([a,b])=>[-a,-b]), cap.map(([a,b])=>[b,-a])];
+  for(let t=0;t<9000&&count[1]<colT[1]-60;t++){ const [mx,my]=randPt(7), o=rots[Math.floor(r()*4)];
+    stamp(o.map(([a,b])=>[Math.round(mx)+a,Math.round(my)+b]),1,.85); }
+  for(let t=0;t<9000&&count[3]<colT[3]-40;t++){ const [ax,ay]=randPt(10), th=r()*Math.PI, L=16+r()*10, ux=Math.cos(th), uy=Math.sin(th), cells=[];
+    for(let y=Math.floor(ay-L/2-2);y<=ay+L/2+2;y++) for(let x=Math.floor(ax-L/2-2);x<=ax+L/2+2;x++){
+      const vx=x+.5-ax, vy=y+.5-ay, s=vx*ux+vy*uy, q=Math.abs(-vx*uy+vy*ux); if(Math.abs(s)<=L/2&&q<=1.4) cells.push([x,y]); }
+    stamp(cells,3,.9); }
+  /* nudge each topping's edges until the reference shares are exact */
+  for(const k of [2,1,3]) for(let pass=0;pass<400&&count[k]!==colT[k];pass++){
+    const need=colT[k]-count[k];
+    const cand=ids.filter(i=>need>0?(truth[i]===0&&nb4(i).some(j=>truth[j]===k)):(truth[i]===k&&nb4(i).some(j=>truth[j]===0)));
+    for(let a=cand.length-1;a>0;a--){const b=Math.floor(r()*(a+1)); const t=cand[a]; cand[a]=cand[b]; cand[b]=t;}
+    const m=Math.min(Math.abs(need),Math.max(1,Math.ceil(cand.length/3)),cand.length);
+    for(let q=0;q<m;q++) put(cand[q],need>0?k:0); }
+  /* distance from every pixel to the nearest pixel of each real topping */
+  const dist=[0,1,2,3].map(k=>{const d=new Int16Array(NN).fill(9999), q=[]; for(const i of ids) if(truth[i]===k){d[i]=0; q.push(i);}
+    for(let h=0;h<q.length;h++){const i=q[h]; for(const j of nb4(i)) if(d[j]>d[i]+1){d[j]=d[i]+1; q.push(j);}} return d;});
+  const rp=rng(seed*31+7), jit=new Float64Array(NN), tex=new Uint8Array(NN);
+  for(let i=0;i<NN;i++){jit[i]=rp(); tex[i]=rp()<.3?1:0;}
+  /* the classifier's map: each Table 5 mistake is placed where that topping's edge is closest */
+  const map=Int8Array.from(truth);
+  for(let j=0;j<4;j++){ let pool=ids.filter(i=>truth[i]===j);
+    const order=[0,1,2,3].filter(i=>i!==j&&cell[i][j]>0).sort((a,b)=>cell[b][j]-cell[a][j]);
+    for(const i of order){ pool.sort((a,b)=>(dist[i][a]+4*jit[a])-(dist[i][b]+4*jit[b]));
+      for(const p of pool.slice(0,cell[i][j])) map[p]=i; pool=pool.slice(cell[i][j]); } }
+  return {inside,crust,piece,ids,T,truth,map,dist,jit,tex,cell,rowT,colT};
+}
+function hexRGB(h){h=String(h).trim().replace("#",""); if(h.length===3) h=h.split("").map(c=>c+c).join(""); const n=parseInt(h,16); return [n>>16&255,n>>8&255,n&255];}
+function cssVar(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim();}
+function pizzaPalette(){return {top:VAR.map(v=>[hexRGB(cssVar(v[0])),hexRGB(cssVar(v[1]))]), crust:[hexRGB(cssVar("--crust-a")),hexRGB(cssVar("--crust-b"))]};}
+/* paint one colour per pizza pixel (colorAt returns [r,g,b,alpha] or null), scaled up with crisp edges */
+function paintPizza(cv,colorAt){
+  if(!cv._off){cv._off=document.createElement("canvas"); cv._off.width=N; cv._off.height=N;}
+  const octx=cv._off.getContext("2d"), img=octx.createImageData(N,N), d=img.data;
+  for(let i=0;i<N*N;i++){const c=colorAt(i); if(!c) continue; d[4*i]=c[0]; d[4*i+1]=c[1]; d[4*i+2]=c[2]; d[4*i+3]=c.length>3?c[3]:255;}
+  octx.putImageData(img,0,0);
+  const ctx=cv.getContext("2d"); ctx.imageSmoothingEnabled=false; ctx.clearRect(0,0,cv.width,cv.height); ctx.drawImage(cv._off,0,0,cv.width,cv.height);
+  /* faint knife cuts between the 8x8 squares */
+  const s=cv.width/N; ctx.save(); ctx.globalAlpha=.22; ctx.fillStyle="#2b1b12";
+  for(let k=1;k<CUTS;k++){const p=Math.round((EDGE+k*CHIP)*s)-1; ctx.fillRect(p,EDGE*s,2,CUTS*CHIP*s); ctx.fillRect(EDGE*s,p,CUTS*CHIP*s,2);}
+  ctx.restore();
+  return ctx;
+}
+/* ---- end shared kit ---- */
+const P=bakePaperPizza(SEED);
+function draw(){ const pal=pizzaPalette();
+  paintPizza(document.getElementById("pie"),i=>P.crust[i]?pal.crust[P.tex[i]]:(P.inside[i]?pal.top[P.truth[i]][P.tex[i]]:null)); }
+draw();
+const mq=window.matchMedia("(prefers-color-scheme: dark)"); if(mq.addEventListener) mq.addEventListener("change",draw);
+})();
+</script>
+</body>
+</html>
