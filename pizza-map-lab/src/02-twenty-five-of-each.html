@@ -111,6 +111,23 @@ td.dim{color:var(--muted)}
 .k-raw{color:var(--raw); font-weight:600} .k-good{color:var(--good); font-weight:600}
 .notes p{font-size:14px}
 .formula{display:inline-block; border:2px solid var(--line); padding:4px 8px; margin:2px 0 8px; font-weight:600; background:var(--tint-d)}
+td.pk{padding:0}
+td.pk button{all:unset; display:block; width:100%; padding:7px 6px; cursor:pointer; box-sizing:border-box; font-family:var(--f-body); font-size:13.5px}
+td.pk button:hover{background:var(--tint-d)}
+td.pk button:focus-visible{outline:3px dashed var(--tomato); outline-offset:-4px}
+td.diag.pk button{font-weight:600}
+td.sel button{outline:3px solid var(--tomato); outline-offset:-4px}
+/* Paper equations: MathML that build.py makes from tex tags. Live numbers are tagged \id{...} and set with setEq. */
+math{font-family:"STIX Two Math","Cambria Math","Latin Modern Math",math; font-size:1.15em; font-style:normal; font-weight:normal; line-height:normal; letter-spacing:normal; text-transform:none; direction:ltr; font-feature-settings:"dtls" off}
+mfrac > :nth-child(2), msqrt, mover > :first-child{math-shift:compact}
+.eqs{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px}
+@media (max-width:820px){.eqs{grid-template-columns:minmax(0,1fr)}}
+.eq{border:2px solid var(--line); background:var(--tint-d); padding:10px 12px; display:grid; gap:6px; align-content:start; min-width:0}
+.eq-tag{font-family:var(--f-display); font-size:11.5px; letter-spacing:.02em; display:flex; justify-content:space-between; gap:4px 10px; flex-wrap:wrap}
+.eq-tag i{font-style:normal; color:var(--muted)}
+.eq-m{overflow-x:auto; overflow-y:hidden; padding:3px 0}
+@media (max-width:480px){.eq-m math{font-size:1em}}
+.eq-cap{font-size:12.5px; color:var(--muted); margin:0}
 footer{font-size:13px; color:var(--muted)}
 footer p{max-width:none}
 @media (prefers-reduced-motion:reduce){.btn:active{transform:none}}
@@ -173,6 +190,40 @@ footer p{max-width:none}
   </section>
 
   <section class="box">
+    <h2>Step 3: the paper's formulas</h2>
+    <p>Steps 1 and 2 are the estimators from the paper's Section 4.2. Here they are with this sample's numbers filled in. A hat, as in <tex>\hat{p}</tex>, means "estimated from the sample". Classes are numbered 1 to 4 as in the paper's Table 3. Click any cell in either matrix to follow that cell, its row and its column.</p>
+    <div class="eqs">
+      <div class="eq">
+        <div class="eq-tag"><span>Eq. 12 · one cell</span><i id="q-c-tag">map anchovy, tasted anchovy</i></div>
+        <div class="eq-m"><tex display>\hat{p}_{ij} = W_i \, \frac{n_{ij}}{n_{i+}}</tex></div>
+        <div class="eq-m"><tex display>\hat{p}_{\id{q-c-ij}{44}} = W_{\id{q-c-i}{4}} \, \frac{n_{\id{q-c-ij2}{44}}}{n_{\id{q-c-ir}{4}+}} = \id{q-c-w}{5.0}\% \times \frac{\id{q-c-n}{16}}{\id{q-c-nr}{25}} = \id{q-c-v}{3.20}\%</tex></div>
+        <p class="eq-cap"><tex>W_i</tex> is the share of the map that topping covers. <tex>n_{ij}/n_{i+}</tex> is the share of that row's tastes that landed in the cell.</p>
+      </div>
+      <div class="eq">
+        <div class="eq-tag"><span>Eq. 13 · overall</span><i>c = 4 toppings</i></div>
+        <div class="eq-m"><tex display>\hat{O} = \sum_{i=1}^{c} \hat{p}_{ii} = \sum_{i=1}^{c} W_i \, \frac{n_{ii}}{n_{i+}}</tex></div>
+        <div class="eq-m"><tex display>\hat{O} = \id{q-o-w1}{60.0}\% \times \id{q-o-n1}{21}/\id{q-o-r1}{25} + \id{q-o-w2}{25.0}\% \times \id{q-o-n2}{18}/\id{q-o-r2}{25}</tex></div>
+        <div class="eq-m"><tex display>\phantom{\hat{O}} + \id{q-o-w3}{10.0}\% \times \id{q-o-n3}{20}/\id{q-o-r3}{25} + \id{q-o-w4}{5.0}\% \times \id{q-o-n4}{16}/\id{q-o-r4}{25} = \id{q-o-v}{79.6}\%</tex></div>
+        <p class="eq-cap"><span class="k-raw">Raw counts</span> add the same <span id="q-ro-d">75</span> right tastes and divide by all <span id="q-ro-n">100</span>, giving <span class="k-raw" id="q-ro-v">75.0%</span>. That treats a cheese taste and an anchovy taste as covering the same area.</p>
+      </div>
+      <div class="eq">
+        <div class="eq-tag"><span>Eq. 14 · user's</span><i id="q-u-tag">row: map anchovy</i></div>
+        <div class="eq-m"><tex display>\hat{U}_i = \hat{p}_{ii}/\hat{p}_{i+}</tex></div>
+        <div class="eq-m"><tex display>\hat{U}_{\id{q-u-i}{4}} = \hat{p}_{\id{q-u-ii}{44}}/\hat{p}_{\id{q-u-ir}{4}+} = (\id{q-u-w1}{5.0}\% \times \id{q-u-n}{16}/\id{q-u-nr}{25}) / \id{q-u-w2}{5.0}\%</tex></div>
+        <div class="eq-m"><tex display>\phantom{\hat{U}_4} = \id{q-u-n2}{16}/\id{q-u-nr2}{25} = \id{q-u-v}{64.0}\%</tex></div>
+        <p class="eq-cap">A row's estimated total <tex>\hat{p}_{i+}</tex> is just <tex>W_i</tex>, so the weight cancels. That's why raw and weighted user's accuracy always agree.</p>
+      </div>
+      <div class="eq">
+        <div class="eq-tag"><span>Eq. 15 · producer's</span><i id="q-p-tag">column: tasted anchovy</i></div>
+        <div class="eq-m"><tex display>\hat{P}_j = \hat{p}_{jj}/\hat{p}_{+j}</tex></div>
+        <div class="eq-m"><tex display>\hat{P}_{\id{q-p-j}{4}} = \hat{p}_{\id{q-p-jj}{44}} / (\hat{p}_{\id{q-p-s1}{14}}+\hat{p}_{\id{q-p-s2}{24}}+\hat{p}_{\id{q-p-s3}{34}}+\hat{p}_{\id{q-p-s4}{44}})</tex></div>
+        <div class="eq-m"><tex display>\phantom{\hat{P}_4} = \id{q-p-top}{3.20} / (\id{q-p-t1}{0.00}+\id{q-p-t2}{3.00}+\id{q-p-t3}{1.20}+\id{q-p-t4}{3.20}) = \id{q-p-v}{43.2}\%</tex></div>
+        <p class="eq-cap">A column mixes tastes from every row, so it needs the weights. <span class="k-raw">Raw counts</span> would use <span id="q-pr-n">16</span> ÷ <span id="q-pr-d">22</span> = <span class="k-raw" id="q-pr-v">73%</span>.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="box">
     <h2>Taste 300 samples</h2>
     <p>One sample can be lucky or unlucky. Repeat the tasting 300 times and see where each method lands on average. Each square is one sample.</p>
     <div class="histctl">
@@ -207,16 +258,16 @@ footer p{max-width:none}
       <h2>Why weighting works</h2>
       <p>A cheese spot on the map has a tiny chance of being tasted, because there are so many of them. An anchovy spot on the map has a much bigger chance. So each tasted cheese spot is standing in for hundreds of untasted ones, and each tasted anchovy spot stands in for far fewer.</p>
       <span class="formula">weight = 1 ÷ chance of being tasted</span>
-      <p>Weighting by the map's share puts that back. In the paper this is Eq. 12: each cell becomes the map share times the row's sample fraction.</p>
+      <p>Weighting by the map's share puts that back. In the paper this is Eq. 12: each cell becomes the map share times the row's sample fraction. Step 3 works it through for any cell.</p>
       <h3>User's accuracy doesn't care</h3>
-      <p>User's accuracy only uses one row, and every taste in a row had the same chance of being picked. So raw and weighted give the same answer. Producer's and overall accuracy mix rows together, so they need the weights.</p>
+      <p>User's accuracy only uses one row, and every taste in a row had the same chance of being picked. So raw and weighted give the same answer. Producer's and overall accuracy mix rows together, so they need the weights. Eq. 14 in Step 3 shows the weight cancelling.</p>
       <h3>A quick smell test</h3>
       <p>If someone shows you a matrix where every row adds up to the same number, ask whether the sample was 25 of each. If it was, the raw producer's and overall accuracies are probably wrong (Section 4.4).</p>
     </div>
   </section>
 
   <footer>
-    <p>Based on Stehman, S.V. &amp; Foody, G.M. (2019). Key issues in rigorous accuracy assessment of land cover products. <i>Remote Sensing of Environment</i> 231, 111199, Sections 2.1, 4.2 and 4.4, Tables 4 and 5. <a href="https://doi.org/10.1016/j.rse.2019.05.018">doi:10.1016/j.rse.2019.05.018</a></p>
+    <p>Based on Stehman, S.V. &amp; Foody, G.M. (2019). Key issues in rigorous accuracy assessment of land cover products. <i>Remote Sensing of Environment</i> 231, 111199, Sections 2.1, 4.2 and 4.4, Eqs. 12–15, Tables 4 and 5. <a href="https://doi.org/10.1016/j.rse.2019.05.018">doi:10.1016/j.rse.2019.05.018</a></p>
     <p>Previous: <a href="01-anchovy-problem.html">01 · The Anchovy Problem</a>. Next up: 03 · the sampling design lab.</p>
   </footer>
 </main>
@@ -228,7 +279,7 @@ footer p{max-width:none}
 const TABLE4=[[21,3,1,0],[4,18,0,3],[0,2,20,3],[5,2,2,16]];
 const WPRESET={paper:[.60,.25,.10,.05],equal:[.25,.25,.25,.25],flip:[.05,.10,.25,.60]};
 const PAPER_SE={oa:5.1, ua:[7.5,9.2,8.2,9.8], pa:[3.2,10.8,16.7,11.1]}; /* Table 5 standard errors, in points */
-const st={seed:SEED, n:25, metric:"pa3", wkey:"paper", hover:-1};
+const st={seed:SEED, n:25, metric:"pa3", wkey:"paper", hover:-1, cell:[3,3]};
 let P, strata, Nh, W, tr, smp, reps;
 
 const $=id=>document.getElementById(id);
@@ -237,6 +288,10 @@ const f0=v=>isNaN(v)?"–":Math.round(100*v)+"%";
 const sw=k=>`<i class="sw" style="background:var(${VAR[k][0]})"></i>`;
 const sum=a=>a.reduce((x,y)=>x+y,0);
 const zeros=()=>[[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]];
+const setEq=(id,v)=>{$(id).textContent=v;};
+const p1=v=>isNaN(v)?"–":(100*v).toFixed(1), p2=v=>isNaN(v)?"–":(100*v).toFixed(2);
+/* a matrix cell that picks which cell, row and column Step 3's equations follow */
+const pickCell=(i,j,v)=>`<td class="pk ${i===j?"diag":""} ${st.cell[0]===i&&st.cell[1]===j?"sel":""}"><button type="button" data-i="${i}" data-j="${j}" aria-label="Map ${NAMES[i]}, tasted ${NAMES[j]}: ${v}. Show in the equations">${v}</button></td>`;
 
 function setup(){
   P=bakePaperPizza(st.seed);
@@ -311,7 +366,7 @@ const head=()=>{let h=`<thead><tr><th class="corner">Map ↓<br>Tasted →</th>`
 function matrixCounts(el,cnt,e,standFor){
   let h=head()+`<th>Tastes</th><th>User's</th><th>Each taste<br>stands for</th></tr></thead><tbody>`;
   for(let i=0;i<4;i++){ h+=`<tr><th class="rowh">${sw(i)}${TITLE[i]}</th>`;
-    for(let j=0;j<4;j++) h+=`<td class="${i===j?"diag":""}">${cnt[i][j]}</td>`;
+    for(let j=0;j<4;j++) h+=pickCell(i,j,cnt[i][j]);
     h+=`<td>${e.nr[i]}</td><td class="acc">${f0(e.raw.ua[i])}</td><td>${standFor(i)}</td></tr>`; }
   h+=`<tr><th class="rowh">Tastes</th>`; for(let j=0;j<4;j++) h+=`<td>${e.colN[j]}</td>`;
   h+=`<td>${e.n}</td><td></td><td></td></tr><tr><th class="rowh colraw">Producer's (raw)</th>`;
@@ -319,10 +374,10 @@ function matrixCounts(el,cnt,e,standFor){
   h+=`<td class="colraw acc" title="raw overall accuracy">${f1(e.raw.oa)}</td><td></td><td></td></tr></tbody>`;
   el.innerHTML=h;
 }
-function matrixArea(el,e,w){
+function matrixArea(el,e,w,pick){
   let h=head()+`<th>Map share</th><th>User's</th></tr></thead><tbody>`;
   for(let i=0;i<4;i++){ h+=`<tr><th class="rowh">${sw(i)}${TITLE[i]}</th>`;
-    for(let j=0;j<4;j++) h+=`<td class="${i===j?"diag":""}">${(100*e.p[i][j]).toFixed(1)}</td>`;
+    for(let j=0;j<4;j++){ const v=(100*e.p[i][j]).toFixed(1); h+=pick?pickCell(i,j,v):`<td class="${i===j?"diag":""}">${v}</td>`; }
     h+=`<td>${(100*w[i]).toFixed(1)}</td><td class="acc">${f0(e.wt.ua[i])}</td></tr>`; }
   h+=`<tr><th class="rowh">Est. share</th>`; for(let j=0;j<4;j++) h+=`<td>${(100*e.colP[j]).toFixed(1)}</td>`;
   h+=`<td>100</td><td></td></tr><tr><th class="rowh colgood">Producer's (weighted)</th>`;
@@ -379,11 +434,29 @@ function renderPaper(){
   $("psum").innerHTML=s;
   document.querySelectorAll("#wpresets [data-w]").forEach(b=>b.setAttribute("aria-pressed",b.dataset.w===st.wkey?"true":"false"));
 }
+/* the paper's Eqs. 12-15, filled in with this sample; numbers here are shares of the pizza in % */
+function renderEqs(e,cnt){
+  const [i,j]=st.cell, a=i+1, b=j+1, wp=k=>(100*W[k]).toFixed(1);
+  setEq("q-c-tag",`map ${NAMES[i]}, tasted ${NAMES[j]}`);
+  setEq("q-c-ij",`${a}${b}`); setEq("q-c-i",a); setEq("q-c-ij2",`${a}${b}`); setEq("q-c-ir",a);
+  setEq("q-c-w",wp(i)); setEq("q-c-n",cnt[i][j]); setEq("q-c-nr",e.nr[i]); setEq("q-c-v",p2(e.p[i][j]));
+  for(let k=0;k<4;k++){ setEq("q-o-w"+(k+1),wp(k)); setEq("q-o-n"+(k+1),cnt[k][k]); setEq("q-o-r"+(k+1),e.nr[k]); }
+  setEq("q-o-v",p1(e.wt.oa));
+  setEq("q-ro-d",cnt[0][0]+cnt[1][1]+cnt[2][2]+cnt[3][3]); setEq("q-ro-n",e.n); setEq("q-ro-v",f1(e.raw.oa));
+  setEq("q-u-tag",`row: map ${NAMES[i]}`);
+  setEq("q-u-i",a); setEq("q-u-ii",`${a}${a}`); setEq("q-u-ir",a);
+  setEq("q-u-w1",wp(i)); setEq("q-u-w2",wp(i)); setEq("q-u-n",cnt[i][i]); setEq("q-u-n2",cnt[i][i]);
+  setEq("q-u-nr",e.nr[i]); setEq("q-u-nr2",e.nr[i]); setEq("q-u-v",p1(e.wt.ua[i]));
+  setEq("q-p-tag",`column: tasted ${NAMES[j]}`);
+  setEq("q-p-j",b); setEq("q-p-jj",`${b}${b}`); setEq("q-p-top",p2(e.p[j][j])); setEq("q-p-v",p1(e.wt.pa[j]));
+  for(let k=0;k<4;k++){ setEq("q-p-s"+(k+1),`${k+1}${b}`); setEq("q-p-t"+(k+1),p2(e.p[k][j])); }
+  setEq("q-pr-n",cnt[j][j]); setEq("q-pr-d",e.colN[j]); setEq("q-pr-v",f0(e.raw.pa[j]));
+}
 function renderSample(){
   const e=estimate(smp.cnt,W);
   renderBars(); renderLegend(); renderProbe(); drawPizza(); renderResults(e);
   matrixCounts($("mx-n"),smp.cnt,e,i=>smp.k[i]?`${Math.round(Nh[i]/smp.k[i])} spots`:"–");
-  matrixArea($("mx-p"),e,W);
+  matrixArea($("mx-p"),e,W,true); renderEqs(e,smp.cnt);
   $("n-o").textContent=st.n;
 }
 function all(){ smp=drawSample(); renderSample(); runReps(); drawHist(); renderPaper(); }
@@ -391,6 +464,9 @@ function all(){ smp=drawSample(); renderSample(); runReps(); drawHist(); renderP
 $("n").addEventListener("input",e=>{st.n=+e.target.value; all();});
 $("draw").addEventListener("click",()=>{smp=drawSample(); renderSample();});
 $("newpie").addEventListener("click",()=>{st.seed=(Math.random()*1e9)|0; setup(); all();});
+["mx-n","mx-p"].forEach(id=>$(id).addEventListener("click",ev=>{const b=ev.target.closest("button[data-i]"); if(!b) return;
+  st.cell=[+b.dataset.i,+b.dataset.j]; renderSample();
+  const again=document.querySelector(`#${id} button[data-i="${st.cell[0]}"][data-j="${st.cell[1]}"]`); if(again) again.focus();}));
 $("rerun").addEventListener("click",()=>{runReps(); drawHist();});
 $("metric").addEventListener("change",e=>{st.metric=e.target.value; drawHist();});
 document.querySelectorAll("#wpresets [data-w]").forEach(b=>b.addEventListener("click",()=>{st.wkey=b.dataset.w; renderPaper();}));

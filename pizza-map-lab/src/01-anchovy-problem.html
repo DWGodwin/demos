@@ -134,6 +134,15 @@ th .pc{font-family:var(--f-body); color:var(--muted); margin-left:3px}
 .mnote{font-size:13px; color:var(--muted); margin-top:10px}
 .notes p{font-size:14px}
 .formula{display:inline-block; border:2px solid var(--line); padding:4px 8px; margin:2px 0 8px; font-weight:600; background:var(--tint-d)}
+/* Paper equations: MathML that build.py makes from tex tags. Live numbers are tagged \id{...} and set with setEq. */
+math{font-family:"STIX Two Math","Cambria Math","Latin Modern Math",math; font-size:1.15em; font-style:normal; font-weight:normal; line-height:normal; letter-spacing:normal; text-transform:none; direction:ltr; font-feature-settings:"dtls" off}
+mfrac > :nth-child(2), msqrt, mover > :first-child{math-shift:compact}
+.eq{border:2px solid var(--line); background:var(--tint-d); padding:10px 12px; margin:0 0 12px; display:grid; gap:6px; max-width:66ch}
+.eq-tag{font-family:var(--f-display); font-size:11.5px; letter-spacing:.02em; display:flex; justify-content:space-between; gap:4px 10px; flex-wrap:wrap}
+.eq-tag i{font-style:normal; color:var(--muted)}
+.eq-m{overflow-x:auto; overflow-y:hidden; padding:3px 0}
+@media (max-width:480px){.eq-m math{font-size:1em}}
+.eq-cap{font-size:12.5px; color:var(--muted); margin:0}
 footer{font-size:13px; color:var(--muted)}
 footer p{max-width:none}
 @media (prefers-reduced-motion:reduce){.btn:active{transform:none}}
@@ -239,8 +248,20 @@ footer p{max-width:none}
       <h2>Two people, two questions</h2>
       <p><b>The eater reads across a row.</b> Take everything the map calls anchovy and ask what share is really anchovy. False alarms drag this down.</p>
       <span class="formula">user's accuracy = diagonal ÷ row total</span>
+      <div class="eq">
+        <div class="eq-tag"><span>The paper's Eq. 3</span><i class="q-cls">class 4 is anchovy (D)</i></div>
+        <div class="eq-m"><tex display>U_i = p_{ii}/p_{i+}</tex></div>
+        <div class="eq-m"><tex display>U_{\id{q-u-i}{4}} = p_{\id{q-u-ii}{44}}/p_{\id{q-u-ir}{4}+} = \id{q-u-a}{461}/\id{q-u-b}{720} = \id{q-u-v}{64.0}\%</tex></div>
+        <p class="eq-cap">Each <i>p</i> is a share of the whole pizza. Both shares are pixel counts divided by 14,400, so the ratio of the counts in the matrix is the same number.</p>
+      </div>
       <p><b>The mapmaker reads down a column.</b> Take every real anchovy and ask what share the map labelled anchovy. Misses drag this down.</p>
       <span class="formula">producer's accuracy = diagonal ÷ column total</span>
+      <div class="eq">
+        <div class="eq-tag"><span>The paper's Eq. 4</span><i class="q-cls">class 4 is anchovy (D)</i></div>
+        <div class="eq-m"><tex display>P_j = p_{jj}/p_{+j}</tex></div>
+        <div class="eq-m"><tex display>P_{\id{q-p-j}{4}} = p_{\id{q-p-jj}{44}}/p_{+\id{q-p-jc}{4}} = \id{q-p-a}{461}/\id{q-p-b}{1066} = \id{q-p-v}{43.2}\%</tex></div>
+        <p class="eq-cap">A plus sign in a subscript means "add up that way": <tex>p_{i+}</tex> is a row total and <tex>p_{+j}</tex> is a column total.</p>
+      </div>
       <h3>Every mistake counts twice</h3>
       <p>A spot that is really mushroom but mapped as anchovy is a commission error for anchovy and an omission error for mushroom. Point at a mistake on either pizza to see both readings.</p>
       <h3>The paper's map is two different maps</h3>
@@ -249,11 +270,18 @@ footer p{max-width:none}
       <p>Anchovy is 7.4% of the pizza. Press <b>Sees anchovies everywhere</b>: the map finds every real anchovy, and its false alarms are only 8% of the rest of the pizza. That sounds small, but 8% of everything else is about as many spots as all the real anchovies, so the eater's question turns into a coin flip.</p>
       <h3>Overall accuracy can't see any of this</h3>
       <p>Press <b>Never says anchovy</b>. The map finds zero anchovies and overall accuracy barely moves, because anchovies are a sliver of the pizza. That is why the paper asks for user's and producer's accuracy, or the full matrix, every time.</p>
+      <div class="eq">
+        <div class="eq-tag"><span>The paper's Eq. 2</span><i>c = 4 toppings</i></div>
+        <div class="eq-m"><tex display>O = \sum_{i=1}^{c} p_{ii}</tex></div>
+        <div class="eq-m"><tex display>O = p_{11}+p_{22}+p_{33}+p_{44}</tex></div>
+        <div class="eq-m"><tex display>\phantom{O} = \frac{\id{q-o-1}{7258}+\id{q-o-2}{2592}+\id{q-o-3}{1152}+\id{q-o-4}{461}}{14400} = \id{q-o-v}{79.6}\%</tex></div>
+        <p class="eq-cap">One sum down the diagonal. Anchovy's <tex>p_{44}</tex> is the smallest term, so losing it barely moves <tex>O</tex>.</p>
+      </div>
     </div>
   </section>
 
   <footer>
-    <p>Based on Stehman, S.V. &amp; Foody, G.M. (2019). Key issues in rigorous accuracy assessment of land cover products. <i>Remote Sensing of Environment</i> 231, 111199, Section 4.1 and Table 5. <a href="https://doi.org/10.1016/j.rse.2019.05.018">doi:10.1016/j.rse.2019.05.018</a></p>
+    <p>Based on Stehman, S.V. &amp; Foody, G.M. (2019). Key issues in rigorous accuracy assessment of land cover products. <i>Remote Sensing of Environment</i> 231, 111199, Section 4.1, Eqs. 2–4 and Table 5. <a href="https://doi.org/10.1016/j.rse.2019.05.018">doi:10.1016/j.rse.2019.05.018</a></p>
     <p>Next: <a href="02-twenty-five-of-each.html">02 · Twenty-Five of Each</a>, where the taster can only taste a sample.</p>
   </footer>
 </main>
@@ -270,6 +298,9 @@ const $=id=>document.getElementById(id);
 const pct=(a,b)=>b?(100*a/b):NaN;
 const fmt=v=>isNaN(v)?"–":(v>=99.95||v<.05?v.toFixed(0):v.toFixed(1))+"%";
 const fmt0=v=>isNaN(v)?"–":Math.round(v)+"%";
+const num=v=>isNaN(v)?"–":v.toFixed(1);
+const n0=v=>String(v);
+const setEq=(id,v)=>{$(id).textContent=v;};
 const sw=k=>`<i class="sw" style="background:var(${VAR[k][0]})"></i>`;
 
 /* rank each spot by how easily the map could get it wrong, putting the paper's own mistakes first,
@@ -359,6 +390,18 @@ function renderReadouts(){
   else {b.className="badge"; b.textContent=`Your edited map: only ${n} mistakes changed`;}
 }
 
+/* the paper's Eqs. 2-4, filled in with this map's pixel counts; classes are numbered 1-4 as in the paper's Table 3 */
+function renderEqs(){
+  const f=st.focus, k=f+1, hit=M[f][f];
+  setEq("q-u-i",k); setEq("q-u-ii",`${k}${k}`); setEq("q-u-ir",k);
+  setEq("q-u-a",n0(hit)); setEq("q-u-b",n0(rowT[f])); setEq("q-u-v",num(pct(hit,rowT[f])));
+  setEq("q-p-j",k); setEq("q-p-jj",`${k}${k}`); setEq("q-p-jc",k);
+  setEq("q-p-a",n0(hit)); setEq("q-p-b",n0(colT[f])); setEq("q-p-v",num(pct(hit,colT[f])));
+  let d=0; for(let c=0;c<4;c++){ setEq("q-o-"+(c+1),n0(M[c][c])); d+=M[c][c]; }
+  setEq("q-o-v",num(pct(d,P.T)));
+  document.querySelectorAll(".q-cls").forEach(e=>e.textContent=`class ${k} is ${NAMES[f]} (${PAPER_CLASS[f]})`);
+}
+
 function renderLegend(){
   let h=NAMES.map((n,k)=>`<span>${sw(k)}${TITLE[k]}</span>`).join("");
   if(st.showErr&&!st.sel){ const n=NAMES[st.focus];
@@ -380,7 +423,7 @@ function syncSliders(){
   $("fa").max=faMax; $("miss").value=Math.round(100*st.missN/rk.nTF); $("fa").value=(100*st.faN/rk.nNF).toFixed(1);
   $("f"+st.focus).checked=true; $("showerr").checked=st.showErr;
 }
-function render(){ compute(); renderReadouts(); renderMatrix(); renderLegend(); renderProbe(); draw($("cv-truth"),P.truth,false); draw($("cv-map"),mapL,true); }
+function render(){ compute(); renderReadouts(); renderEqs(); renderMatrix(); renderLegend(); renderProbe(); draw($("cv-truth"),P.truth,false); draw($("cv-map"),mapL,true); }
 function redraw(){ renderProbe(); draw($("cv-truth"),P.truth,false); draw($("cv-map"),mapL,true); }
 function bake(seed){ st.seed=seed; P=bakePaperPizza(seed); rk=ranks(st.focus); paperCounts(); }
 

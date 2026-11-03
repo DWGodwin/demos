@@ -16,7 +16,8 @@ Each explainer is a single static HTML file. This folder lives in the demos repo
 The built pages in this folder are generated. Edit the sources in `src/`, then:
 
 ```
-python3 src/build.py     # paste the shared pizza kit into each page
+npm install              # once: the LaTeX-to-MathML converter used by the build
+python3 src/build.py     # paste the shared pizza kit into each page, turn LaTeX into MathML
 node tests/check.js      # scripts parse, pizza matches Table 5, spreads match the paper's SEs
 ```
 

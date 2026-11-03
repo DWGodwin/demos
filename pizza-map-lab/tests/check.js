@@ -1,5 +1,5 @@
 // Pizza Map Lab checks. Run from the repo root after building:  node tests/check.js
-// 1. Every built page's inline script parses.
+// 1. Every built page's inline script parses, and its paper equations were converted with a slot for every live number.
 // 2. The shared kit bakes a pizza whose true error matrix is exactly Table 5, for several seeds.
 // 3. Tasting 25 per topping 300 times gives weighted estimates near the truth, raw estimates
 //    near the paper's naive numbers, and a spread near Table 5's standard errors.
@@ -14,6 +14,18 @@ for (const p of pages) {
   const s = fs.readFileSync(path.join(root, p), "utf8"), m = s.match(/<script>([\s\S]*)<\/script>/);
   try { new vm.Script(m ? m[1] : ""); ok(!!m, p); } catch (e) { ok(false, `${p}: ${e.message}`); }
   ok(!s.includes("@@KIT@@"), `${p} has the kit pasted in`);
+}
+
+console.log("Paper equations");
+for (const p of pages) {
+  const s = fs.readFileSync(path.join(root, p), "utf8");
+  if (!s.includes("<math") && !s.includes("setEq")) continue;
+  ok(!/<\/?tex\b/.test(s) && !s.includes("temml-error"), `${p}: every <tex> became MathML`);
+  // setEq("q-x", ...) needs id="q-x"; setEq("q-x"+(k+1), ...) needs q-x1 to q-x4
+  const ids = new Set([...s.matchAll(/\bid="([^"]+)"/g)].map(m => m[1])), missing = [];
+  for (const [, id, loop] of s.matchAll(/setEq\("([\w-]+)"(\+)?/g))
+    for (const want of loop ? [1, 2, 3, 4].map(k => id + k) : [id]) if (!ids.has(want)) missing.push(want);
+  ok(!missing.length, `${p}: every live number has its slot${missing.length ? " (missing " + missing.join(", ") + ")" : ""}`);
 }
 
 const kit = fs.readFileSync(path.join(root, "src", "kit.js"), "utf8");

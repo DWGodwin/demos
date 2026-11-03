@@ -1,0 +1,7 @@
+{
+  "private": true,
+  "description": "Build-only dependency: Temml turns the explainers' LaTeX into MathML (see src/build.py). Nothing here ships to the browser.",
+  "devDependencies": {
+    "temml": "0.14.0"
+  }
+}

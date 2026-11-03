@@ -13,6 +13,7 @@ A classifier maps the toppings on a pizza, a taster checks a sample, and the rea
 ## Decisions already made
 
 - **One static HTML file per explainer**, plus `index.html`. No server, no build tools beyond `src/build.py`, no frameworks. In the spirit of Simon Willison's single-file HTML tools. Vanilla JS, canvas for pizzas and charts. Google Fonts is the only external load, and pages work without it.
+- **Paper equations are MathML made at build time.** Write LaTeX in `<tex>` tags in `src/`; `build.py` turns it into MathML with Temml (an npm dev dependency, pinned). Browsers draw MathML natively, so the built pages still load no script or font for it. Show the paper's equation next to the plain-words version, then the same equation filled in with the page's live numbers, and give its number (Eq. 3, Eq. 12…).
 - **The paper pizza.** Every explainer uses the same pizza, from `src/kit.js`:
   - A **square sheet pizza**: a 128×128 canvas, 120×120 spots of pizza (14,400) inside a 4-spot crust, cut into an **8×8 grid of 15×15 squares** ("image chips"). Faint knife cuts are drawn on every pizza.
   - Baked so the **true error matrix is exactly Table 5** of the paper (to within 0.01 points). Map shares are 60/25/10/5. Reference shares are 55.4/26.4/10.8/7.4. True overall accuracy is 79.6%.
@@ -36,7 +37,7 @@ The look is a lab bench of square boxes on a gingham tablecloth, with pixel art,
     - 01: commission `--commit` (magenta), omission `--omit` (basil green).
     - 02: raw counts `--raw` (muted brown), weighted `--good` (basil green).
     - Keep omission colours away from anything blue-grey, because that reads as anchovy.
-- **Components to reuse** (copy from 01/02): `.box`, `.btn`, `.seg` radio buttons, chunky square range sliders, `.probe` (dashed hover-readout box), `.legend` with `.sw` swatches, pixel `.meter`, error-matrix tables (rows = map, columns = reference, like the paper's Table 3).
+- **Components to reuse** (copy from 01/02): `.box`, `.btn`, `.seg` radio buttons, chunky square range sliders, `.probe` (dashed hover-readout box), `.legend` with `.sw` swatches, pixel `.meter`, error-matrix tables (rows = map, columns = reference, like the paper's Table 3), `.eq` paper-equation cards (`.eq-tag`, `.eq-m` rows, `.eq-cap`, plus the `math{}` rules).
 - **Layout:** `.wrap` max ~1120px, side gutter `max(16px, env(safe-area-inset-*))`, grids that stack to one column under ~820px, wide tables in `overflow-x:auto`.
 - **Copy:** plain, short, active sentences. The pizza jokes carry the silliness, so the prose doesn't need to. Avoid em-dash asides, "not X, but Y", and stock phrases. Name things the way a reader would. Cite the paper's section, equation or table on every page.
 - **Every page opens working:** the paper pizza loaded, a sample drawn, charts filled.
@@ -49,16 +50,28 @@ The lab lives in the `pizza-map-lab/` folder of the demos repo (`DWGodwin/demo-t
 index.html, 01-*.html, ...   built pages (what Cloudflare Pages serves) — don't edit these
 src/kit.js                   shared paper pizza kit, pasted into every page
 src/*.html                   page sources, each with exactly one /* @@KIT@@ */ marker
-src/build.py                 pastes the kit in and writes the built pages to the repo root
-tests/check.js               checks: scripts parse, Table 5 exact, simulated spread ≈ paper SEs
+src/build.py                 pastes the kit in, turns <tex> into MathML, writes the built pages to the repo root
+src/tex.js                   LaTeX -> MathML helper that build.py calls (Temml); not shipped
+package.json                 build-only dependency (Temml); run `npm install` once
+tests/check.js               checks: scripts parse, equations converted, Table 5 exact, simulated spread ≈ paper SEs
 ```
 
 Build and check, from `pizza-map-lab/`:
 
 ```
+npm install            # once, for the LaTeX converter
 python3 src/build.py
 node tests/check.js
 ```
+
+### Paper equations
+
+- Inline: `<tex>W_i</tex>`. Full size (fractions and sums drawn large): `<tex display>U_i = p_{ii}/p_{i+}</tex>`. Put each display equation in its own `<div class="eq-m">`, which scrolls sideways if it is too wide.
+- **Live numbers:** wrap a number in `\id{q-some-name}{64.0}`. The page sets it with `setEq("q-some-name", value)`. Keep `\%` and other symbols outside the `\id{}` so the id lands on the number itself. The value written in the LaTeX is only a placeholder until the script runs.
+- `tests/check.js` fails if any `<tex>` is left over, or if a `setEq("id")` has no matching slot. For loops, `setEq("q-x"+(k+1), …)` needs `q-x1` to `q-x4`.
+- Never write a literal `<tex>` inside a comment in `src/`; the build will try to convert it.
+- Split a long worked line into two `.eq-m` rows, starting the second with `\phantom{O} = …` so it lines up. Check phone width: a line may scroll inside its box, but the page itself must not.
+- Pages number classes 1–4 like the paper's Table 3 (A–D in Table 5), so say which topping a subscript means.
 
 The host does no building. The built pages are committed, so the demos repo's rule still holds: every `.html` is served as-is.
 
@@ -100,7 +113,7 @@ Pixel index is `y*N + x`. Changing the kit changes every page. Rebuild, rerun `t
 4. **Turn its card on** in `src/index.html`: change `<div class="card soon">` to `<a class="card" href="NN-name.html">` and the status to `Open`.
 5. **Link it.** Give the new page a crumb back to `index.html` and previous/next links in its footer, and update the previous page's "Next" link.
 6. **Write a small logic test** that runs the page's estimators in node against known answers (paper figures, or the census truth). Consider adding lasting checks to `tests/check.js`.
-7. **Build, check, look.** Run `python3 src/build.py` and `node tests/check.js`, then look at the page in a browser (both themes, phone width).
+7. **Build, check, look.** Run `python3 src/build.py` (after `npm install` once) and `node tests/check.js`, then look at the page in a browser (both themes, phone width).
 8. **Hand back.** Update **Status** and **Changelog** below, commit to the explainer's branch and push. Check the Cloudflare preview, then merge to `main` when it's ready.
 
 ### Publishing (Cloudflare Pages)
@@ -200,11 +213,17 @@ Section numbers refer to the paper. Figures marked *ours* are our own back-of-en
 |---|---|---|
 | 01 | The Anchovy Problem (`01-anchovy-problem.html`) | Done |
 | 02 | Twenty-Five of Each (`02-twenty-five-of-each.html`) | Done |
+| — | Paper equations (live MathML) on 01 and 02 | Done |
 | 03–10 | See plans above | Not started |
 | B1 | Round Pizza, Square Cuts | Later |
 
 ## Changelog
 
+- **2026-11-03** Paper equations session (on `pizza-map-lab`, no new explainer).
+  - `build.py` now turns `<tex>` LaTeX into MathML with Temml 0.14.0 (`npm install` once). The built pages still need no script or font for the maths.
+  - 01: Eqs. 2, 3 and 4 beside the plain-words formulas, filled in with the map's pixel counts. They follow the topping picker, sliders and presets.
+  - 02: new "Step 3: the paper's formulas" box with Eqs. 12–15 filled in with the current sample. Clicking a cell in either matrix picks the cell (Eq. 12), row (Eq. 14) and column (Eq. 15). Eq. 14 shows the weight cancelling; Eqs. 13 and 15 show the raw-count answer for contrast.
+  - Checked every equation's notation against the paper (pp. 10–11). `tests/check.js` now checks the equations were converted and every live number has a slot.
 - **2026-11-03** First session.
   - Built 01 and 02 and the index.
   - Moved to the paper pizza (exact Table 5, 128×128), then to the square sheet pizza (8×8 squares).
