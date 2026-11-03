@@ -371,6 +371,90 @@ function paintPizza(cv,colorAt){
   ctx.restore();
   return ctx;
 }
+/* ---- sampling designs (Sec. 2). Each returns pixel indices; r is a PRNG such as rng(seed) or Math.random ---- */
+const SIDE=CUTS*CHIP; /* the study area is SIDE x SIDE spots */
+const mapStrata=P=>{const s=[[],[],[],[]]; for(const i of P.ids) s[P.map[i]].push(i); return s;};
+/* n distinct picks from a list, every member equally likely */
+function pickFrom(list,n,r){ n=Math.min(n,list.length); const got=new Set();
+  if(n>list.length/2){const a=list.slice(); for(let k=0;k<n;k++){const j=k+Math.floor(r()*(a.length-k)); const t=a[k]; a[k]=a[j]; a[j]=t;} return a.slice(0,n);}
+  while(got.size<n) got.add(list[Math.floor(r()*list.length)]); return [...got]; }
+const sampleSRS=(P,n,r)=>pickFrom(P.ids,n,r);
+/* one random start, then every s-th spot across and down; n must be a square whose root divides SIDE */
+function sampleSystematic(P,n,r){ const s=SIDE/Math.sqrt(n); if(s%1) throw new Error("systematic: "+n+" spots don't make a grid");
+  const x0=Math.floor(r()*s), y0=Math.floor(r()*s), out=[];
+  for(let gy=y0;gy<SIDE;gy+=s) for(let gx=x0;gx<SIDE;gx+=s) out.push((EDGE+gy)*N+EDGE+gx); return out; }
+/* split n by shares, rounding so the parts still add to n (largest remainder) */
+function allocate(n,shares){ const t=shares.reduce((a,b)=>a+b,0), raw=shares.map(v=>n*v/t), out=raw.map(Math.floor);
+  const order=raw.map((v,k)=>[v-out[k],k]).sort((a,b)=>b[0]-a[0]); for(let q=0;q<n-out.reduce((a,b)=>a+b,0);q++) out[order[q][1]]++; return out; }
+/* simple random within each stratum: alloc[h] picks from strata[h] */
+const sampleStratified=(strata,alloc,r)=>strata.flatMap((s,h)=>pickFrom(s,alloc[h],r));
+/* one-stage cluster: the study area is tiled by b x b blocks; m blocks are picked at random and every spot in them is tasted */
+function sampleClusters(m,b,r){ const per=SIDE/b; if(per%1) throw new Error("clusters: "+b+" doesn't tile the pizza");
+  const blocks=pickFrom([...Array(per*per).keys()],m,r);
+  return blocks.map(q=>{const bx=(q%per)*b, by=Math.floor(q/per)*b, g=[];
+    for(let y=0;y<b;y++) for(let x=0;x<b;x++) g.push((EDGE+by+y)*N+EDGE+bx+x); return g;}); }
+/* spots in the outer ring of squares, the pieces with crust: where a convenience taster would grab from */
+const edgePieceSpots=P=>P.ids.filter(i=>{const q=P.piece[i], qx=q%CUTS, qy=Math.floor(q/CUTS); return qx===0||qy===0||qx===CUTS-1||qy===CUTS-1;});
+/* ---- estimators (Sec. 4.2). Rows are the map (strata), columns the reference ---- */
+function countMatrix(P,ids){ const c=[[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]]; for(const i of ids) c[P.map[i]][P.truth[i]]++; return c; }
+/* Stratified estimator, Eqs. 12-20, as proportions (0-1). W = each map class's share of the map.
+   Used for stratified samples and, as poststratification, for simple random and systematic ones.
+   Variances use n_i+ - 1 throughout, which reproduces every Table 5 standard error from Table 4.
+   A row with no tastes can't be estimated (ok=false); a row with one taste gives estimates but no variance. */
+function stratEstimate(c,W){
+  const K=c.length, nr=c.map(row=>row.reduce((a,b)=>a+b,0)), p=c.map((row,i)=>row.map(v=>nr[i]?W[i]*v/nr[i]:0));
+  const col=[...Array(K).keys()].map(j=>p.reduce((a,row)=>a+row[j],0));
+  const U=nr.map((n,i)=>n?c[i][i]/n:NaN), Pa=col.map((v,j)=>v?p[j][j]/v:NaN);
+  let O=0, vO=0; for(let i=0;i<K;i++){O+=p[i][i]; vO+=W[i]**2*U[i]*(1-U[i])/(nr[i]-1);}
+  const vU=U.map((u,i)=>u*(1-u)/(nr[i]-1));
+  const vP=Pa.map((Pj,j)=>{ let s=0; for(let i=0;i<K;i++) if(i!==j&&nr[i]){const f=c[i][j]/nr[i]; s+=W[i]**2*f*(1-f)/(nr[i]-1);}
+    return (W[j]**2*(1-Pj)**2*U[j]*(1-U[j])/(nr[j]-1)+Pj**2*s)/col[j]**2; });
+  const vA=col.map((_,k)=>{let s=0; for(let i=0;i<K;i++) if(nr[i]){const f=c[i][k]/nr[i]; s+=W[i]**2*f*(1-f)/(nr[i]-1);} return s;});
+  const se=v=>v>=0&&isFinite(v)?Math.sqrt(v):NaN;
+  return {ok:nr.every(n=>n>0), nr, p, O, U, P:Pa, area:col, se:{O:se(vO), U:vU.map(se), P:vP.map(se), area:vA.map(se)}};
+}
+/* One-stage cluster estimator for m equal-size blocks picked by simple random sampling (Stehman 1997b):
+   proportions are block averages, accuracies are ratios, and standard errors come from the spread between blocks.
+   Without the finite population correction, like the paper's stratified formulas. */
+function clusterEstimate(P,groups){
+  const m=groups.length, K=4, z=()=>new Float64Array(m), ok=z(), tr=[...Array(K)].map(z), mp=[...Array(K)].map(z), hit=[...Array(K)].map(z);
+  groups.forEach((g,c)=>{ for(const i of g){const a=P.map[i], b=P.truth[i]; tr[b][c]++; mp[a][c]++; if(a===b){ok[c]++; hit[a][c]++;}}
+    const L=g.length; ok[c]/=L; for(let k=0;k<K;k++){tr[k][c]/=L; mp[k][c]/=L; hit[k][c]/=L;} });
+  const mean=a=>a.reduce((s,v)=>s+v,0)/m;
+  const seMean=a=>{const u=mean(a); return Math.sqrt(a.reduce((s,v)=>s+(v-u)**2,0)/(m-1)/m);};
+  const ratio=(y,x)=>{const R=mean(y)/mean(x), xb=mean(x); let s=0; for(let c=0;c<m;c++) s+=(y[c]-R*x[c])**2;
+    return [R, xb?Math.sqrt(s/(m-1)/m)/xb:NaN];};
+  const P_=[], U=[], seP=[], seU=[];
+  for(let k=0;k<K;k++){ [P_[k],seP[k]]=ratio(hit[k],tr[k]); [U[k],seU[k]]=ratio(hit[k],mp[k]); }
+  const O=mean(ok), area=tr.map(mean);
+  return {ok:true, m, O, U, P:P_, area, se:{O:seMean(ok), U:seU, P:seP, area:tr.map(seMean)}};
+}
+/* ---- repeats histogram on a fixed 0-100% axis: one row of columns per method, a dashed truth line, a triangle at each row's average.
+   rows = [{name, vals (in %), col (CSS colour), dim}]; opt = {bin, left (label width), px (device pixel ratio)}.
+   Returns [{mean, sd, n}] per row ---- */
+function drawRepeats(cv,rows,truth,opt={}){
+  const px=opt.px||1, ctx=cv.getContext("2d"), Wd=cv.width/px, Hd=cv.height/px, ink=cssVar("--ink"), muted=cssVar("--muted"), font=cssVar("--f-body");
+  ctx.setTransform(px,0,0,px,0,0); ctx.clearRect(0,0,Wd,Hd);
+  const bin=opt.bin||1, lo=0, hi=100; /* always the full 0-100% scale, so every metric and design reads on the same axis */
+  const L=opt.left||150, Rm=24, T=22, B=34, gap=10, ph=(Hd-T-B-gap*(rows.length-1))/rows.length, X=v=>L+(v-lo)/(hi-lo)*(Wd-L-Rm);
+  const nb=Math.ceil((hi-lo)/bin), bw=(Wd-L-Rm)/nb;
+  ctx.font=`12px ${font}`; ctx.textBaseline="middle";
+  const out=rows.map((row,ri)=>{
+    const top=T+ri*(ph+gap), bins=new Array(nb).fill(0); row.vals.forEach(v=>bins[Math.max(0,Math.min(nb-1,Math.floor((v-lo)/bin)))]++);
+    const mx=Math.max(1,...bins); ctx.globalAlpha=row.dim?.35:1; ctx.fillStyle=row.col;
+    bins.forEach((c,b)=>{ if(!c) return; const h=Math.max(2,(ph-6)*c/mx); ctx.fillRect(Math.round(X(lo+b*bin))+1, Math.round(top+ph-h), Math.max(1,Math.round(bw)-1), Math.round(h)); });
+    ctx.strokeStyle=ink; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(L,top+ph+.5); ctx.lineTo(Wd-Rm,top+ph+.5); ctx.stroke();
+    const n=row.vals.length, mean=n?row.vals.reduce((a,b)=>a+b,0)/n:NaN, sd=n>1?Math.sqrt(row.vals.reduce((a,v)=>a+(v-mean)**2,0)/(n-1)):NaN;
+    if(n){ ctx.fillStyle=row.col; ctx.beginPath(); ctx.moveTo(X(mean),top+ph+2); ctx.lineTo(X(mean)-6,top+ph+10); ctx.lineTo(X(mean)+6,top+ph+10); ctx.closePath(); ctx.fill(); }
+    ctx.textAlign="left"; ctx.fillStyle=ink; ctx.fillText(row.name,6,top+ph/2-8);
+    ctx.fillStyle=muted; ctx.fillText(n?"avg "+mean.toFixed(1)+"%":"no estimate",6,top+ph/2+9);
+    ctx.globalAlpha=1; return {mean,sd,n}; });
+  ctx.strokeStyle=ink; ctx.lineWidth=2; ctx.setLineDash([5,4]); ctx.beginPath(); ctx.moveTo(X(truth),T-6); ctx.lineTo(X(truth),Hd-B+4); ctx.stroke(); ctx.setLineDash([]);
+  const rt=X(truth)>Wd-90; ctx.fillStyle=ink; ctx.textAlign=rt?"right":"left"; ctx.fillText("truth "+truth.toFixed(1)+"%",X(truth)+(rt?-6:6),T-10);
+  ctx.textAlign="center"; ctx.fillStyle=muted; const step=Wd<520?20:10;
+  for(let v=lo;v<=hi;v+=step){ ctx.fillRect(X(v)-1,Hd-B+6,2,5); ctx.fillText(v+"%",X(v),Hd-B+20); }
+  return out;
+}
 /* ---- end shared kit ---- */
 const ALT=[1,0,0,1]; /* if a correctly mapped spot becomes a miss, what the map calls it instead */
 const st={seed:SEED, focus:3, missN:0, faN:0, showErr:false, sel:null, hover:-1};

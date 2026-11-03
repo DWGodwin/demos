@@ -116,6 +116,14 @@ The host does no building. The built pages are committed, so the demos repo's ru
 | `bakePaperPizza(seed)` | Returns the object below (~60 ms) |
 | `hexRGB`, `cssVar`, `pizzaPalette()` | Read topping colours from CSS tokens |
 | `paintPizza(canvas, colorAt)` | `colorAt(i)` returns `[r,g,b,alpha]` or `null`. Draws crisp pixels plus knife cuts and returns the 2D context so you can draw overlays |
+| `SIDE`, `mapStrata(P)` | Study-area side (120); pixel lists for each map class (the strata) |
+| `pickFrom(list, n, r)`, `allocate(n, shares)` | `n` distinct picks, all equally likely; split `n` by shares so the parts add to `n` |
+| `sampleSRS(P,n,r)`, `sampleSystematic(P,n,r)`, `sampleStratified(strata,alloc,r)`, `sampleClusters(m,b,r)` | Samplers. Systematic needs `n` in 100/144/225/400 (random start). Clusters tile the study area with `b`×`b` blocks and return one pixel list per block |
+| `edgePieceSpots(P)` | Pixels in the outer ring of squares (the 28 pieces with crust); 03's convenience taster picks only from these |
+| `countMatrix(P, ids)` | Sample counts, rows map, columns reference |
+| `stratEstimate(c, W)` | Eqs. 12–20 with SEs, as proportions. `n_i+ − 1` in every variance. `ok` is false if a row has no tastes |
+| `clusterEstimate(P, groups)` | One-stage cluster estimator for equal-size blocks (block means, ratio estimators, SEs from the spread between blocks) |
+| `drawRepeats(canvas, rows, truth, opt)` | The shared repeats histogram: one row per method on a fixed 0–100% axis, dashed truth line, triangle at each average |
 
 `bakePaperPizza(seed)` returns:
 
@@ -142,7 +150,18 @@ Pixel index is `y*N + x`. Changing the kit changes every page. Rebuild, rerun `t
 5. **Link it.** Give the new page a crumb back to `index.html` and previous/next links in its footer, and update the previous page's "Next" link.
 6. **Write a small logic test** that runs the page's estimators in node against known answers (paper figures, or the census truth). Consider adding lasting checks to `tests/check.js`.
 7. **Build, check, look.** Run `python3 src/build.py` (after `npm install` once) and `node tests/check.js`, then look at the page in a browser (both themes, phone width).
-8. **Hand back.** Update **Status** and **Changelog** below, commit to the explainer's branch and push. The hooks add the session transcript to each commit (see **Session transcripts**). Check the Cloudflare preview, then merge to `main` when it's ready.
+8. **Hand back for review.** Update **Status** and **Changelog** below and leave everything uncommitted on the explainer's branch. Tell the author what changed and how to look at it (see **Reviewing and committing**).
+9. **Commit after review.** When the author approves, commit in the same Claude Code session, so the hooks add the transcript (see **Session transcripts**). Merge to `main` and push when the author says it's ready; that's what deploys.
+
+### Reviewing and committing
+
+Nothing is committed until the author has reviewed it locally.
+
+- **See what changed:** `git status` and `git diff` (sources in `src/`, plus `GUIDE.md` and `tests/`). The built HTML in this folder changes too; skip it in the diff with `git diff -- . ':!*.html' src/`.
+- **Look at the pages:** double-click the built `.html` in Finder (or `open 03-sampling-design-lab.html`). Each page is self-contained, so it works straight from disk, and links between pages work too. A local server (`python3 -m http.server 8000`) is only needed if a page ever starts loading files at runtime.
+- **Run the checks yourself:** `python3 src/build.py && node tests/check.js`.
+- **Approve or ask for changes** in the same Claude Code session. Claude commits only after a clear go-ahead. A commit from your own terminal works too, but it won't carry the session transcript.
+- **Parallel explainers in worktrees:** from the demos repo root, `git worktree add ../demos-lab-04 -b lab-04 main`. A new worktree lacks the gitignored `node_modules/` and `reference/`, so run `npm install` in its `pizza-map-lab/` and copy or symlink `reference/` in. Turn the hooks on there too if `git config core.hooksPath` doesn't print `.githooks` (the setting is shared, so it usually does). Remove a finished worktree with `git worktree remove ../demos-lab-04`.
 
 ### Publishing (Cloudflare Pages)
 
@@ -152,9 +171,7 @@ The demos repo deploys to Cloudflare Pages from `main`. Anything on another bran
 - The first launch (01, 02 and the index) is developed on the branch `pizza-map-lab`, then merged into `main`.
 - After launch, each new explainer gets a short-lived branch (`lab-03`, `lab-04`, …) that merges when it's done. Until then its card on the index stays "Coming", so the live lab only shows finished pages.
 
-**Previews**
-- Cloudflare Pages builds every pushed branch at a preview address of the form `<branch>.<project>.pages.dev`. The exact address is under the project's Deployments tab in the Cloudflare dashboard. Use it to check a page in a real browser before merging.
-- Preview addresses are unlisted but public. To make them private, put Cloudflare Access in front of the project's preview deployments.
+**Previews:** not used. The author reviews pages locally (see **Reviewing and committing**). Explainer branches don't need pushing; Cloudflare would build a public, unlisted preview for any branch that is pushed.
 
 **Pretty URLs:** Cloudflare Pages serves `/pizza-map-lab/01-anchovy-problem` for `01-anchovy-problem.html` and `/pizza-map-lab/` for `index.html`, and redirects the `.html` forms there. Relative links between pages keep working. The lab index links back to the demos index with `../`.
 
@@ -171,7 +188,7 @@ The demos repo deploys to Cloudflare Pages from `main`. Anything on another bran
 
 ## Before 03: shared groundwork
 
-Do this in the 03 session, on `lab-03`.
+Done in the 03 session, except step 1 (waiting on the author) and optional step 4 (skipped: 02 keeps its inline `estimate()`).
 
 1. **Finish the launch.** Merge `pizza-map-lab` into `main`, then branch `lab-03` from `main`.
 2. **Add shared estimators to `src/kit.js`.** Pages 03–06 need the same maths, and 02 currently keeps its own inline `estimate()`. Add:
@@ -202,7 +219,7 @@ Each plan opens with **Based on**: the parts of the papers it draws from, with p
 - **Designs:** simple random, systematic grid, stratified by map class (equal and proportional allocation), one-stage cluster, and a convenience design.
 - **Cluster size:** a whole square is 225 tastes, far more than a 100-taste budget. Use small blocks of spots here and save whole squares for 05.
 - **Systematic grid:** offer grid-friendly sample sizes only (100, 144, 225, 400 on the 120×120 study area).
-- **Convenience design:** taste only clean spots far from any topping edge. The map is almost always right there, so overall accuracy comes out too high. Those edge spots have zero chance of being picked, which breaks the probability-sample rule.
+- **Convenience design:** taste only the edge pieces (the outer ring of 28 squares, 44% of the pizza). Toppings thin out toward the crust, so those pieces are mostly cheese and overall accuracy comes out about 5 points too high (83–86% over eight bakes). The 36 middle squares have zero chance, which breaks the probability-sample rule. Rejected alternatives: clean spots away from topping edges (felt arbitrary); spots along the knife cuts (nearly unbiased here, because toppings ignore the cuts); a thin crust band (too little anchovy, so most samples can't be estimated).
 - **Show:** where the bites land, then 1,000 repeats as histograms of overall accuracy, producer's accuracy for D, and the area of D. Each probability design should centre on 79.6, 43.2 and 7.4.
 - **Key ideas:**
   - A probability sample means every spot has a known, non-zero chance of being picked (Sec. 2.1).
@@ -342,10 +359,22 @@ Each plan opens with **Based on**: the parts of the papers it draws from, with p
 | 01 | The Anchovy Problem (`01-anchovy-problem.html`) | Done |
 | 02 | Twenty-Five of Each (`02-twenty-five-of-each.html`) | Done |
 | — | Paper equations (live MathML) on 01 and 02 | Done |
-| 03–10 | See plans above (checked against the papers) | Not started |
+| 03 | The Sampling Design Lab (`03-sampling-design-lab.html`) | Built on `lab-03`; page copy is a draft for the author to rewrite; not merged |
+| 04–10 | See plans above (checked against the papers) | Not started |
 | B1 | Round Pizza, Square Cuts | Later |
 
 ## Changelog
+
+- **2026-11-03** 03 session (on `lab-03`, branched from `pizza-map-lab`; the launch merge into `main` is left for the author).
+  - Kit: samplers, the stratified/poststratified estimator (Eqs. 12–20 with SEs), a one-stage cluster estimator, `edgePieceSpots`, and `drawRepeats`, a repeats histogram with a fixed 0–100% axis (the author asked for 0–100 on every metric).
+  - `tests/check.js`: Table 4 in gives every Table 5 number and SE out; every probability design is unbiased over 2,000 repeats; the convenience design is not (about 84.5% overall).
+  - 03 page: seven designs (simple random, systematic, equal and proportional strata, 2×2 and 5×5 clusters, convenience). Each shows where the bites land and a map of each spot's chance. The page also has this sample's estimates with SEs, 1,000 repeats of every design, and live Eqs. 13 and 16, the 1/π weight and a cluster card. "Check against the paper" covers Table 2 examples and Table 4 → 5.
+  - Found: Eq. 20 is printed with `n_i+`, but Table 5's area SEs need `n_i+ − 1` (`n_i+` gives 4.8/4.5/2.5/1.8). The page says so.
+  - Found: on this pizza the systematic grid's gain depends on spacing. At 100 tastes (every 12 spots) the SRS formula is about right, or slightly low for overall accuracy. At 225–400 it overstates, e.g. producer's D at 400 spreads 4.9 while the formula says 7.1. The page reports this live instead of claiming it always overstates. 05's clumping should make it clearer.
+  - Found: equal strata are less precise than simple random for overall accuracy (about 5.0 vs 4.1 at 100), the Sec. 2.5 trade-off. The page points it out.
+  - Clusters at 100 tastes: 25 blocks of 2×2 are worth about 60 single tastes, 4 blocks of 5×5 about 20. With 4 blocks, each sample's own SE is unreliable.
+  - Convenience design changed after review: from "clean spots away from topping edges" to "edge pieces only" (see the 03 plan).
+  - All page text is a draft in the guide's voice; the author writes the final copy (see README).
 
 - **2026-11-03** Planning session (no pages built).
   - Checked the plans for 03–10 against the papers in `reference/`, now including Foody (2013) and Pontius & Santacruz (2014).
