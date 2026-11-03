@@ -1,0 +1,8 @@
+#!/bin/sh
+# End the message with a Transcript: line pointing at this session's transcript, which
+# pre-commit keeps up to date in the commit (even when it hasn't changed since last time).
+[ -n "$CLAUDE_CODE_SESSION_ID" ] || exit 0
+id=$(printf %s "$CLAUDE_CODE_SESSION_ID" | cut -c1-8)
+t=$(git ls-files --cached "transcripts/*-$id.md" | head -n 1)
+[ -n "$t" ] || exit 0
+git interpret-trailers --in-place --if-exists replace --trailer "Transcript: $t" "$1"

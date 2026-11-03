@@ -1,0 +1,8 @@
+#!/bin/sh
+# Save the Claude Code session's transcript with each commit made from Claude Code.
+# Claude Code sets CLAUDE_CODE_SESSION_ID for the commands it runs, so commits made in
+# your own terminal are left alone. Turn on once per clone: git config core.hooksPath .githooks
+[ -n "$CLAUDE_CODE_SESSION_ID" ] || exit 0
+top="$(git rev-parse --show-toplevel)"
+f=$(python3 "$top/.githooks/transcript.py") || { echo "pre-commit: could not save the session transcript" >&2; exit 1; }
+git add "$top/$f"

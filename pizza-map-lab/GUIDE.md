@@ -64,6 +64,14 @@ package.json                 build-only dependency (Temml); run `npm install` on
 tests/check.js               checks: scripts parse, equations converted, Table 5 exact, simulated spread ≈ paper SEs
 ```
 
+At the demos repo root, shared by every project in the repo:
+
+```
+.githooks/                   git hooks that commit each Claude Code session's transcript with its commits
+.githooks/transcript.py      writes a session's conversation to transcripts/
+transcripts/                 one Markdown transcript per Claude Code session, named <date>-<session id>.md
+```
+
 Build and check, from `pizza-map-lab/`:
 
 ```
@@ -71,6 +79,18 @@ npm install            # once, for the LaTeX converter
 python3 src/build.py
 node tests/check.js
 ```
+
+### Session transcripts
+
+Every commit made from a Claude Code session carries that session's transcript. This is set up for the whole demos repo, not just this project.
+
+- **Turn the hooks on once per clone**, from the demos repo root: `git config core.hooksPath .githooks`.
+- **What happens:** when a commit runs inside Claude Code (which sets `CLAUDE_CODE_SESSION_ID`), `pre-commit` runs `.githooks/transcript.py` and stages the transcript. `commit-msg` then adds a `Transcript: transcripts/<file>.md` trailer. Commits made in your own terminal are untouched.
+- **What's kept:** only the user's messages and Claude's replies. Tool calls and their output are dropped, because for this lab they include text from the paywalled papers.
+- **Later commits rewrite the file.** It is one file per session, so later commits in the same session update it. Talk after the last commit isn't saved. To keep it, run `python3 .githooks/transcript.py <session id>` and commit the result.
+- **It's public.** `transcripts/` deploys to the live site along with the rest of the repo.
+- **Don't add `Claude-Session:` trailers by hand.** For cloud or Remote Control sessions, consider turning off Claude Code's `attribution.sessionUrl` setting, so commits link only to the repo transcript.
+- **If a commit fails with "could not save the session transcript"**, Claude Code's transcript format has probably changed. Fix `.githooks/transcript.py` rather than skipping the hook.
 
 ### Paper equations
 
@@ -122,7 +142,7 @@ Pixel index is `y*N + x`. Changing the kit changes every page. Rebuild, rerun `t
 5. **Link it.** Give the new page a crumb back to `index.html` and previous/next links in its footer, and update the previous page's "Next" link.
 6. **Write a small logic test** that runs the page's estimators in node against known answers (paper figures, or the census truth). Consider adding lasting checks to `tests/check.js`.
 7. **Build, check, look.** Run `python3 src/build.py` (after `npm install` once) and `node tests/check.js`, then look at the page in a browser (both themes, phone width).
-8. **Hand back.** Update **Status** and **Changelog** below, commit to the explainer's branch and push. Check the Cloudflare preview, then merge to `main` when it's ready.
+8. **Hand back.** Update **Status** and **Changelog** below, commit to the explainer's branch and push. The hooks add the session transcript to each commit (see **Session transcripts**). Check the Cloudflare preview, then merge to `main` when it's ready.
 
 ### Publishing (Cloudflare Pages)
 
@@ -335,6 +355,7 @@ Each plan opens with **Based on**: the parts of the papers it draws from, with p
   - Added exchange and shift figures to 09.
   - Settled the 05 open question: keep Table 5 exact, with separate dials for clumped toppings and clumped mistakes.
   - Gave every plan a **Based on** list of the passages it draws from, with page numbers.
+  - Added session transcripts for the whole demos repo: git hooks in `.githooks/` at the repo root commit each Claude Code session's transcript to `transcripts/`, with a `Transcript:` trailer.
 - **2026-11-03** Paper equations session (on `pizza-map-lab`, no new explainer).
   - `build.py` now turns `<tex>` LaTeX into MathML with Temml 0.14.0 (`npm install` once). The built pages still need no script or font for the maths.
   - 01: Eqs. 2, 3 and 4 beside the plain-words formulas, filled in with the map's pixel counts. They follow the topping picker, sliders and presets.

@@ -7,3 +7,4 @@ This folder (`pizza-map-lab/`) is one project inside the demos repo. Read `GUIDE
 - Work on the explainer's branch (`lab-NN`), never directly on `main`, which deploys to the live site.
 - Build one explainer per session. Before finishing, update the Status and Changelog sections of `GUIDE.md`.
 - The paper is the pdf in `reference/`
+- Commits get the session's transcript and a `Transcript:` trailer automatically, through the demos repo's hooks in `.githooks/` (see "Session transcripts" in `GUIDE.md`). Don't add `Claude-Session:` trailers. If `git config core.hooksPath` doesn't print `.githooks`, ask the user to turn the hooks on.
