@@ -121,7 +121,7 @@ The host does no building. The built pages are committed, so the demos repo's ru
 | `sampleSRS(P,n,r)`, `sampleSystematic(P,n,r)`, `sampleStratified(strata,alloc,r)`, `sampleClusters(m,b,r)` | Samplers. Systematic needs `n` in 100/144/225/400 (random start). Clusters tile the study area with `b`×`b` blocks and return one pixel list per block |
 | `edgePieceSpots(P)` | Pixels in the outer ring of squares (the 28 pieces with crust); 03's convenience taster picks only from these |
 | `countMatrix(P, ids)` | Sample counts, rows map, columns reference |
-| `stratEstimate(c, W)` | Eqs. 12–20 with SEs, as proportions. `n_i+ − 1` in every variance. `ok` is false if a row has no tastes |
+| `stratEstimate(c, W, Nh?)` | Eqs. 12–20 with SEs, as proportions. `n_i+ − 1` in every variance. `ok` is false if a row has no tastes. Optional `Nh` (spots per stratum) applies the finite population correction `1 − n_i+/N_i+` to each stratum's term; the paper leaves it out, and only 04 uses it |
 | `clusterEstimate(P, groups)` | One-stage cluster estimator for equal-size blocks (block means, ratio estimators, SEs from the spread between blocks) |
 | `drawRepeats(canvas, rows, truth, opt)` | The shared repeats histogram: one row per method on a fixed 0–100% axis, dashed truth line, triangle at each average |
 
@@ -150,7 +150,7 @@ Pixel index is `y*N + x`. Changing the kit changes every page. Rebuild, rerun `t
 5. **Link it.** Give the new page a crumb back to `index.html` and previous/next links in its footer, and update the previous page's "Next" link.
 6. **Write a small logic test** that runs the page's estimators in node against known answers (paper figures, or the census truth). Consider adding lasting checks to `tests/check.js`.
 7. **Build, check, look.** Run `python3 src/build.py` (after `npm install` once) and `node tests/check.js`, then look at the page in a browser (both themes, phone width).
-8. **Hand back for review.** Update **Status** and **Changelog** below and leave everything uncommitted on the explainer's branch. Tell the author what changed and how to look at it (see **Reviewing and committing**).
+8. **Hand back for review.** Update **Status** and **Changelog** below and leave everything uncommitted on the current branch (no new branch per explainer). Tell the author what changed and how to look at it (see **Reviewing and committing**).
 9. **Commit after review.** When the author approves, commit in the same Claude Code session, so the hooks add the transcript (see **Session transcripts**). Merge to `main` and push when the author says it's ready; that's what deploys.
 
 ### Reviewing and committing
@@ -161,7 +161,7 @@ Nothing is committed until the author has reviewed it locally.
 - **Look at the pages:** double-click the built `.html` in Finder (or `open 03-sampling-design-lab.html`). Each page is self-contained, so it works straight from disk, and links between pages work too. A local server (`python3 -m http.server 8000`) is only needed if a page ever starts loading files at runtime.
 - **Run the checks yourself:** `python3 src/build.py && node tests/check.js`.
 - **Approve or ask for changes** in the same Claude Code session. Claude commits only after a clear go-ahead. A commit from your own terminal works too, but it won't carry the session transcript.
-- **Parallel explainers in worktrees:** from the demos repo root, `git worktree add ../demos-lab-04 -b lab-04 main`. A new worktree lacks the gitignored `node_modules/` and `reference/`, so run `npm install` in its `pizza-map-lab/` and copy or symlink `reference/` in. Turn the hooks on there too if `git config core.hooksPath` doesn't print `.githooks` (the setting is shared, so it usually does). Remove a finished worktree with `git worktree remove ../demos-lab-04`.
+- **No new branches:** build each new explainer on the branch that's already checked out. Don't create a branch or worktree per explainer (the author's decision, 2026-11-03).
 
 ### Publishing (Cloudflare Pages)
 
@@ -169,9 +169,9 @@ The demos repo deploys to Cloudflare Pages from `main`. Anything on another bran
 
 **Branch workflow**
 - The first launch (01, 02 and the index) is developed on the branch `pizza-map-lab`, then merged into `main`.
-- After launch, each new explainer gets a short-lived branch (`lab-03`, `lab-04`, …) that merges when it's done. Until then its card on the index stays "Coming", so the live lab only shows finished pages.
+- After launch, explainers were first built on short-lived branches (`lab-03`, `lab-04`). That's dropped: new explainers no longer get their own branch, and are built on the branch that's checked out. They reach the live site only when the author merges into `main`.
 
-**Previews:** not used. The author reviews pages locally (see **Reviewing and committing**). Explainer branches don't need pushing; Cloudflare would build a public, unlisted preview for any branch that is pushed.
+**Previews:** not used. The author reviews pages locally (see **Reviewing and committing**). Work branches don't need pushing; Cloudflare would build a public, unlisted preview for any branch that is pushed.
 
 **Pretty URLs:** Cloudflare Pages serves `/pizza-map-lab/01-anchovy-problem` for `01-anchovy-problem.html` and `/pizza-map-lab/` for `index.html`, and redirects the `.html` forms there. Relative links between pages keep working. The lab index links back to the demos index with `../`.
 
@@ -360,10 +360,22 @@ Each plan opens with **Based on**: the parts of the papers it draws from, with p
 | 02 | Twenty-Five of Each (`02-twenty-five-of-each.html`) | Done |
 | — | Paper equations (live MathML) on 01 and 02 | Done |
 | 03 | The Sampling Design Lab (`03-sampling-design-lab.html`) | Built on `lab-03`; page copy is a draft for the author to rewrite; not merged |
-| 04–10 | See plans above (checked against the papers) | Not started |
+| 04 | How Many Tastes? (`04-how-many-tastes.html`) | Built on `lab-04`; page copy is a draft for the author to rewrite; not merged |
+| 05–10 | See plans above (checked against the papers) | Not started |
 | B1 | Round Pizza, Square Cuts | Later |
 
 ## Changelog
+
+- **2026-11-03** 04 session (on `lab-04`; no new branch, per the author's new rule).
+  - Workflow: the author dropped the branch-per-explainer rule. `CLAUDE.md` and this guide now say to build on the checked-out branch.
+  - Kit: `stratEstimate` takes an optional `Nh` for the finite population correction. Without it, output is unchanged (Table 4 → 5 check still exact).
+  - `tests/check.js`: Eq. 1 gives 246 and 384; Table 4 gives Table 5's 69.5–89.7% interval; at 100 per topping, overall and user's A intervals catch the truth about 95% of the time; at 246, user's D coverage is about 99% and the spread is √(1 − 246/720) ≈ 0.81 of Eq. 17's SE; with the correction, coverage is back to 95%; at 5 per topping, user's A coverage is about 57%. All seeded, so deterministic.
+  - 04 page: Step 1, an Eq. 1 planner (confidence, p, d, the paper's presets) with a half-width-against-tastes chart marking Table 4's 25 and Hay's 50, and what n per topping means on this pizza. Step 2, one equal-allocation sample at 5–400 per topping with 95% intervals for 8 numbers on 0–100% strips, beside Sec. 2.5's cropland example (78–85% vs 60–85%). Step 3, 1,000 repeats as an interval ladder, plus a coverage curve over 13 sizes for six numbers. Step 4, "count, not percent": this pizza's 720 map-anchovy spots against a bottomless pizza (tasting with replacement). Cards for Eqs. 1 (and turned around), 16, 17, the Sec. 4.4 interval, and the correction (marked not in the paper). "Check against the paper" table.
+  - Found: coverage is low at small sizes. At 5 per topping: overall about 81%, user's A about 57% (its SE is often 0 when every taste agrees), producer's C about 35%. Producer's C leans high by about 3 points at 25 per topping and 6 at 10.
+  - Found: user's A coverage zigzags a little (about 91–93% at 50–100), because the estimate can only be whole tastes over n.
+  - Found: Table 5's 69.5–89.7% uses the unrounded SE (5.13); 79.6 ± 1.96 × 5.1 would give 69.6–89.6. The page says so.
+  - The paper rounds Eq. 1 to the nearest taste (384.16 → 384), not up. The page says so.
+  - All page text is a draft in the guide's voice; the author writes the final copy (see README).
 
 - **2026-11-03** 03 session (on `lab-03`, branched from `pizza-map-lab`; the launch merge into `main` is left for the author).
   - Kit: samplers, the stratified/poststratified estimator (Eqs. 12–20 with SEs), a one-stage cluster estimator, `edgePieceSpots`, and `drawRepeats`, a repeats histogram with a fixed 0–100% axis (the author asked for 0–100 on every metric).

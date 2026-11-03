@@ -1,0 +1,803 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>How Many Tastes?</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&family=IBM+Plex+Mono:ital,wght@0,400;0,600;1,400&display=swap">
+<style>
+/* Layout: same lab bench as 01-03. Eq. 1 planner (controls beside its chart), the pizza tasted at the chosen size,
+   this sample's intervals, 1,000 repeats as an interval ladder and a coverage curve, percent vs count,
+   the paper's formulas, then the paper check beside the notes. */
+:root{
+  --bg:#efe2c8; --check:rgba(196,52,32,.085); --panel:#fffaf0; --ink:#2b1b12; --muted:#6e584a;
+  --line:#2b1b12; --shadow:#2b1b12; --tomato:#c4341f;
+  --good:#118a36; --bad:#e0189e;
+  --tint-g:rgba(17,138,54,.12); --tint-b:rgba(224,24,158,.12); --tint-d:rgba(43,27,18,.06);
+  --cheese-a:#f2c23c; --cheese-b:#f7d567; --mush-a:#cbb59a; --mush-b:#a68c70;
+  --pep-a:#b3261e; --pep-b:#8c1a14; --anch-a:#8ea3ba; --anch-b:#647891;
+  --crust-a:#c98a4b; --crust-b:#ad7036;
+  --f-display:"Silkscreen","Courier New",ui-monospace,monospace;
+  --f-body:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#1b1310; --check:rgba(196,52,32,.13); --panel:#2a1e18; --ink:#f3e7d3; --muted:#c3ae98;
+  --line:#f3e7d3; --shadow:#8a2a16; --tomato:#ff6a4d; --good:#3ddc6e; --bad:#ff52c9;
+  --tint-g:rgba(61,220,110,.15); --tint-b:rgba(255,82,201,.15); --tint-d:rgba(243,231,211,.07);
+  color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --bg:#1b1310; --check:rgba(196,52,32,.13); --panel:#2a1e18; --ink:#f3e7d3; --muted:#c3ae98;
+  --line:#f3e7d3; --shadow:#8a2a16; --tomato:#ff6a4d; --good:#3ddc6e; --bad:#ff52c9;
+  --tint-g:rgba(61,220,110,.15); --tint-b:rgba(255,82,201,.15); --tint-d:rgba(243,231,211,.07);
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{margin:0; background-color:var(--bg); color:var(--ink); font-family:var(--f-body); font-size:15px; line-height:1.55;
+  background-image:linear-gradient(90deg,var(--check) 50%,transparent 50%),linear-gradient(var(--check) 50%,transparent 50%);
+  background-size:56px 56px}
+.wrap{max-width:1120px; margin:0 auto; padding-block:28px 56px;
+  padding-left:max(16px,env(safe-area-inset-left,0px)); padding-right:max(16px,env(safe-area-inset-right,0px));
+  display:grid; gap:22px}
+h1,h2,h3,.eyebrow,.lbl,.btn,.seg label,th,.tag,.crumb,.barlbl,.big{font-family:var(--f-display); font-weight:400; letter-spacing:.02em}
+h1{font-size:clamp(28px,5.4vw,52px); line-height:1.05; margin:0; text-wrap:balance}
+h2{font-size:20px; margin:0 0 10px; text-wrap:balance}
+h3{font-size:15px; margin:18px 0 6px}
+p{margin:0 0 10px; max-width:66ch}
+a{color:var(--tomato)}
+.box{background:var(--panel); border:3px solid var(--line); box-shadow:6px 6px 0 var(--shadow); padding:18px; min-width:0}
+.mast{display:grid; gap:12px}
+.crumb{font-size:12px; color:var(--ink); justify-self:start}
+.eyebrow{font-size:13px; display:inline-block; background:var(--tomato); color:#fffaf0; padding:4px 8px; justify-self:start}
+.mast p{font-size:16px}
+.lab{display:grid; grid-template-columns:minmax(0,300px) minmax(0,1fr); gap:22px}
+@media (max-width:820px){.lab{grid-template-columns:minmax(0,1fr)}}
+.lab > h2{grid-column:1/-1; margin:0}
+.controls{display:grid; gap:16px; align-content:start}
+.ctl{display:grid; gap:6px}
+.lbl{font-size:13px; display:flex; justify-content:space-between; gap:8px}
+.lbl output{font-family:var(--f-body); font-weight:600; font-size:14px}
+.hint{font-size:12.5px; color:var(--muted); margin:0}
+input[type=range]{-webkit-appearance:none; appearance:none; width:100%; height:24px; background:transparent; margin:0}
+input[type=range]::-webkit-slider-runnable-track{height:10px; background:var(--tint-d); border:2px solid var(--line)}
+input[type=range]::-moz-range-track{height:6px; background:var(--tint-d); border:2px solid var(--line)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none; width:20px; height:20px; margin-top:-7px; background:var(--tomato); border:2px solid var(--line); border-radius:0}
+input[type=range]::-moz-range-thumb{width:16px; height:16px; background:var(--tomato); border:2px solid var(--line); border-radius:0}
+input[type=range]:focus-visible{outline:3px dashed var(--tomato); outline-offset:3px}
+.seg{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:6px; border:0; padding:0; margin:0; min-width:0}
+.seg legend{padding:0; margin-bottom:6px}
+.seg input{position:absolute; opacity:0; pointer-events:none}
+.seg label{border:2px solid var(--line); padding:7px 8px; font-size:12px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:7px; background:var(--panel)}
+.seg label:hover{background:var(--tint-d)}
+.seg input:checked + label{background:var(--ink); color:var(--panel)}
+.seg input:focus-visible + label{outline:3px dashed var(--tomato); outline-offset:2px}
+.seg label small{font-family:var(--f-body); font-size:11px; opacity:.75}
+.btns{display:flex; flex-wrap:wrap; gap:8px}
+.btn{font-size:12px; border:2px solid var(--line); background:var(--panel); color:var(--ink); padding:7px 9px; cursor:pointer; box-shadow:3px 3px 0 var(--shadow); border-radius:0}
+.btn:hover{background:var(--tint-d)}
+.btn:active{transform:translate(3px,3px); box-shadow:0 0 0 var(--shadow)}
+.btn:focus-visible{outline:3px dashed var(--tomato); outline-offset:2px}
+.chk{display:flex; gap:8px; align-items:center; font-size:13px; cursor:pointer}
+.chk input{width:18px; height:18px; accent-color:var(--tomato); flex:none}
+select{font-family:var(--f-body); font-size:14px; border:2px solid var(--line); background:var(--panel); color:var(--ink); padding:6px 8px; border-radius:0; max-width:100%}
+select:focus-visible{outline:3px dashed var(--tomato); outline-offset:2px}
+.views{display:grid; gap:12px; align-content:start; min-width:0}
+.readout{display:flex; flex-wrap:wrap; align-items:baseline; gap:6px 14px}
+.big{font-size:clamp(34px,6vw,54px); line-height:1; color:var(--tomato)}
+.readout span:not(.big){font-size:14px}
+figure{margin:0; display:grid; gap:8px; min-width:0; justify-items:start; align-content:start}
+figcaption{font-size:12.5px; color:var(--muted)}
+figcaption b{font-family:var(--f-display); font-weight:400; font-size:13px; color:var(--ink)}
+canvas{display:block; border:2px solid var(--line); background:var(--tint-d)}
+.pie{width:100%; max-width:420px; aspect-ratio:1; image-rendering:pixelated; image-rendering:crisp-edges}
+.chart{width:100%}
+.legend{display:flex; flex-wrap:wrap; gap:6px 14px; font-size:12.5px}
+.legend span{display:inline-flex; align-items:center; gap:6px}
+.sw{width:12px; height:12px; border:2px solid var(--line); flex:none; display:inline-block}
+.sw.ring{background:var(--panel)}
+.sw.miss{background:var(--tomato)}
+.sw.good{background:var(--good)} .sw.bad{background:var(--bad)}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse; font-variant-numeric:tabular-nums; width:100%}
+th,td{border:2px solid var(--line); padding:7px 6px; text-align:center; font-size:13.5px}
+th{font-size:11.5px; background:var(--tint-d)}
+th.rowh{text-align:left}
+th .sw{vertical-align:-1px; margin-right:5px}
+th .pc{font-family:var(--f-body); color:var(--muted); margin-left:3px}
+td.acc{font-weight:600}
+.truth{border-style:dashed}
+td.dim{color:var(--muted)}
+tr.cur th,tr.cur td{background:var(--tint-g)}
+#res{min-width:700px} #abs-tab{min-width:520px}
+/* an interval on a 0-100% strip: the bar is the 95% interval, the black tick is the truth */
+.ci{position:relative; height:16px; border:2px solid var(--line); background:var(--panel); min-width:140px}
+.ci i{position:absolute; top:2px; bottom:2px; background:var(--good); min-width:3px}
+.ci.miss i{background:var(--bad)}
+.ci b{position:absolute; top:-5px; bottom:-5px; width:3px; margin-left:-1px; background:var(--ink)}
+td.cic{padding:7px 10px; min-width:160px}
+.crop{display:grid; gap:8px; margin-top:12px; max-width:560px}
+.crop div{display:grid; grid-template-columns:minmax(0,190px) minmax(0,1fr); gap:10px; align-items:center; font-size:13px}
+.duo{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:18px; align-items:start}
+@media (max-width:820px){.duo{grid-template-columns:minmax(0,1fr)}}
+.lower{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:22px; align-items:start}
+@media (max-width:980px){.lower{grid-template-columns:minmax(0,1fr)}}
+.histctl{display:flex; flex-wrap:wrap; gap:10px 16px; align-items:center; margin-bottom:12px}
+.sum{font-size:14px; margin-top:10px}
+.k-good{color:var(--good); font-weight:600} .k-bad{color:var(--bad); font-weight:600}
+.notes p{font-size:14px}
+.formula{display:inline-block; border:2px solid var(--line); padding:4px 8px; margin:2px 0 8px; font-weight:600; background:var(--tint-d)}
+/* Paper equations: MathML that build.py makes from tex tags. Live numbers are tagged \id{...} and set with setEq. */
+math{font-family:"STIX Two Math","Cambria Math","Latin Modern Math",math; font-size:1.15em; font-style:normal; font-weight:normal; line-height:normal; letter-spacing:normal; text-transform:none; direction:ltr; font-feature-settings:"dtls" off}
+mfrac > :nth-child(2), msqrt, mover > :first-child{math-shift:compact}
+.eqs{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px}
+@media (max-width:820px){.eqs{grid-template-columns:minmax(0,1fr)}}
+.eq{border:2px solid var(--line); background:var(--tint-d); padding:10px 12px; display:grid; gap:6px; align-content:start; min-width:0}
+.eq.off{opacity:.55}
+.eq-tag{font-family:var(--f-display); font-size:11.5px; letter-spacing:.02em; display:flex; justify-content:space-between; gap:4px 10px; flex-wrap:wrap}
+.eq-tag i{font-style:normal; color:var(--muted)}
+.eq-m{overflow-x:auto; overflow-y:hidden; padding:3px 0}
+@media (max-width:480px){.eq-m math{font-size:1em}}
+.eq-cap{font-size:12.5px; color:var(--muted); margin:0}
+footer{font-size:13px; color:var(--muted)}
+footer p{max-width:none}
+@media (prefers-reduced-motion:reduce){.btn:active{transform:none}}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <header class="mast">
+    <a class="crumb" href="index.html">← Pizza Map Lab</a>
+    <span class="eyebrow">Pizza Map Lab · Explainer 04</span>
+    <h1>How Many Tastes?</h1>
+    <p>The paper's taster in explainer 02 took 25 tastes of each topping. Is that enough? Section 2.5 gives a formula for planning the number before you start (Eq. 1). After tasting, the standard errors answer the question. Here you can plan a sample size, taste the pizza at that size, and check how often the 95% intervals really catch the truth.</p>
+  </header>
+
+  <section class="box lab" aria-label="Plan a sample size with Eq. 1">
+    <h2>Step 1 · Plan with Eq. 1</h2>
+    <div class="controls">
+      <fieldset class="seg" id="conf">
+        <legend class="lbl">Confidence</legend>
+        <input type="radio" name="conf" id="z90" value="1.645"><label for="z90">90% <small>z = 1.645</small></label>
+        <input type="radio" name="conf" id="z95" value="1.96" checked><label for="z95">95% <small>z = 1.96</small></label>
+      </fieldset>
+      <div class="ctl">
+        <label class="lbl" for="pp"><span>Expected accuracy, p</span><output id="pp-v">80%</output></label>
+        <input type="range" id="pp" min="0.5" max="0.99" step="0.01" value="0.8">
+        <p class="hint">A guess made before tasting: user's accuracy of one topping for a stratified sample, overall accuracy for a simple random one.</p>
+      </div>
+      <div class="ctl">
+        <label class="lbl" for="dd"><span>Interval half-width, d</span><output id="dd-v">± 5 points</output></label>
+        <input type="range" id="dd" min="0.01" max="0.15" step="0.005" value="0.05">
+        <p class="hint">The interval you want: estimate ± d.</p>
+      </div>
+      <div class="ctl">
+        <span class="lbl">Try the paper's numbers</span>
+        <div class="btns">
+          <button class="btn" type="button" data-p="0.8" data-d="0.05">80%, ± 5</button>
+          <button class="btn" type="button" data-p="0.5" data-d="0.05">50%, ± 5</button>
+          <button class="btn" type="button" data-p="0.8" data-d="0.02">Priority, ± 2</button>
+        </div>
+      </div>
+    </div>
+    <div class="views">
+      <div class="readout"><span class="big" id="plan-n">246</span><span id="plan-say">tastes of each topping on the map</span></div>
+      <div class="eq">
+        <div class="eq-tag"><span>Eq. 1 · sample size</span><i>Sec. 2.5</i></div>
+        <div class="eq-m"><math><mstyle scriptlevel="0" displaystyle="true"><mi>n</mi><mo>=</mo><mfrac><mrow><msup><mi>z</mi><mn class="tml-sml-pad">2</mn></msup><mspace width="0.1667em"></mspace><mi>p</mi><mrow><mo fence="true" form="prefix" stretchy="false">(</mo><mn>1</mn><mo>−</mo><mi>p</mi><mo fence="true" form="postfix" stretchy="false">)</mo></mrow></mrow><msup><mi>d</mi><mn class="tml-lrg-pad">2</mn></msup></mfrac></mstyle></math></div>
+        <div class="eq-m"><math><mstyle scriptlevel="0" displaystyle="true"><mi>n</mi><mo>=</mo><mfrac><mrow><msup><mn id="q-n-z">1.96</mn><mn>2</mn></msup><mo>×</mo><mn id="q-n-p">0.80</mn><mo>×</mo><mn id="q-n-q">0.20</mn></mrow><msup><mn id="q-n-d">0.050</mn><mn>2</mn></msup></mfrac><mo>=</mo><mn id="q-n-raw">245.9</mn><mo>≈</mo><mn id="q-n-v">246</mn></mstyle></math></div>
+        <p class="eq-cap" id="q-n-cap"></p>
+      </div>
+      <figure>
+        <canvas class="chart" id="plan-cv" aria-label="Interval half-width against the number of tastes"></canvas>
+        <figcaption><b>Half-width against tastes.</b> Solid: your p. Dashed: p = 50%, the worst case. Doubling the tastes only narrows the interval by about 30%.</figcaption>
+      </figure>
+      <div class="scroll"><table id="strata"></table></div>
+      <p class="sum" id="strata-note"></p>
+    </div>
+  </section>
+
+  <section class="box lab" aria-label="Taste the pizza at the chosen size">
+    <h2>Step 2 · Taste the pizza</h2>
+    <div class="controls">
+      <div class="ctl">
+        <label class="lbl" for="nn"><span>Tastes per topping</span><output id="nn-v">25</output></label>
+        <input type="range" id="nn" min="5" max="400" step="1" value="25">
+        <p class="hint" id="nn-hint"></p>
+      </div>
+      <div class="btns">
+        <button class="btn" type="button" data-n="25">25 · Table 4</button>
+        <button class="btn" type="button" data-n="50">50 · Hay</button>
+        <button class="btn" type="button" id="use-plan">Eq. 1's n</button>
+      </div>
+      <div class="btns">
+        <button class="btn" type="button" id="draw">Taste a new sample</button>
+        <button class="btn" type="button" id="newpie">Bake a new pizza</button>
+      </div>
+      <label class="chk" for="fpc"><input type="checkbox" id="fpc"> Correct for a small pizza (not in the paper; see Step 4)</label>
+    </div>
+    <div class="views">
+      <figure>
+        <canvas class="pie" id="cv" width="512" height="512" aria-label="The topping map with this sample's tasted spots lit up"></canvas>
+        <figcaption><b>Where the bites land.</b> Equal strata, the paper's design: the same number of tastes from each topping on the map.</figcaption>
+      </figure>
+      <div class="legend" id="legend"></div>
+    </div>
+  </section>
+
+  <section class="box">
+    <h2>What this sample says, with 95% intervals</h2>
+    <p id="res-intro"></p>
+    <div class="scroll"><table id="res"></table></div>
+    <p class="sum" id="res-note"></p>
+    <h3>Is the interval narrow enough?</h3>
+    <p>Section 2.5's test, with a cropland example: would a user think differently about the map at the low end of the interval than at the high end? If not, the sample was big enough. If so, taste more.</p>
+    <div class="crop" id="crop"></div>
+  </section>
+
+  <section class="box">
+    <h2>Step 3 · Do the intervals catch the truth?</h2>
+    <p>A 95% interval should catch the truth in about 95 of every 100 samples. Here the pizza is tasted 1,000 times at your size, and also at thirteen sizes from 5 to 400 per topping.</p>
+    <div class="histctl">
+      <label class="lbl" for="metric">Show</label>
+      <select id="metric"></select>
+      <label class="chk" for="fpc2"><input type="checkbox" id="fpc2"> Correct for a small pizza (not in the paper)</label>
+    </div>
+    <div class="duo">
+      <figure>
+        <canvas class="chart" id="ladder" aria-label="The first 100 of 1,000 intervals at this size"></canvas>
+        <figcaption><b>100 intervals at <span id="lad-n">25</span> per topping.</b> Each line is one sample's 95% interval. <span class="legend" style="display:inline-flex"><span><i class="sw good"></i>caught the truth</span> <span><i class="sw bad"></i>missed</span></span></figcaption>
+      </figure>
+      <figure>
+        <canvas class="chart" id="cov" aria-label="Share of 95% intervals that catch the truth, by tastes per topping"></canvas>
+        <figcaption><b>How often the interval catches the truth.</b> Thick line: the number you picked. Thin lines: the others. Dashed: the promised 95%.</figcaption>
+      </figure>
+    </div>
+    <p class="sum" id="cov-sum"></p>
+  </section>
+
+  <section class="box">
+    <h2>Step 4 · Count, not percent</h2>
+    <p>Section 2.5 ends on this: the number of tastes sets the precision, not the share of the pizza tasted. Compare this pizza's map-anchovy spots with a bottomless pizza that has the same mix but never runs out. Tasting with replacement is the same as tasting a pizza so big you never hit the same spot twice, so 0% of it gets eaten.</p>
+    <canvas class="chart" id="abs-cv" aria-label="User's accuracy for anchovy from 1,000 samples, this pizza vs a bottomless one"></canvas>
+    <div class="scroll" style="margin-top:12px"><table id="abs-tab"></table></div>
+    <p class="sum" id="abs-note"></p>
+  </section>
+
+  <section class="box">
+    <h2>The paper's formulas</h2>
+    <p>The standard errors come from Eqs. 16 and 17 (Sec. 4.2), and an interval is the estimate ± 1.96 standard errors (Sec. 4.4). These cards follow this sample.</p>
+    <div class="eqs">
+      <div class="eq">
+        <div class="eq-tag"><span>Eq. 17 · user's variance</span><i>anchovy, class 4 (D)</i></div>
+        <div class="eq-m"><math><mstyle scriptlevel="0" displaystyle="true"><mover><mi>V</mi><mo stretchy="false" class="wbk-acc" style="math-depth:0;">ˆ</mo></mover><mrow><mo fence="true" form="prefix" stretchy="false">(</mo><msub><mover><mi>U</mi><mo stretchy="false" class="chr-sml wbk-sml-acc" style="math-depth:0;">ˆ</mo></mover><mi>i</mi></msub><mo fence="true" form="postfix" stretchy="false">)</mo></mrow><mo>=</mo><msub><mover><mi>U</mi><mo stretchy="false" class="chr-sml wbk-sml-acc" style="math-depth:0;">ˆ</mo></mover><mi>i</mi></msub><mrow><mo fence="true" form="prefix" stretchy="false">(</mo><mn>1</mn><mo>−</mo><msub><mover><mi>U</mi><mo stretchy="false" class="chr-sml wbk-sml-acc" style="math-depth:0;">ˆ</mo></mover><mi>i</mi></msub><mo fence="true" form="postfix" stretchy="false">)</mo></mrow><mi>/</mi><mrow><mo fence="true" form="prefix" stretchy="false">(</mo><msub><mi>n</mi><mrow><mi>i</mi><mo lspace="0em" rspace="0em">+</mo></mrow></msub><mo>−</mo><mn>1</mn><mo fence="true" form="postfix" stretchy="false">)</mo></mrow></mstyle></math></div>
+        <div class="eq-m"><math><mstyle scriptlevel="0" displaystyle="true"><mover><mi>V</mi><mo stretchy="false" class="wbk-acc" style="math-depth:0;">ˆ</mo></mover><mrow><mo fence="true" form="prefix" stretchy="false">(</mo><msub><mover><mi>U</mi><mo stretchy="false" class="chr-sml wbk-sml-acc" style="math-depth:0;">ˆ</mo></mover><mn>4</mn></msub><mo fence="true" form="postfix" stretchy="false">)</mo></mrow><mo>=</mo><mn id="q-u-u">0.64</mn><mo>×</mo><mn id="q-u-x">0.36</mn><mi>/</mi><mn id="q-u-d">24</mn><mo>=</mo><mn id="q-u-v">0.0096</mn><mo separator="true">,</mo><mspace width="2em"></mspace><mpadded lspace="0"><mi>SE</mi></mpadded><mo>=</mo><mn id="q-u-se">9.8</mn><mtext> points</mtext></mstyle></math></div>
+        <p class="eq-cap" id="q-u-cap"></p>
+      </div>
+      <div class="eq">
+        <div class="eq-tag"><span>Sec. 4.4 · 95% interval</span><i>anchovy, class 4 (D)</i></div>
+        <div class="eq-m"><math><mstyle scriptlevel="0" displaystyle="true"><msub><mover><mi>U</mi><mo stretchy="false" class="chr-sml wbk-sml-acc" style="math-depth:0;">ˆ</mo></mover><mn>4</mn></msub><mo>±</mo><mn>1.96</mn><mo>×</mo><mpadded lspace="0"><mi>SE</mi></mpadded></mstyle></math></div>
+        <div class="eq-m"><math><mstyle scriptlevel="0" displaystyle="true"><mn id="q-i-u">64.0</mn><mo>±</mo><mn>1.96</mn><mo>×</mo><mn id="q-i-se">9.8</mn><mo>=</mo><mn id="q-i-lo">44.8</mn><mi>%</mi><mtext> to </mtext><mn id="q-i-hi">83.2</mn><mi>%</mi></mstyle></math></div>
+        <p class="eq-cap" id="q-i-cap"></p>
+      </div>
+      <div class="eq">
+        <div class="eq-tag"><span>Eq. 16 · overall interval</span><i>Table 5 gives 69.5% to 89.7%</i></div>
+        <div class="eq-m"><math><mstyle scriptlevel="0" displaystyle="true"><mover><mi>O</mi><mo stretchy="false" class="chr-med wbk-med-acc" style="math-depth:0;">ˆ</mo></mover><mo>±</mo><mn>1.96</mn><msqrt><mrow><mover><mi>V</mi><mo stretchy="false" class="wbk-acc" style="math-depth:0;">ˆ</mo></mover><mrow><mo fence="true" form="prefix" stretchy="false">(</mo><mover><mi>O</mi><mo stretchy="false" class="chr-med wbk-med-acc" style="math-depth:0;">ˆ</mo></mover><mo fence="true" form="postfix" stretchy="false">)</mo></mrow></mrow></msqrt></mstyle></math></div>
+        <div class="eq-m"><math><mstyle scriptlevel="0" displaystyle="true"><mn id="q-o-o">79.6</mn><mo>±</mo><mn>1.96</mn><mo>×</mo><mn id="q-o-se">5.1</mn><mo>=</mo><mn id="q-o-lo">69.5</mn><mi>%</mi><mtext> to </mtext><mn id="q-o-hi">89.7</mn><mi>%</mi></mstyle></math></div>
+        <p class="eq-cap" id="q-o-cap"></p>
+      </div>
+      <div class="eq">
+        <div class="eq-tag"><span>Eq. 1 turned around</span><i>what 50 per class buys</i></div>
+        <div class="eq-m"><math><mstyle scriptlevel="0" displaystyle="true"><mi>d</mi><mo>=</mo><mi>z</mi><msqrt><mrow><mi>p</mi><mrow><mo fence="true" form="prefix" stretchy="false">(</mo><mn>1</mn><mo>−</mo><mi>p</mi><mo fence="true" form="postfix" stretchy="false">)</mo></mrow><mi>/</mi><mi>n</mi></mrow></msqrt></mstyle></math></div>
+        <div class="eq-m"><math><mstyle scriptlevel="0" displaystyle="true"><mi>d</mi><mo>=</mo><mn id="q-h-z">1.96</mn><mo>×</mo><msqrt><mrow><mn id="q-h-p">0.80</mn><mo>×</mo><mn id="q-h-q">0.20</mn><mi>/</mi><mn>50</mn></mrow></msqrt><mo>=</mo><mo form="prefix" stretchy="false">±</mo><mspace width="0.1667em"></mspace><mn id="q-h-v">11.1</mn><mtext> points</mtext></mstyle></math></div>
+        <p class="eq-cap" id="q-h-cap"></p>
+      </div>
+      <div class="eq" id="q-f-card">
+        <div class="eq-tag"><span>Small-pizza correction</span><i>not in the paper</i></div>
+        <div class="eq-m"><math><mstyle scriptlevel="0" displaystyle="true"><msub><mpadded lspace="0"><mi>SE</mi></mpadded><mtext>small</mtext></msub><mo>=</mo><mpadded lspace="0"><mi>SE</mi></mpadded><mo>×</mo><msqrt><mrow><mn>1</mn><mo>−</mo><msub><mi>n</mi><mrow><mn>4</mn><mo lspace="0em" rspace="0em">+</mo></mrow></msub><mi>/</mi><msub><mi>N</mi><mrow><mn>4</mn><mo lspace="0em" rspace="0em">+</mo></mrow></msub></mrow></msqrt></mstyle></math></div>
+        <div class="eq-m"><math><mstyle scriptlevel="0" displaystyle="true"><mn id="q-f-a">9.8</mn><mo>×</mo><msqrt><mrow><mn>1</mn><mo>−</mo><mn id="q-f-n">25</mn><mi>/</mi><mn id="q-f-N">720</mn></mrow></msqrt><mo>=</mo><mn id="q-f-a2">9.8</mn><mo>×</mo><mn id="q-f-r">0.98</mn><mo>=</mo><mn id="q-f-v">9.6</mn><mtext> points</mtext></mstyle></math></div>
+        <p class="eq-cap" id="q-f-cap"></p>
+      </div>
+    </div>
+  </section>
+
+  <section class="lower">
+    <div class="box">
+      <h2>Check against the paper</h2>
+      <p>Every number the paper prints for Section 2.5 and Table 5's interval, worked out on this page. Rows marked <i>ours</i> are not printed in the paper.</p>
+      <div class="scroll"><table id="chk"></table></div>
+      <p class="sum" id="chk-note"></p>
+    </div>
+    <div class="box notes">
+      <h2>What Section 2.5 says</h2>
+      <h3>Planning is a forecast</h3>
+      <p>The formula is exact, but p is a guess. The paper suggests trying several values of p. The biggest n comes at p = 50%, so that gives an upper bound. In practice the budget often sets the size, and Eq. 1 forecasts whether it will be enough.</p>
+      <span class="formula">n = z² p (1 − p) ÷ d²</span>
+      <h3>Pick d by importance</h3>
+      <p>A priority class can get a narrower interval (d = 2 points) and a less important one a wider one (d = 5). Eq. 1 plans overall accuracy for a simple random sample, or each topping's user's accuracy for a stratified one. It can't plan producer's accuracy, because the true toppings aren't known until you taste.</p>
+      <h3>Was it big enough? Look at the standard errors</h3>
+      <p>After tasting, the planning details matter less than the standard errors you got (Sec. 2.5). Criterion 4 in Sec. 1.2 asks for reliable results, shown by small standard errors. If they're too wide, add more tastes.</p>
+      <h3>Hay's 50 per class</h3>
+      <p>Hay (1979) proposed at least 50 per class, and many studies still use it (Sec. 1.1). At p = 80% that gives an interval of about ± 11 points. Whether that's enough depends on what the map is for.</p>
+      <h3>Small samples lean</h3>
+      <p>In explainer 02, producer's accuracy for pepperoni came out a little high at 25 per topping. Pick producer's accuracy for pepperoni in Step 3: the lean shrinks as the tastes grow, and the intervals catch the truth less often at small sizes.</p>
+    </div>
+  </section>
+
+  <footer>
+    <p>Based on Stehman, S.V. &amp; Foody, G.M. (2019). Key issues in rigorous accuracy assessment of land cover products. <i>Remote Sensing of Environment</i> 231, 111199, Sections 1.1, 1.2, 2.5, 4.2 and 4.4, Eqs. 1, 16 and 17, Tables 4 and 5. <a href="https://doi.org/10.1016/j.rse.2019.05.018">doi:10.1016/j.rse.2019.05.018</a></p>
+    <p>Previous: <a href="03-sampling-design-lab.html">03 · The Sampling Design Lab</a>. Next up: 05 · every square its own pizza.</p>
+  </footer>
+</main>
+
+<script>
+(function(){
+"use strict";
+/* ---- Pizza Map Lab shared kit (src/kit.js), pasted identically into every page ----
+   The "paper pizza": a square sheet pizza, 120x120 spots inside a crust border and cut into
+   an 8x8 grid of 15x15 squares (think image chips), whose true error matrix is exactly
+   Table 5 of Stehman & Foody (2019). Classes A-D are cheese, mushroom, pepperoni, anchovy.
+   Map shares are 60/25/10/5 and reference shares are 55.4/26.4/10.8/7.4. */
+const N=128, EDGE=4, CUTS=8, CHIP=15, SEED=20190518; /* study area is x,y in [EDGE, EDGE+CUTS*CHIP) */
+const NAMES=["cheese","mushroom","pepperoni","anchovy"];
+const TITLE=["Cheese","Mushroom","Pepperoni","Anchovy"];
+const PAPER_CLASS=["A","B","C","D"];
+const VAR=[["--cheese-a","--cheese-b"],["--mush-a","--mush-b"],["--pep-a","--pep-b"],["--anch-a","--anch-b"]];
+const TABLE5=[[50.4,7.2,2.4,0],[4.0,18.0,0,3.0],[0,0.8,8.0,1.2],[1.0,0.4,0.4,3.2]]; /* % of area; rows map, columns reference */
+const MAP_SHARE=[60,25,10,5];
+function rng(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+function nb4(i){const x=i%N,y=(i/N)|0,o=[]; if(x>0)o.push(i-1); if(x<N-1)o.push(i+1); if(y>0)o.push(i-N); if(y<N-1)o.push(i+N); return o;}
+function bakePaperPizza(seed){
+  const r=rng(seed), NN=N*N, inside=new Uint8Array(NN), crust=new Uint8Array(NN), piece=new Int16Array(NN).fill(-1), ids=[], END=EDGE+CUTS*CHIP;
+  for(let y=0;y<N;y++)for(let x=0;x<N;x++){const i=y*N+x;
+    if(x>=EDGE&&x<END&&y>=EDGE&&y<END){inside[i]=1; ids.push(i); piece[i]=Math.floor((y-EDGE)/CHIP)*CUTS+Math.floor((x-EDGE)/CHIP);}
+    else crust[i]=1;}
+  const T=ids.length;
+  /* target cell counts: Table 5 scaled to this pizza, map row totals exactly 60/25/10/5 */
+  const rowT=MAP_SHARE.map(w=>Math.round(w*T/100)); rowT[0]=T-rowT[1]-rowT[2]-rowT[3];
+  const cell=TABLE5.map((row,i)=>row.map((v,j)=>i===j?0:Math.round(v*T/100)));
+  for(let i=0;i<4;i++){let off=0; for(let j=0;j<4;j++) if(j!==i) off+=cell[i][j]; cell[i][i]=rowT[i]-off;}
+  const colT=[0,1,2,3].map(j=>cell[0][j]+cell[1][j]+cell[2][j]+cell[3][j]);
+  /* the real pizza */
+  const truth=new Int8Array(NN).fill(-1); for(const i of ids) truth[i]=0;
+  const count=[T,0,0,0], put=(i,k)=>{count[truth[i]]--; truth[i]=k; count[k]++;};
+  const stamp=(cells,k,minFrac)=>{let ok=0; const keep=[];
+    for(const [x,y] of cells){ if(x<0||y<0||x>=N||y>=N) continue; const i=y*N+x; if(inside[i]&&truth[i]===0){ok++; keep.push(i);} }
+    if(cells.length&&ok/cells.length>=minFrac){keep.forEach(i=>put(i,k)); return true;} return false;};
+  const randPt=m=>[EDGE+m+r()*(CUTS*CHIP-2*m), EDGE+m+r()*(CUTS*CHIP-2*m)];
+  const peps=[];
+  for(let t=0;t<5000&&count[2]<colT[2]-80;t++){ const [px,py]=randPt(8);
+    if(!peps.every(p=>Math.hypot(p[0]-px,p[1]-py)>14.5)) continue;
+    const cells=[]; for(let y=Math.floor(py-7);y<=py+7;y++) for(let x=Math.floor(px-7);x<=px+7;x++) if(Math.hypot(x+.5-px,y+.5-py)<6.3) cells.push([x,y]);
+    if(stamp(cells,2,1)) peps.push([px,py]); }
+  const cap=[]; for(let dy=-5;dy<=0;dy++) for(let dx=-7;dx<=7;dx++) if((dx/7.5)**2+(dy/5.5)**2<=1) cap.push([dx,dy]);
+  for(let dy=1;dy<=5;dy++) for(let dx=-2;dx<=1;dx++) cap.push([dx,dy]);
+  const rots=[cap, cap.map(([a,b])=>[-b,a]), cap.map(([a,b])=>[-a,-b]), cap.map(([a,b])=>[b,-a])];
+  for(let t=0;t<9000&&count[1]<colT[1]-60;t++){ const [mx,my]=randPt(7), o=rots[Math.floor(r()*4)];
+    stamp(o.map(([a,b])=>[Math.round(mx)+a,Math.round(my)+b]),1,.85); }
+  for(let t=0;t<9000&&count[3]<colT[3]-40;t++){ const [ax,ay]=randPt(10), th=r()*Math.PI, L=16+r()*10, ux=Math.cos(th), uy=Math.sin(th), cells=[];
+    for(let y=Math.floor(ay-L/2-2);y<=ay+L/2+2;y++) for(let x=Math.floor(ax-L/2-2);x<=ax+L/2+2;x++){
+      const vx=x+.5-ax, vy=y+.5-ay, s=vx*ux+vy*uy, q=Math.abs(-vx*uy+vy*ux); if(Math.abs(s)<=L/2&&q<=1.4) cells.push([x,y]); }
+    stamp(cells,3,.9); }
+  /* nudge each topping's edges until the reference shares are exact */
+  for(const k of [2,1,3]) for(let pass=0;pass<400&&count[k]!==colT[k];pass++){
+    const need=colT[k]-count[k];
+    const cand=ids.filter(i=>need>0?(truth[i]===0&&nb4(i).some(j=>truth[j]===k)):(truth[i]===k&&nb4(i).some(j=>truth[j]===0)));
+    for(let a=cand.length-1;a>0;a--){const b=Math.floor(r()*(a+1)); const t=cand[a]; cand[a]=cand[b]; cand[b]=t;}
+    const m=Math.min(Math.abs(need),Math.max(1,Math.ceil(cand.length/3)),cand.length);
+    for(let q=0;q<m;q++) put(cand[q],need>0?k:0); }
+  /* distance from every pixel to the nearest pixel of each real topping */
+  const dist=[0,1,2,3].map(k=>{const d=new Int16Array(NN).fill(9999), q=[]; for(const i of ids) if(truth[i]===k){d[i]=0; q.push(i);}
+    for(let h=0;h<q.length;h++){const i=q[h]; for(const j of nb4(i)) if(d[j]>d[i]+1){d[j]=d[i]+1; q.push(j);}} return d;});
+  const rp=rng(seed*31+7), jit=new Float64Array(NN), tex=new Uint8Array(NN);
+  for(let i=0;i<NN;i++){jit[i]=rp(); tex[i]=rp()<.3?1:0;}
+  /* the classifier's map: each Table 5 mistake is placed where that topping's edge is closest */
+  const map=Int8Array.from(truth);
+  for(let j=0;j<4;j++){ let pool=ids.filter(i=>truth[i]===j);
+    const order=[0,1,2,3].filter(i=>i!==j&&cell[i][j]>0).sort((a,b)=>cell[b][j]-cell[a][j]);
+    for(const i of order){ pool.sort((a,b)=>(dist[i][a]+4*jit[a])-(dist[i][b]+4*jit[b]));
+      for(const p of pool.slice(0,cell[i][j])) map[p]=i; pool=pool.slice(cell[i][j]); } }
+  return {inside,crust,piece,ids,T,truth,map,dist,jit,tex,cell,rowT,colT};
+}
+function hexRGB(h){h=String(h).trim().replace("#",""); if(h.length===3) h=h.split("").map(c=>c+c).join(""); const n=parseInt(h,16); return [n>>16&255,n>>8&255,n&255];}
+function cssVar(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim();}
+function pizzaPalette(){return {top:VAR.map(v=>[hexRGB(cssVar(v[0])),hexRGB(cssVar(v[1]))]), crust:[hexRGB(cssVar("--crust-a")),hexRGB(cssVar("--crust-b"))]};}
+/* paint one colour per pizza pixel (colorAt returns [r,g,b,alpha] or null), scaled up with crisp edges */
+function paintPizza(cv,colorAt){
+  if(!cv._off){cv._off=document.createElement("canvas"); cv._off.width=N; cv._off.height=N;}
+  const octx=cv._off.getContext("2d"), img=octx.createImageData(N,N), d=img.data;
+  for(let i=0;i<N*N;i++){const c=colorAt(i); if(!c) continue; d[4*i]=c[0]; d[4*i+1]=c[1]; d[4*i+2]=c[2]; d[4*i+3]=c.length>3?c[3]:255;}
+  octx.putImageData(img,0,0);
+  const ctx=cv.getContext("2d"); ctx.imageSmoothingEnabled=false; ctx.clearRect(0,0,cv.width,cv.height); ctx.drawImage(cv._off,0,0,cv.width,cv.height);
+  /* faint knife cuts between the 8x8 squares */
+  const s=cv.width/N; ctx.save(); ctx.globalAlpha=.22; ctx.fillStyle="#2b1b12";
+  for(let k=1;k<CUTS;k++){const p=Math.round((EDGE+k*CHIP)*s)-1; ctx.fillRect(p,EDGE*s,2,CUTS*CHIP*s); ctx.fillRect(EDGE*s,p,CUTS*CHIP*s,2);}
+  ctx.restore();
+  return ctx;
+}
+/* ---- sampling designs (Sec. 2). Each returns pixel indices; r is a PRNG such as rng(seed) or Math.random ---- */
+const SIDE=CUTS*CHIP; /* the study area is SIDE x SIDE spots */
+const mapStrata=P=>{const s=[[],[],[],[]]; for(const i of P.ids) s[P.map[i]].push(i); return s;};
+/* n distinct picks from a list, every member equally likely */
+function pickFrom(list,n,r){ n=Math.min(n,list.length); const got=new Set();
+  if(n>list.length/2){const a=list.slice(); for(let k=0;k<n;k++){const j=k+Math.floor(r()*(a.length-k)); const t=a[k]; a[k]=a[j]; a[j]=t;} return a.slice(0,n);}
+  while(got.size<n) got.add(list[Math.floor(r()*list.length)]); return [...got]; }
+const sampleSRS=(P,n,r)=>pickFrom(P.ids,n,r);
+/* one random start, then every s-th spot across and down; n must be a square whose root divides SIDE */
+function sampleSystematic(P,n,r){ const s=SIDE/Math.sqrt(n); if(s%1) throw new Error("systematic: "+n+" spots don't make a grid");
+  const x0=Math.floor(r()*s), y0=Math.floor(r()*s), out=[];
+  for(let gy=y0;gy<SIDE;gy+=s) for(let gx=x0;gx<SIDE;gx+=s) out.push((EDGE+gy)*N+EDGE+gx); return out; }
+/* split n by shares, rounding so the parts still add to n (largest remainder) */
+function allocate(n,shares){ const t=shares.reduce((a,b)=>a+b,0), raw=shares.map(v=>n*v/t), out=raw.map(Math.floor);
+  const order=raw.map((v,k)=>[v-out[k],k]).sort((a,b)=>b[0]-a[0]); for(let q=0;q<n-out.reduce((a,b)=>a+b,0);q++) out[order[q][1]]++; return out; }
+/* simple random within each stratum: alloc[h] picks from strata[h] */
+const sampleStratified=(strata,alloc,r)=>strata.flatMap((s,h)=>pickFrom(s,alloc[h],r));
+/* one-stage cluster: the study area is tiled by b x b blocks; m blocks are picked at random and every spot in them is tasted */
+function sampleClusters(m,b,r){ const per=SIDE/b; if(per%1) throw new Error("clusters: "+b+" doesn't tile the pizza");
+  const blocks=pickFrom([...Array(per*per).keys()],m,r);
+  return blocks.map(q=>{const bx=(q%per)*b, by=Math.floor(q/per)*b, g=[];
+    for(let y=0;y<b;y++) for(let x=0;x<b;x++) g.push((EDGE+by+y)*N+EDGE+bx+x); return g;}); }
+/* spots in the outer ring of squares, the pieces with crust: where a convenience taster would grab from */
+const edgePieceSpots=P=>P.ids.filter(i=>{const q=P.piece[i], qx=q%CUTS, qy=Math.floor(q/CUTS); return qx===0||qy===0||qx===CUTS-1||qy===CUTS-1;});
+/* ---- estimators (Sec. 4.2). Rows are the map (strata), columns the reference ---- */
+function countMatrix(P,ids){ const c=[[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]]; for(const i of ids) c[P.map[i]][P.truth[i]]++; return c; }
+/* Stratified estimator, Eqs. 12-20, as proportions (0-1). W = each map class's share of the map.
+   Used for stratified samples and, as poststratification, for simple random and systematic ones.
+   Variances use n_i+ - 1 throughout, which reproduces every Table 5 standard error from Table 4.
+   A row with no tastes can't be estimated (ok=false); a row with one taste gives estimates but no variance.
+   Optional Nh (spots in each stratum) applies the finite population correction, 1 - n_i+/N_i+, to each stratum's
+   variance term. The paper's formulas leave it out (real maps have millions of pixels); 04 uses it to show the gap. */
+function stratEstimate(c,W,Nh){
+  const K=c.length, nr=c.map(row=>row.reduce((a,b)=>a+b,0)), p=c.map((row,i)=>row.map(v=>nr[i]?W[i]*v/nr[i]:0));
+  const q=nr.map((n,i)=>(Nh?1-n/Nh[i]:1)/(n-1)); /* each stratum's variance divisor, with the correction if asked */
+  const col=[...Array(K).keys()].map(j=>p.reduce((a,row)=>a+row[j],0));
+  const U=nr.map((n,i)=>n?c[i][i]/n:NaN), Pa=col.map((v,j)=>v?p[j][j]/v:NaN);
+  let O=0, vO=0; for(let i=0;i<K;i++){O+=p[i][i]; vO+=W[i]**2*U[i]*(1-U[i])*q[i];}
+  const vU=U.map((u,i)=>u*(1-u)*q[i]);
+  const vP=Pa.map((Pj,j)=>{ let s=0; for(let i=0;i<K;i++) if(i!==j&&nr[i]){const f=c[i][j]/nr[i]; s+=W[i]**2*f*(1-f)*q[i];}
+    return (W[j]**2*(1-Pj)**2*U[j]*(1-U[j])*q[j]+Pj**2*s)/col[j]**2; });
+  const vA=col.map((_,k)=>{let s=0; for(let i=0;i<K;i++) if(nr[i]){const f=c[i][k]/nr[i]; s+=W[i]**2*f*(1-f)*q[i];} return s;});
+  const se=v=>v>=0&&isFinite(v)?Math.sqrt(v):NaN;
+  return {ok:nr.every(n=>n>0), nr, p, O, U, P:Pa, area:col, se:{O:se(vO), U:vU.map(se), P:vP.map(se), area:vA.map(se)}};
+}
+/* One-stage cluster estimator for m equal-size blocks picked by simple random sampling (Stehman 1997b):
+   proportions are block averages, accuracies are ratios, and standard errors come from the spread between blocks.
+   Without the finite population correction, like the paper's stratified formulas. */
+function clusterEstimate(P,groups){
+  const m=groups.length, K=4, z=()=>new Float64Array(m), ok=z(), tr=[...Array(K)].map(z), mp=[...Array(K)].map(z), hit=[...Array(K)].map(z);
+  groups.forEach((g,c)=>{ for(const i of g){const a=P.map[i], b=P.truth[i]; tr[b][c]++; mp[a][c]++; if(a===b){ok[c]++; hit[a][c]++;}}
+    const L=g.length; ok[c]/=L; for(let k=0;k<K;k++){tr[k][c]/=L; mp[k][c]/=L; hit[k][c]/=L;} });
+  const mean=a=>a.reduce((s,v)=>s+v,0)/m;
+  const seMean=a=>{const u=mean(a); return Math.sqrt(a.reduce((s,v)=>s+(v-u)**2,0)/(m-1)/m);};
+  const ratio=(y,x)=>{const R=mean(y)/mean(x), xb=mean(x); let s=0; for(let c=0;c<m;c++) s+=(y[c]-R*x[c])**2;
+    return [R, xb?Math.sqrt(s/(m-1)/m)/xb:NaN];};
+  const P_=[], U=[], seP=[], seU=[];
+  for(let k=0;k<K;k++){ [P_[k],seP[k]]=ratio(hit[k],tr[k]); [U[k],seU[k]]=ratio(hit[k],mp[k]); }
+  const O=mean(ok), area=tr.map(mean);
+  return {ok:true, m, O, U, P:P_, area, se:{O:seMean(ok), U:seU, P:seP, area:tr.map(seMean)}};
+}
+/* ---- repeats histogram on a fixed 0-100% axis: one row of columns per method, a dashed truth line, a triangle at each row's average.
+   rows = [{name, vals (in %), col (CSS colour), dim}]; opt = {bin, left (label width), px (device pixel ratio)}.
+   Returns [{mean, sd, n}] per row ---- */
+function drawRepeats(cv,rows,truth,opt={}){
+  const px=opt.px||1, ctx=cv.getContext("2d"), Wd=cv.width/px, Hd=cv.height/px, ink=cssVar("--ink"), muted=cssVar("--muted"), font=cssVar("--f-body");
+  ctx.setTransform(px,0,0,px,0,0); ctx.clearRect(0,0,Wd,Hd);
+  const bin=opt.bin||1, lo=0, hi=100; /* always the full 0-100% scale, so every metric and design reads on the same axis */
+  const L=opt.left||150, Rm=24, T=22, B=34, gap=10, ph=(Hd-T-B-gap*(rows.length-1))/rows.length, X=v=>L+(v-lo)/(hi-lo)*(Wd-L-Rm);
+  const nb=Math.ceil((hi-lo)/bin), bw=(Wd-L-Rm)/nb;
+  ctx.font=`12px ${font}`; ctx.textBaseline="middle";
+  const out=rows.map((row,ri)=>{
+    const top=T+ri*(ph+gap), bins=new Array(nb).fill(0); row.vals.forEach(v=>bins[Math.max(0,Math.min(nb-1,Math.floor((v-lo)/bin)))]++);
+    const mx=Math.max(1,...bins); ctx.globalAlpha=row.dim?.35:1; ctx.fillStyle=row.col;
+    bins.forEach((c,b)=>{ if(!c) return; const h=Math.max(2,(ph-6)*c/mx); ctx.fillRect(Math.round(X(lo+b*bin))+1, Math.round(top+ph-h), Math.max(1,Math.round(bw)-1), Math.round(h)); });
+    ctx.strokeStyle=ink; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(L,top+ph+.5); ctx.lineTo(Wd-Rm,top+ph+.5); ctx.stroke();
+    const n=row.vals.length, mean=n?row.vals.reduce((a,b)=>a+b,0)/n:NaN, sd=n>1?Math.sqrt(row.vals.reduce((a,v)=>a+(v-mean)**2,0)/(n-1)):NaN;
+    if(n){ ctx.fillStyle=row.col; ctx.beginPath(); ctx.moveTo(X(mean),top+ph+2); ctx.lineTo(X(mean)-6,top+ph+10); ctx.lineTo(X(mean)+6,top+ph+10); ctx.closePath(); ctx.fill(); }
+    ctx.textAlign="left"; ctx.fillStyle=ink; ctx.fillText(row.name,6,top+ph/2-8);
+    ctx.fillStyle=muted; ctx.fillText(n?"avg "+mean.toFixed(1)+"%":"no estimate",6,top+ph/2+9);
+    ctx.globalAlpha=1; return {mean,sd,n}; });
+  ctx.strokeStyle=ink; ctx.lineWidth=2; ctx.setLineDash([5,4]); ctx.beginPath(); ctx.moveTo(X(truth),T-6); ctx.lineTo(X(truth),Hd-B+4); ctx.stroke(); ctx.setLineDash([]);
+  const rt=X(truth)>Wd-90; ctx.fillStyle=ink; ctx.textAlign=rt?"right":"left"; ctx.fillText("truth "+truth.toFixed(1)+"%",X(truth)+(rt?-6:6),T-10);
+  ctx.textAlign="center"; ctx.fillStyle=muted; const step=Wd<520?20:10;
+  for(let v=lo;v<=hi;v+=step){ ctx.fillRect(X(v)-1,Hd-B+6,2,5); ctx.fillText(v+"%",X(v),Hd-B+20); }
+  return out;
+}
+/* ---- end shared kit ---- */
+const GRID=[5,10,15,25,35,50,75,100,150,200,246,300,400]; /* sizes for the coverage curve, tastes per topping */
+const REPS=1000;
+const METRICS=[
+  {key:"oa",  name:"Overall accuracy",                 short:"Overall"},
+  {key:"ua0", name:"User's accuracy: cheese (A)",      short:"User's A"},
+  {key:"ua3", name:"User's accuracy: anchovy (D)",     short:"User's D"},
+  {key:"pa2", name:"Producer's accuracy: pepperoni (C)", short:"Prod. C"},
+  {key:"pa3", name:"Producer's accuracy: anchovy (D)", short:"Prod. D"},
+  {key:"ar3", name:"Area of anchovy (D)",              short:"Area D"},
+];
+const st={seed:SEED, z:1.96, p:0.8, d:0.05, n:25, fpc:false, metric:"ua3"};
+let P, strata, Nh, W, tr, okD, smp, cur, grid;
+
+const $=id=>document.getElementById(id);
+const f1=v=>isFinite(v)?(100*v).toFixed(1)+"%":"–";
+const pt=v=>isFinite(v)?(100*v).toFixed(1):"–";
+const sw=k=>`<i class="sw" style="background:var(${VAR[k][0]})"></i>`;
+const sum=a=>a.reduce((x,y)=>x+y,0);
+const mean=a=>a.length?sum(a)/a.length:NaN;
+const sdev=a=>{if(a.length<2) return NaN; const m=mean(a); return Math.sqrt(sum(a.map(v=>(v-m)**2))/(a.length-1));};
+const setEq=(id,v)=>{$(id).textContent=v;};
+const fmt=v=>Math.round(v).toLocaleString("en");
+const M=key=>METRICS.find(m=>m.key===key);
+const getM=(o,key)=>{const k=+key[2]; return key==="oa"?o.O:key[0]==="u"?o.U[k]:key[0]==="p"?o.P[k]:o.area[k];};
+const getSE=(o,key)=>{const k=+key[2]; return key==="oa"?o.se.O:key[0]==="u"?o.se.U[k]:key[0]==="p"?o.se.P[k]:o.se.area[k];};
+const Z=1.96; /* the sample's intervals are always 95%, like the paper's Table 5 */
+/* does estimate v ± 1.96 se catch truth t? null when there's no interval */
+const catches=(v,se,t)=>isFinite(v)&&isFinite(se)?Math.abs(v-t)<=Z*se+1e-12:null;
+const eq1=(z,p,d)=>z*z*p*(1-p)/(d*d);
+
+function setup(){
+  P=bakePaperPizza(st.seed);
+  strata=mapStrata(P); Nh=strata.map(s=>s.length); W=Nh.map(v=>v/P.T);
+  okD=strata[3].map(i=>P.truth[i]===3?1:0); /* map-anchovy spots that really are anchovy */
+  const c=P.cell; tr={O:0,U:[],P:[],area:[]};
+  for(let k=0;k<4;k++){ tr.O+=c[k][k]/P.T; tr.U[k]=c[k][k]/P.rowT[k]; tr.P[k]=c[k][k]/P.colT[k]; tr.area[k]=P.colT[k]/P.T; }
+}
+const tastes=n=>[n,n,n,n].map((v,h)=>Math.min(v,Nh[h]));
+function estimate(ids){ const c=countMatrix(P,ids); return {plain:stratEstimate(c,W), small:stratEstimate(c,W,Nh)}; }
+const pick=e=>st.fpc?e.small:e.plain;
+
+/* ---- repeats: 1,000 at the chosen size (kept for the ladder), and 1,000 at each size on the grid (coverage only) ---- */
+function runCurrent(){
+  const al=tastes(st.n), o={plain:[], small:[], bottom:[]};
+  for(let r=0;r<REPS;r++){ const e=estimate(sampleStratified(strata,al,Math.random)); o.plain.push(e.plain); o.small.push(e.small);
+    let hit=0; for(let k=0;k<al[3];k++) hit+=okD[Math.floor(Math.random()*okD.length)]; o.bottom.push(hit/al[3]); }
+  cur=o;
+}
+function runGrid(){
+  grid={plain:{}, small:{}};
+  for(const m of METRICS){grid.plain[m.key]=[]; grid.small[m.key]=[];}
+  for(const n of GRID){ const al=tastes(n), hit={plain:{}, small:{}}, tot={plain:{}, small:{}};
+    for(const m of METRICS) for(const v of ["plain","small"]){hit[v][m.key]=0; tot[v][m.key]=0;}
+    for(let r=0;r<REPS;r++){ const e=estimate(sampleStratified(strata,al,Math.random));
+      for(const v of ["plain","small"]) for(const m of METRICS){ const c=catches(getM(e[v],m.key),getSE(e[v],m.key),getM(tr,m.key)); if(c===null) continue; tot[v][m.key]++; if(c) hit[v][m.key]++; } }
+    for(const v of ["plain","small"]) for(const m of METRICS) grid[v][m.key].push(tot[v][m.key]?100*hit[v][m.key]/tot[v][m.key]:NaN);
+  }
+}
+function coverageNow(key){ let h=0,t=0,zero=0; for(const e of cur[st.fpc?"small":"plain"]){ const s=getSE(e,key), c=catches(getM(e,key),s,getM(tr,key)); if(c===null) continue; t++; if(c) h++; if(s===0) zero++; } return {pc:t?100*h/t:NaN, t, zero}; }
+
+/* ---- Step 1: Eq. 1 ---- */
+function renderPlan(){
+  const {z,p,d}=st, raw=eq1(z,p,d), n=Math.round(raw);
+  $("pp-v").textContent=Math.round(100*p)+"%"; $("dd-v").textContent="± "+(+(100*d).toFixed(1))+" points";
+  $("plan-n").textContent=fmt(n);
+  $("plan-say").textContent=`tastes of each topping on the map, for a ${z===1.96?95:90}% interval of ${Math.round(100*p)}% ± ${+(100*d).toFixed(1)} points`;
+  setEq("q-n-z",z===1.96?"1.96":"1.645"); setEq("q-n-p",p.toFixed(2)); setEq("q-n-q",(1-p).toFixed(2)); setEq("q-n-d",d.toFixed(3));
+  setEq("q-n-raw",raw.toFixed(1)); setEq("q-n-v",fmt(n));
+  const worst=Math.round(eq1(z,.5,d));
+  $("q-n-cap").textContent=`The paper rounds to the nearest taste (384.16 becomes 384); rounding up is the cautious habit. At p = 50% this d would need ${fmt(worst)}, the most any p can ask for.`;
+  /* Eq. 1 turned around: what Hay's 50 gives at this p */
+  setEq("q-h-z",z===1.96?"1.96":"1.645"); setEq("q-h-p",p.toFixed(2)); setEq("q-h-q",(1-p).toFixed(2));
+  const dh=z*Math.sqrt(p*(1-p)/50); setEq("q-h-v",(100*dh).toFixed(1));
+  $("q-h-cap").textContent=`Hay's 50 per class at p = ${Math.round(100*p)}% buys a ${z===1.96?95:90}% interval of about ± ${(100*dh).toFixed(1)} points. The paper's own 25 per class buys ± ${(100*z*Math.sqrt(p*(1-p)/25)).toFixed(1)}.`;
+  /* what n per topping means on this pizza */
+  let h=`<thead><tr><th class="rowh">Map topping</th><th>Spots on the map</th><th>Tastes</th><th>Share tasted</th></tr></thead><tbody>`;
+  NAMES.forEach((nm,k)=>{ const t=Math.min(n,Nh[k]); h+=`<tr><th class="rowh">${sw(k)}${TITLE[k]}<span class="pc">(${PAPER_CLASS[k]})</span></th><td>${fmt(Nh[k])}</td><td>${fmt(t)}${n>Nh[k]?" (all)":""}</td><td>${(100*t/Nh[k]).toFixed(1)}%</td></tr>`; });
+  $("strata").innerHTML=h+"</tbody>";
+  $("strata-note").innerHTML=n>Nh[3]
+    ?`That's more than all ${fmt(Nh[3])} map-anchovy spots on this small pizza. A real map has millions of pixels, so it would fit there.`
+    :`Equal allocation, as in Table 4: ${fmt(4*n)} tastes in all, ${(100*4*n/P.T).toFixed(1)}% of the pizza. The same ${fmt(n)} tastes are ${(100*n/Nh[0]).toFixed(1)}% of map cheese but ${(100*n/Nh[3]).toFixed(1)}% of map anchovy. Step 4 shows why that share barely matters.`;
+  $("use-plan").textContent=`Eq. 1's ${n>400?"n (max 400)":n}`;
+  drawPlan(n);
+}
+function prep(cv,h){ const w=cv.clientWidth||600, px=window.devicePixelRatio||1; cv.style.height=h+"px"; cv.width=Math.round(w*px); cv.height=Math.round(h*px);
+  const ctx=cv.getContext("2d"); ctx.setTransform(px,0,0,px,0,0); ctx.clearRect(0,0,w,h); ctx.font=`12px ${cssVar("--f-body")}`; ctx.textBaseline="middle"; return {ctx,w,h}; }
+function drawPlan(nPlan){
+  const cv=$("plan-cv"), {ctx,w,h}=prep(cv,250), ink=cssVar("--ink"), muted=cssVar("--muted"), tom=cssVar("--tomato");
+  const L=58, R=16, T=14, B=44, X=n=>L+n/400*(w-L-R), Y=v=>T+(1-v/30)*(h-T-B), {z,p}=st;
+  ctx.fillStyle=muted; ctx.textAlign="right";
+  for(let v=0;v<=30;v+=5){ ctx.globalAlpha=.25; ctx.fillRect(L,Math.round(Y(v)),w-L-R,1); ctx.globalAlpha=1; ctx.fillText((v?"± ":"")+v,L-8,Y(v)); }
+  ctx.textAlign="center"; for(let n=0;n<=400;n+=100) ctx.fillText(n,X(n),h-B+16);
+  ctx.save(); ctx.translate(12,T+(h-T-B)/2); ctx.rotate(-Math.PI/2); ctx.fillText("half-width (points)",0,0); ctx.restore();
+  ctx.textAlign="right"; ctx.fillText("tastes per topping →",w-R,h-6);
+  ctx.save(); ctx.beginPath(); ctx.rect(L,T,w-L-R,h-T-B); ctx.clip();
+  const curve=(pp,dash,col,lw)=>{ ctx.setLineDash(dash); ctx.strokeStyle=col; ctx.lineWidth=lw; ctx.beginPath();
+    for(let n=2;n<=400;n+=1){ const v=100*z*Math.sqrt(pp*(1-pp)/n); n===2?ctx.moveTo(X(n),Y(v)):ctx.lineTo(X(n),Y(v)); } ctx.stroke(); ctx.setLineDash([]); };
+  curve(.5,[5,4],muted,2); curve(p,[],ink,3);
+  /* reference points: Table 4's 25 and Hay's 50 */
+  for(const [n,lab] of [[25,"25 · Table 4"],[50,"50 · Hay"]]){ const v=100*z*Math.sqrt(p*(1-p)/n);
+    ctx.fillStyle=ink; ctx.fillRect(X(n)-4,Y(v)-4,8,8); ctx.textAlign="left"; ctx.fillText(`${lab}: ± ${v.toFixed(1)}`,X(n)+9,Y(v)-9); }
+  ctx.restore();
+  /* the planned point */
+  const v=100*st.d;
+  ctx.strokeStyle=tom; ctx.lineWidth=2; ctx.setLineDash([3,3]); ctx.beginPath();
+  if(nPlan<=400){ ctx.moveTo(L,Y(v)); ctx.lineTo(X(nPlan),Y(v)); ctx.lineTo(X(nPlan),h-B); } else { ctx.moveTo(L,Y(v)); ctx.lineTo(w-R,Y(v)); }
+  ctx.stroke(); ctx.setLineDash([]);
+  ctx.fillStyle=tom; ctx.textAlign=nPlan>250?"right":"left";
+  if(nPlan<=400){ ctx.fillRect(X(nPlan)-6,Y(v)-6,12,12); ctx.fillText(`n = ${fmt(nPlan)}`,X(nPlan)+(nPlan>250?-12:12),Y(v)+14); }
+  else { ctx.textAlign="right"; ctx.fillText(`n = ${fmt(nPlan)}, off the chart →`,w-R-4,Y(v)-10); }
+  ctx.strokeStyle=ink; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(L,T); ctx.lineTo(L,h-B); ctx.lineTo(w-R,h-B); ctx.stroke();
+}
+
+/* ---- Step 2: one sample ---- */
+function drawSample(){ const ids=sampleStratified(strata,tastes(st.n),Math.random); smp={ids, set:new Set(ids), e:estimate(ids)}; }
+function drawPizza(){
+  const cv=$("cv"), pal=pizzaPalette(), s=cv.width/N;
+  const ctx=paintPizza(cv,i=>{
+    if(P.crust[i]) return pal.crust[P.tex[i]];
+    if(!P.inside[i]) return null;
+    const c=pal.top[P.map[i]][P.tex[i]]; return [c[0],c[1],c[2],smp.set.has(i)?255:70];
+  });
+  const ink=cssVar("--ink"), panel=cssVar("--panel"), tom=cssVar("--tomato"), tot=smp.ids.length, r=tot>700?2:tot>250?3:5;
+  for(const i of smp.ids){ const cx=(i%N)*s+s/2, cy=((i/N)|0)*s+s/2;
+    ctx.fillStyle=P.truth[i]!==P.map[i]?tom:panel; ctx.fillRect(cx-r,cy-r,2*r,2*r);
+    if(r>2){ctx.lineWidth=r>3?2:1; ctx.strokeStyle=ink; ctx.strokeRect(cx-r,cy-r,2*r,2*r);} }
+}
+function renderLegend(){
+  $("legend").innerHTML=NAMES.map((n,k)=>`<span>${sw(k)}${TITLE[k]}</span>`).join("")+
+    `<span><i class="sw ring"></i>Tasted, map right</span><span><i class="sw miss"></i>Tasted, map wrong</span>`;
+}
+function renderSizeHint(){
+  const al=tastes(st.n); $("nn-v").textContent=st.n;
+  $("nn-hint").textContent=`${fmt(sum(al))} tastes in all. That's ${(100*al[3]/Nh[3]).toFixed(1)}% of the map's ${fmt(Nh[3])} anchovy spots and ${(100*al[0]/Nh[0]).toFixed(1)}% of its cheese.`;
+}
+const ROWS=[["oa","Overall accuracy",null],["ua0","User's",0],["ua1","User's",1],["ua2","User's",2],["ua3","User's",3],["pa2","Producer's",2],["pa3","Producer's",3],["ar3","Area",3]];
+function strip(v,se,t){ const lo=Math.max(0,v-Z*se), hi=Math.min(1,v+Z*se), c=catches(v,se,t);
+  return `<div class="ci${c===false?" miss":""}"><i style="left:${(100*lo).toFixed(2)}%;width:${(100*(hi-lo)).toFixed(2)}%"></i><b style="left:${(100*t).toFixed(2)}%"></b></div>`; }
+function renderResults(){
+  const e=pick(smp.e), al=tastes(st.n);
+  $("res-intro").innerHTML=`${al[0]} tastes from each topping on the map, ${fmt(sum(al))} in all, estimated with the stratified formulas (Eqs. 12–18). Each interval is the estimate ± 1.96 standard errors (Sec. 4.4)${st.fpc?", with the small-pizza correction":""}. The tick in each strip is the truth from checking every spot.`;
+  let h=`<thead><tr><th class="rowh">Number</th><th>Estimate</th><th>SE</th><th>95% interval</th><th>On a 0–100% strip</th><th class="truth">Truth (Table 5)</th><th>Caught?</th></tr></thead><tbody>`;
+  let missed=0, zero=0;
+  for(const [k,label,c] of ROWS){ const v=getM(e,k), se=getSE(e,k), t=getM(tr,k), got=catches(v,se,t);
+    if(got===false) missed++; if(se===0) zero++;
+    h+=`<tr><th class="rowh">${label}${c!==null?`: ${sw(c)}${NAMES[c]}<span class="pc">(${PAPER_CLASS[c]})</span>`:""}</th><td class="acc">${f1(v)}</td><td>${isFinite(se)?"± "+pt(se):"–"}</td>`+
+      `<td>${got===null?"–":pt(Math.max(0,v-Z*se))+" to "+pt(Math.min(1,v+Z*se))}</td><td class="cic">${got===null?"":strip(v,se,t)}</td><td class="truth">${f1(t)}</td>`+
+      `<td class="${got===null?"":got?"k-good":"k-bad"}">${got===null?"–":got?"yes":se===0?"no (SE 0)":"no"}</td></tr>`; }
+  $("res").innerHTML=h+"</tbody>";
+  let note=missed?`${missed} of these 8 intervals missed the truth this time. With 95% intervals, about 1 in 20 should. `:`All 8 intervals caught the truth this time. `;
+  if(zero) note+=`An SE of 0 means every taste in that row agreed. The formula then claims no uncertainty at all, so the interval shrinks to a point. That happens at small sizes. `;
+  note+=`Compare the widths: anchovy is only 5% of the map, but it gets as many tastes as cheese, so its user's interval is about as wide as the others. Its producer's and area intervals depend on every row.`;
+  $("res-note").innerHTML=note;
+  /* the cropland example, next to this sample's anchovy interval */
+  const u=e.U[3], s=e.se.U[3], lo=Math.max(0,u-Z*s), hi=Math.min(1,u+Z*s);
+  const row=(lab,a,b)=>`<div><span>${lab}</span><div class="ci"><i style="left:${a}%;width:${b-a}%"></i></div></div>`;
+  $("crop").innerHTML=row("Cropland: 78% to 85%",78,85)+row("Cropland: 60% to 85%",60,85)+
+    (isFinite(s)?row(`Your anchovy: ${pt(lo)}% to ${pt(hi)}%`,+(100*lo).toFixed(1),+(100*hi).toFixed(1)):"")+
+    `<p class="hint">The paper calls the first narrow enough for most users and the second likely too broad. Your anchovy interval is ${isFinite(s)?(100*(hi-lo)).toFixed(0)+" points wide":"not available"}.</p>`;
+}
+
+/* ---- Step 3: coverage ---- */
+function drawLadder(){
+  const cv=$("ladder"), rows=100, {ctx,w,h}=prep(cv,rows*4+48), key=st.metric, t=100*getM(tr,key);
+  const ink=cssVar("--ink"), muted=cssVar("--muted"), good=cssVar("--good"), bad=cssVar("--bad");
+  const L=12, R=12, T=12, B=34, X=v=>L+v/100*(w-L-R);
+  const list=cur[st.fpc?"small":"plain"].map(e=>[getM(e,key),getSE(e,key)]).filter(([v,s])=>isFinite(v)&&isFinite(s)).slice(0,rows);
+  let miss=0;
+  list.forEach(([v,s],k)=>{ const y=T+k*4, lo=Math.max(0,100*(v-Z*s)), hi=Math.min(100,100*(v+Z*s)), c=catches(v,s,t/100);
+    if(!c) miss++; ctx.fillStyle=c?good:bad; ctx.fillRect(X(lo),y,Math.max(2,X(hi)-X(lo)),3); });
+  ctx.strokeStyle=ink; ctx.lineWidth=2; ctx.setLineDash([5,4]); ctx.beginPath(); ctx.moveTo(X(t),T-6); ctx.lineTo(X(t),h-B+4); ctx.stroke(); ctx.setLineDash([]);
+  ctx.strokeStyle=ink; ctx.beginPath(); ctx.moveTo(L,h-B+6); ctx.lineTo(w-R,h-B+6); ctx.stroke();
+  ctx.fillStyle=muted; ctx.textAlign="center"; const step=w<420?25:10;
+  for(let v=0;v<=100;v+=step){ ctx.fillRect(X(v)-1,h-B+6,2,5); ctx.fillText(v+"%",Math.min(w-R-14,Math.max(L+12,X(v))),h-B+22); }
+  $("lad-n").textContent=st.n;
+  return {miss, shown:list.length};
+}
+function drawCoverage(){
+  const cv=$("cov"), {ctx,w,h}=prep(cv,(cv.clientWidth||600)<480?320:448), ink=cssVar("--ink"), muted=cssVar("--muted"), tom=cssVar("--tomato"), good=cssVar("--good");
+  const L=44, R=14, T=14, B=44, lx=n=>Math.log(n), X=n=>L+(lx(n)-lx(5))/(lx(400)-lx(5))*(w-L-R), Y=v=>T+(100-v)/50*(h-T-B);
+  ctx.fillStyle=muted; ctx.textAlign="right";
+  for(let v=50;v<=100;v+=10){ ctx.globalAlpha=.25; ctx.fillRect(L,Math.round(Y(v)),w-L-R,1); ctx.globalAlpha=1; ctx.fillText(v+"%",L-6,Y(v)); }
+  ctx.textAlign="center"; for(const n of w<480?[5,10,25,50,100,400]:[5,10,25,50,100,246,400]) ctx.fillText(n,X(n),h-B+16);
+  ctx.textAlign="right"; ctx.fillText("tastes per topping (log scale) →",w-R,h-6);
+  ctx.strokeStyle=tom; ctx.lineWidth=2; ctx.setLineDash([6,4]); ctx.beginPath(); ctx.moveTo(L,Y(95)); ctx.lineTo(w-R,Y(95)); ctx.stroke(); ctx.setLineDash([]);
+  ctx.save(); ctx.beginPath(); ctx.rect(L,T-4,w-L-R,h-T-B+8); ctx.clip();
+  const g=grid[st.fpc?"small":"plain"], line=(vals,col,lw)=>{ ctx.strokeStyle=col; ctx.lineWidth=lw; ctx.beginPath(); let on=false;
+    vals.forEach((v,k)=>{ if(!isFinite(v)){on=false; return;} const y=Y(Math.max(48,v)); on?ctx.lineTo(X(GRID[k]),y):ctx.moveTo(X(GRID[k]),y); on=true; }); ctx.stroke(); };
+  ctx.globalAlpha=.45; for(const m of METRICS) if(m.key!==st.metric) line(g[m.key],muted,1.5); ctx.globalAlpha=1;
+  line(g[st.metric],ink,3); ctx.fillStyle=ink; g[st.metric].forEach((v,k)=>{ if(isFinite(v)) ctx.fillRect(X(GRID[k])-3,Y(Math.max(48,v))-3,6,6); });
+  ctx.restore();
+  /* this size, from the 1,000 kept repeats */
+  const c=coverageNow(st.metric);
+  if(isFinite(c.pc)){ ctx.strokeStyle=good; ctx.lineWidth=1.5; ctx.beginPath(); ctx.moveTo(X(st.n),T); ctx.lineTo(X(st.n),h-B); ctx.stroke();
+    ctx.fillStyle=good; ctx.fillRect(X(st.n)-6,Y(Math.max(48,c.pc))-6,12,12);
+    ctx.textAlign=X(st.n)>w-120?"right":"left"; ctx.fillText(`${c.pc.toFixed(1)}% at ${st.n}`,X(st.n)+(X(st.n)>w-120?-10:10),Y(Math.max(48,c.pc))+(c.pc>90?16:-14)); }
+  ctx.strokeStyle=ink; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(L,T); ctx.lineTo(L,h-B); ctx.lineTo(w-R,h-B); ctx.stroke();
+  return c;
+}
+function renderCoverage(){
+  const lad=drawLadder(), c=drawCoverage(), key=st.metric, m=M(key), g=grid[st.fpc?"small":"plain"][key];
+  const vals=cur[st.fpc?"small":"plain"].map(e=>getM(e,key)).filter(isFinite), lean=100*(mean(vals)-getM(tr,key));
+  const big=g[GRID.indexOf(100)], small5=g[0];
+  let t=`<b>${m.name}</b> at ${st.n} per topping: ${lad.shown-lad.miss} of the 100 intervals shown caught the truth, and ${c.pc.toFixed(1)}% of all 1,000. `;
+  t+=`At 5 per topping the intervals catch it only ${small5.toFixed(0)}% of the time; at 100 per topping, ${big.toFixed(0)}%. The ± 1.96 SE rule leans on large-sample maths, and with only a few tastes it overpromises. `;
+  if(c.zero) t+=`${c.zero} of the 1,000 samples had an SE of exactly 0 here, an interval of a single point. `;
+  if(key[0]==="p") t+=`Producer's accuracy is a ratio, and it leans ${lean>=0?"high":"low"} by ${Math.abs(lean).toFixed(1)} points on average at this size. More tastes shrink the lean. `;
+  if(key==="ua0") t+=`Cheese's user's accuracy is 84%, so at small sizes every taste often agrees. The coverage line zigzags because the estimate can only be a whole number of tastes over n. `;
+  const hi=g[GRID.indexOf(246)];
+  if(!st.fpc&&(key==="ua3"||key==="pa3"||key==="ar3")&&hi>97) t+=`At large sizes the anchovy line climbs above 95% (${hi.toFixed(1)}% at 246). That isn't the formula getting better. 246 tastes eat a third of the map's 720 anchovy spots, and the paper's formulas assume a map too big for that. Tick the small-pizza correction above and the line comes back to 95%. `;
+  if(st.fpc) t+=`The small-pizza correction is on. It shrinks each stratum's variance by 1 − n/N, so the anchovy lines stay near 95% even at 400. `;
+  $("cov-sum").innerHTML=t;
+}
+
+/* ---- Step 4: count, not percent ---- */
+function renderAbsolute(){
+  const n=tastes(st.n)[3], ours=cur.plain.map(e=>100*e.U[3]), bottom=cur.bottom.map(v=>100*v), cv=$("abs-cv");
+  const w=cv.clientWidth||720, px=window.devicePixelRatio||1, narrow=w<520, h=2*(narrow?48:54)+56;
+  cv.style.height=h+"px"; cv.width=Math.round(w*px); cv.height=Math.round(h*px);
+  const good=cssVar("--good"), muted=cssVar("--muted");
+  const stats=drawRepeats(cv,[{name:"This pizza",vals:ours,col:good},{name:"Bottomless",vals:bottom,col:muted}],100*tr.U[3],{px,left:narrow?100:130});
+  const form=100*Math.sqrt(tr.U[3]*(1-tr.U[3])/(n-1)), fpc=Math.sqrt(1-n/Nh[3]);
+  let h2=`<thead><tr><th class="rowh">Map anchovy, ${n} tastes</th><th>Spots</th><th>Share eaten</th><th>Spread of 1,000</th><th>Eq. 17's SE</th><th>Spread ÷ SE</th></tr></thead><tbody>`;
+  h2+=`<tr class="cur"><th class="rowh">This pizza</th><td>${fmt(Nh[3])}</td><td>${(100*n/Nh[3]).toFixed(1)}%</td><td>${stats[0].sd.toFixed(1)}</td><td>${form.toFixed(1)}</td><td>${(stats[0].sd/form).toFixed(2)}</td></tr>`;
+  h2+=`<tr><th class="rowh">Bottomless pizza</th><td>∞</td><td>0%</td><td>${stats[1].sd.toFixed(1)}</td><td>${form.toFixed(1)}</td><td>${(stats[1].sd/form).toFixed(2)}</td></tr>`;
+  $("abs-tab").innerHTML=h2+"</tbody>";
+  const pc=100*n/Nh[3];
+  $("abs-note").innerHTML=(pc<10
+    ?`At ${n} tastes the two spread about the same (${stats[0].sd.toFixed(1)} vs ${stats[1].sd.toFixed(1)} points), although one eats ${pc.toFixed(1)}% of the anchovy and the other none of it. Precision comes from the count. `
+    :`At ${n} tastes this pizza spreads less than the bottomless one (${stats[0].sd.toFixed(1)} vs ${stats[1].sd.toFixed(1)} points), because ${pc.toFixed(0)}% of its map anchovy gets eaten and there's little left to be wrong about. `)+
+    `Any gap comes from the finite population correction: √(1 − ${n}/${fmt(Nh[3])}) = ${fpc.toFixed(2)}. The paper's formulas leave it out, which is safe on a real map: 246 tastes from a million pixels is 0.02%, and the correction is 0.9999. On this small pizza it's why the real spread can be up to a third smaller than the paper's SE says, and why the anchovy coverage lines in Step 3 climb above 95%.`;
+}
+
+/* ---- the paper's formulas, filled in ---- */
+function renderEqs(){
+  const e=smp.e.plain, c=countMatrix(P,smp.ids), n4=sum(c[3]), u=e.U[3], se=e.se.U[3], v=se*se;
+  setEq("q-u-u",u.toFixed(2)); setEq("q-u-x",(1-u).toFixed(2)); setEq("q-u-d",n4-1); setEq("q-u-v",v.toFixed(4)); setEq("q-u-se",pt(se));
+  $("q-u-cap").textContent=`${c[3][3]} of the ${n4} map-anchovy tastes really were anchovy. More tastes make the n − 1 bigger and the variance smaller.`;
+  setEq("q-i-u",pt(u)); setEq("q-i-se",pt(se)); setEq("q-i-lo",pt(u-Z*se)); setEq("q-i-hi",pt(u+Z*se));
+  $("q-i-cap").textContent=`The paper's Table 4 sample gives 64.0 ± 1.96 × 9.8, so 44.8% to 83.2% (ours). The truth on this pizza is ${f1(tr.U[3])}.`;
+  setEq("q-o-o",pt(e.O)); setEq("q-o-se",pt(e.se.O)); setEq("q-o-lo",pt(e.O-Z*e.se.O)); setEq("q-o-hi",pt(e.O+Z*e.se.O));
+  $("q-o-cap").textContent=`With this sample. Table 4's counts give 79.6 ± 1.96 × 5.1, which is Table 5's 69.5% to 89.7% (it uses the unrounded SE, 5.13).`;
+  const s=e.se.U[3], r=Math.sqrt(1-n4/Nh[3]);
+  setEq("q-f-a",pt(s)); setEq("q-f-a2",pt(s)); setEq("q-f-n",n4); setEq("q-f-N",Nh[3]); setEq("q-f-r",r.toFixed(2)); setEq("q-f-v",pt(s*r));
+  $("q-f-card").classList.toggle("off",!st.fpc);
+  $("q-f-cap").textContent=`N₄₊ is the number of map-anchovy spots. Statistics books call this the finite population correction. ${st.fpc?"It's on.":"It's off, as in the paper. Turn it on in Step 2 or 3."}`;
+}
+
+/* ---- check against the paper ---- */
+function renderCheck(){
+  const T4=[[21,3,1,0],[4,18,0,3],[0,2,20,3],[5,2,2,16]], e=stratEstimate(T4,[.6,.25,.1,.05]);
+  const ci=(v,s)=>`${pt(v-Z*s)}% to ${pt(v+Z*s)}%`, cov100=grid.plain;
+  const rows=[
+    ["Eq. 1, p = 80%, d = 5, 95%","246",fmt(Math.round(eq1(1.96,.8,.05)))+` (${eq1(1.96,.8,.05).toFixed(2)})`],
+    ["Eq. 1, p = 50%, d = 5, 95%","384",fmt(Math.round(eq1(1.96,.5,.05)))+` (${eq1(1.96,.5,.05).toFixed(2)})`],
+    ["Table 5 overall accuracy, 95% interval","69.5% to 89.7%",`${ci(e.O,e.se.O)} (79.6 ± 1.96 × ${(100*e.se.O).toFixed(2)})`],
+    ["Table 5 user's D, 95% interval <i>ours</i>","64 (SE 9.8)",ci(e.U[3],e.se.U[3])],
+    ["Hay's 50 per class, p = 80% <i>ours</i>","50 per class",`± ${(100*1.96*Math.sqrt(.16/50)).toFixed(1)} points`],
+    ["Coverage at 100 per topping <i>ours</i>","95% promised",METRICS.map(m=>`${m.short} ${cov100[m.key][GRID.indexOf(100)].toFixed(0)}`).join(", ")],
+  ];
+  $("chk").innerHTML=`<thead><tr><th class="rowh">Figure</th><th>Paper</th><th>This page</th></tr></thead><tbody>`+
+    rows.map(r=>`<tr><th class="rowh">${r[0]}</th><td>${r[1]}</td><td>${r[2]}</td></tr>`).join("")+"</tbody>";
+  $("chk-note").innerHTML=`The interval rows run the kit's stratified estimator on Table 4's counts. Coverage comes from 1,000 samples at each size, so it wobbles by about a point between runs.`;
+}
+
+function renderSample(){ renderSizeHint(); renderLegend(); drawPizza(); renderResults(); renderEqs(); }
+function renderRepeats(){ renderCoverage(); renderAbsolute(); }
+function sizeChanged(){ drawSample(); renderSample(); runCurrent(); renderRepeats(); }
+function all(){ drawSample(); renderSample(); runCurrent(); runGrid(); renderRepeats(); renderCheck(); }
+
+/* ---- controls ---- */
+$("metric").innerHTML=METRICS.map(m=>`<option value="${m.key}"${m.key===st.metric?" selected":""}>${m.name}</option>`).join("");
+$("conf").addEventListener("change",e=>{st.z=+e.target.value; renderPlan();});
+$("pp").addEventListener("input",e=>{st.p=+e.target.value; renderPlan();});
+$("dd").addEventListener("input",e=>{st.d=+e.target.value; renderPlan();});
+document.querySelectorAll("[data-p]").forEach(b=>b.addEventListener("click",()=>{
+  st.p=+b.dataset.p; st.d=+b.dataset.d; $("pp").value=st.p; $("dd").value=st.d; st.z=1.96; $("z95").checked=true; renderPlan(); }));
+let pending=0; const setN=n=>{st.n=Math.max(5,Math.min(400,n)); $("nn").value=st.n; renderSizeHint();
+  if(!pending) pending=requestAnimationFrame(()=>{pending=0; sizeChanged();}); };
+$("nn").addEventListener("input",e=>setN(+e.target.value));
+document.querySelectorAll("[data-n]").forEach(b=>b.addEventListener("click",()=>setN(+b.dataset.n)));
+$("use-plan").addEventListener("click",()=>setN(Math.round(eq1(st.z,st.p,st.d))));
+$("draw").addEventListener("click",()=>{drawSample(); renderSample();});
+$("newpie").addEventListener("click",()=>{st.seed=(Math.random()*1e9)|0; setup(); renderPlan(); all();});
+for(const id of ["fpc","fpc2"]) $(id).addEventListener("change",e=>{st.fpc=e.target.checked; $("fpc").checked=$("fpc2").checked=st.fpc; renderResults(); renderEqs(); renderCoverage();});
+$("metric").addEventListener("change",e=>{st.metric=e.target.value; renderCoverage();});
+const repaint=()=>{drawPizza(); renderLegend(); renderPlan(); renderRepeats();};
+const mq=window.matchMedia("(prefers-color-scheme: dark)"); if(mq.addEventListener) mq.addEventListener("change",repaint);
+new MutationObserver(repaint).observe(document.documentElement,{attributes:true,attributeFilter:["data-theme"]});
+if(document.fonts&&document.fonts.ready) document.fonts.ready.then(()=>{renderPlan(); renderRepeats();});
+let lastW=0; if(window.ResizeObserver) new ResizeObserver(()=>{const w=$("cov").clientWidth; if(w&&w!==lastW){lastW=w; renderPlan(); renderRepeats();}}).observe(document.body);
+
+setup(); renderPlan(); all();
+})();
+</script>
+</body>
+</html>

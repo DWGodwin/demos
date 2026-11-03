@@ -386,16 +386,19 @@ function countMatrix(P,ids){ const c=[[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]]; 
 /* Stratified estimator, Eqs. 12-20, as proportions (0-1). W = each map class's share of the map.
    Used for stratified samples and, as poststratification, for simple random and systematic ones.
    Variances use n_i+ - 1 throughout, which reproduces every Table 5 standard error from Table 4.
-   A row with no tastes can't be estimated (ok=false); a row with one taste gives estimates but no variance. */
-function stratEstimate(c,W){
+   A row with no tastes can't be estimated (ok=false); a row with one taste gives estimates but no variance.
+   Optional Nh (spots in each stratum) applies the finite population correction, 1 - n_i+/N_i+, to each stratum's
+   variance term. The paper's formulas leave it out (real maps have millions of pixels); 04 uses it to show the gap. */
+function stratEstimate(c,W,Nh){
   const K=c.length, nr=c.map(row=>row.reduce((a,b)=>a+b,0)), p=c.map((row,i)=>row.map(v=>nr[i]?W[i]*v/nr[i]:0));
+  const q=nr.map((n,i)=>(Nh?1-n/Nh[i]:1)/(n-1)); /* each stratum's variance divisor, with the correction if asked */
   const col=[...Array(K).keys()].map(j=>p.reduce((a,row)=>a+row[j],0));
   const U=nr.map((n,i)=>n?c[i][i]/n:NaN), Pa=col.map((v,j)=>v?p[j][j]/v:NaN);
-  let O=0, vO=0; for(let i=0;i<K;i++){O+=p[i][i]; vO+=W[i]**2*U[i]*(1-U[i])/(nr[i]-1);}
-  const vU=U.map((u,i)=>u*(1-u)/(nr[i]-1));
-  const vP=Pa.map((Pj,j)=>{ let s=0; for(let i=0;i<K;i++) if(i!==j&&nr[i]){const f=c[i][j]/nr[i]; s+=W[i]**2*f*(1-f)/(nr[i]-1);}
-    return (W[j]**2*(1-Pj)**2*U[j]*(1-U[j])/(nr[j]-1)+Pj**2*s)/col[j]**2; });
-  const vA=col.map((_,k)=>{let s=0; for(let i=0;i<K;i++) if(nr[i]){const f=c[i][k]/nr[i]; s+=W[i]**2*f*(1-f)/(nr[i]-1);} return s;});
+  let O=0, vO=0; for(let i=0;i<K;i++){O+=p[i][i]; vO+=W[i]**2*U[i]*(1-U[i])*q[i];}
+  const vU=U.map((u,i)=>u*(1-u)*q[i]);
+  const vP=Pa.map((Pj,j)=>{ let s=0; for(let i=0;i<K;i++) if(i!==j&&nr[i]){const f=c[i][j]/nr[i]; s+=W[i]**2*f*(1-f)*q[i];}
+    return (W[j]**2*(1-Pj)**2*U[j]*(1-U[j])*q[j]+Pj**2*s)/col[j]**2; });
+  const vA=col.map((_,k)=>{let s=0; for(let i=0;i<K;i++) if(nr[i]){const f=c[i][k]/nr[i]; s+=W[i]**2*f*(1-f)*q[i];} return s;});
   const se=v=>v>=0&&isFinite(v)?Math.sqrt(v):NaN;
   return {ok:nr.every(n=>n>0), nr, p, O, U, P:Pa, area:col, se:{O:se(vO), U:vU.map(se), P:vP.map(se), area:vA.map(se)}};
 }

@@ -5,6 +5,8 @@
 //    near the paper's naive numbers, and a spread near Table 5's standard errors.
 // 4. The kit's stratified estimator turns Table 4 into every Table 5 number and standard error.
 // 5. Every probability design in the kit is unbiased over many repeats; the convenience design is not.
+// 6. Eq. 1 gives the paper's 246 and 384, Table 4 gives Table 5's 69.5-89.7% interval, and 95% intervals
+//    catch the truth about 95% of the time once the sample is big (explainer 04).
 const fs = require("fs"), path = require("path"), vm = require("vm");
 const root = path.join(__dirname, "..");
 let failed = 0;
@@ -101,6 +103,28 @@ console.log("Sampling designs, 2,000 repeats of 100 tastes (explainer 03)");
   }
   const c = run(() => post(K.pickFrom(edge, 100, r)));
   ok(m(c.O) - truth.O > 0.025, `convenience (edge pieces only): overall accuracy biased high (${(100 * m(c.O)).toFixed(1)}% vs 79.6)`);
+}
+
+console.log("Sample size and intervals (explainer 04)");
+{
+  const eq1 = (z, p, d) => z * z * p * (1 - p) / (d * d);
+  ok(Math.round(eq1(1.96, 0.8, 0.05)) === 246 && Math.round(eq1(1.96, 0.5, 0.05)) === 384, "Eq. 1 gives 246 (p = 0.8) and 384 (p = 0.5)");
+  const e = K.stratEstimate([[21,3,1,0],[4,18,0,3],[0,2,20,3],[5,2,2,16]], [.6, .25, .1, .05]);
+  ok((100 * (e.O - 1.96 * e.se.O)).toFixed(1) === "69.5" && (100 * (e.O + 1.96 * e.se.O)).toFixed(1) === "89.7", "Table 5's overall 95% interval, 69.5% to 89.7%");
+  const P = K.bakePaperPizza(K.SEED), st = K.mapStrata(P), Nh = st.map(s => s.length), W = Nh.map(v => v / P.T), r = K.rng(11);
+  const c = P.cell, tU = c.map((row, k) => row[k] / P.rowT[k]), tO = c.reduce((a, row, k) => a + row[k], 0) / P.T;
+  const cover = (n, fpc) => { const h = { O: 0, U0: 0, U3: 0 }, u3 = [];
+    for (let k = 0; k < 2000; k++) { const e = K.stratEstimate(K.countMatrix(P, K.sampleStratified(st, [n, n, n, n], r)), W, fpc ? Nh : undefined);
+      const hit = (v, s, t) => Math.abs(v - t) <= 1.96 * s; h.O += hit(e.O, e.se.O, tO); h.U0 += hit(e.U[0], e.se.U[0], tU[0]); h.U3 += hit(e.U[3], e.se.U[3], tU[3]); u3.push(e.U[3]); }
+    const m = u3.reduce((a, b) => a + b) / u3.length, sd = Math.sqrt(u3.reduce((a, v) => a + (v - m) ** 2, 0) / (u3.length - 1));
+    return { O: h.O / 20, U0: h.U0 / 20, U3: h.U3 / 20, ratio: sd / Math.sqrt(tU[3] * (1 - tU[3]) / (n - 1)) }; };
+  const a = cover(100, false);
+  ok(Math.abs(a.O - 95) < 2 && Math.abs(a.U0 - 95) < 3, `at 100 per topping, overall and user's A intervals catch the truth about 95% of the time (${a.O}%, ${a.U0}%)`);
+  const b = cover(246, false), f = cover(246, true);
+  ok(b.U3 > 97 && Math.abs(b.ratio - Math.sqrt(1 - 246 / Nh[3])) < 0.05, `at 246, the paper's formula overstates user's D spread on this small pizza (coverage ${b.U3}%, spread/SE ${b.ratio.toFixed(2)} vs ${Math.sqrt(1 - 246 / Nh[3]).toFixed(2)})`);
+  ok(Math.abs(f.U3 - 95) < 2, `with the small-pizza correction, user's D coverage is back near 95% (${f.U3}%)`);
+  const s5 = cover(5, false);
+  ok(s5.U0 < 85, `at 5 per topping, user's A intervals overpromise (${s5.U0}%)`);
 }
 
 console.log(failed ? `\n${failed} check(s) failed` : "\nAll checks passed");
