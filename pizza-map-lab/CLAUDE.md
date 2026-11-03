@@ -6,3 +6,4 @@ This folder (`pizza-map-lab/`) is one project inside the demos repo. Read `GUIDE
 - Ask the user to attach the paper PDF if it isn't in the conversation. Check every figure you put on a page against it.
 - Work on the explainer's branch (`lab-NN`), never directly on `main`, which deploys to the live site.
 - Build one explainer per session. Before finishing, update the Status and Changelog sections of `GUIDE.md`.
+- The paper is the pdf in `reference/`
