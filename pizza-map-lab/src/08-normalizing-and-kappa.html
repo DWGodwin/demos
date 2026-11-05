@@ -12,7 +12,7 @@
    (Step 1, and Sec. 1.2's change map in Step 2) and kappa (Steps 3 and 4), then the 85% benchmark (Step 5),
    the paper check and the notes. */
 :root{
-  --bg:#efe2c8; --check:rgba(196,52,32,.085); --panel:#fffaf0; --ink:#2b1b12; --muted:#6e584a;
+  --bg:#efe2c8; --check:rgba(196,52,32,.085); --cloth-ink:#2b1b12; --cloth-muted:#6e584a; --cloth-accent:#c4341f; --cloth-shadow:#2b1b12; --panel:#fffaf0; --ink:#2b1b12; --muted:#6e584a;
   --line:#2b1b12; --shadow:#2b1b12; --tomato:#c4341f;
   --good:#118a36; --bad:#e0189e; --mid:#8a6f5c;
   --tint-g:rgba(17,138,54,.12); --tint-m:rgba(224,24,158,.12); --tint-d:rgba(43,27,18,.06);
@@ -23,13 +23,13 @@
   --f-body:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
-  --bg:#1b1310; --check:rgba(196,52,32,.13); --panel:#2a1e18; --ink:#f3e7d3; --muted:#c3ae98;
+  --panel:#2a1e18; --ink:#f3e7d3; --muted:#c3ae98;
   --line:#f3e7d3; --shadow:#8a2a16; --tomato:#ff6a4d; --good:#3ddc6e; --bad:#ff52c9; --mid:#b89c86;
   --tint-g:rgba(61,220,110,.15); --tint-m:rgba(255,82,201,.15); --tint-d:rgba(243,231,211,.07);
   color-scheme:dark;
 }}
 :root[data-theme="dark"]{
-  --bg:#1b1310; --check:rgba(196,52,32,.13); --panel:#2a1e18; --ink:#f3e7d3; --muted:#c3ae98;
+  --panel:#2a1e18; --ink:#f3e7d3; --muted:#c3ae98;
   --line:#f3e7d3; --shadow:#8a2a16; --tomato:#ff6a4d; --good:#3ddc6e; --bad:#ff52c9; --mid:#b89c86;
   --tint-g:rgba(61,220,110,.15); --tint-m:rgba(255,82,201,.15); --tint-d:rgba(243,231,211,.07);
   color-scheme:dark;
@@ -47,11 +47,20 @@ h2{font-size:20px; margin:0 0 10px; text-wrap:balance}
 h3{font-size:15px; margin:18px 0 6px}
 p{margin:0 0 10px; max-width:66ch}
 a{color:var(--tomato)}
-.box{background:var(--panel); border:3px solid var(--line); box-shadow:6px 6px 0 var(--shadow); padding:18px; min-width:0}
+.box{background:var(--panel); border:3px solid var(--line); box-shadow:6px 6px 0 var(--cloth-shadow); padding:18px; min-width:0}
 .mast{display:grid; gap:12px}
 .crumb{font-size:12px; color:var(--ink); justify-self:start}
 .eyebrow{font-size:13px; display:inline-block; background:var(--tomato); color:#fffaf0; padding:4px 8px; justify-self:start}
 .mast p{font-size:16px}
+.mast-body{display:grid; grid-template-columns:minmax(0,66ch) minmax(0,1fr); gap:12px 32px; align-items:start}
+.intro{display:grid; gap:10px} .intro p{margin:0}
+.toc{border-left:2px solid var(--line); padding-left:18px; display:grid; gap:8px}
+.toc ol{list-style:none; margin:0; padding:0; display:grid; gap:4px; font-size:13px}
+.toc a{color:var(--ink); text-decoration:none} .toc a:hover{color:var(--tomato); text-decoration:underline}
+.toc a:focus-visible{outline:3px dashed var(--tomato); outline-offset:2px}
+@media (max-width:820px){.mast-body{grid-template-columns:minmax(0,1fr)} .toc{border-left:0; border-top:2px solid var(--line); padding:12px 0 0}}
+.box[id]{scroll-margin-top:16px}
+@media (prefers-reduced-motion:no-preference){html{scroll-behavior:smooth}}
 .lab{display:grid; grid-template-columns:minmax(0,300px) minmax(0,1fr); gap:22px}
 @media (max-width:820px){.lab{grid-template-columns:minmax(0,1fr)}}
 .lab > h2{grid-column:1/-1; margin:0}
@@ -152,6 +161,9 @@ mfrac > :nth-child(2), msqrt, mover > :first-child{math-shift:compact}
 .eq-m{overflow-x:auto; overflow-y:hidden; padding:3px 0}
 @media (max-width:480px){.eq-m math{font-size:1em}}
 .eq-cap{font-size:12.5px; color:var(--muted); margin:0}
+/* The tablecloth stays light in both themes, so text sitting straight on it keeps the light ink. */
+.stage > h2,.stage > p,footer{--ink:var(--cloth-ink); --muted:var(--cloth-muted); --tomato:var(--cloth-accent)}
+.stage > h2{color:var(--ink)}
 footer{font-size:13px; color:var(--muted)}
 footer p{max-width:none}
 @media (prefers-reduced-motion:reduce){.btn:active{transform:none}}
@@ -159,14 +171,31 @@ footer p{max-width:none}
 </head>
 <body>
 <main class="wrap">
-  <header class="mast">
+  <header class="box mast">
     <a class="crumb" href="index.html">← Pizza Map Lab</a>
     <span class="eyebrow">Pizza Map Lab · Explainer 08</span>
     <h1>Normalizing and Kappa</h1>
-    <p>Two habits left over from the days when an error matrix was treated like any other two-way table (Sec. 1.1). Normalizing rescales the matrix until every topping is a quarter of the pizza, which describes a pizza nobody baked. Kappa subtracts "chance agreement" from overall accuracy, using a model of chance that nobody can point to on the pizza, and then moves almost in lockstep with overall accuracy anyway. The paper lists both, with the 85% benchmark, as bad practice to drop (Sec. 7.5). This page lets you do all three to the paper pizza and watch what breaks.</p>
+    <div class="mast-body">
+      <div class="intro">
+        <p>Two habits left over from the days when an error matrix was treated like any other two-way table (Sec. 1.1). Normalizing rescales the matrix until every topping is a quarter of the pizza, which describes a pizza nobody baked. Kappa subtracts "chance agreement" from overall accuracy, using a model of chance that nobody can point to on the pizza, and then moves almost in lockstep with overall accuracy anyway. The paper lists both, with the 85% benchmark, as bad practice to drop (Sec. 7.5). This page lets you do all three to the paper pizza and watch what breaks.</p>
+      </div>
+      <nav class="toc" aria-label="On this page">
+        <span class="lbl">On this page</span>
+        <ol>
+        <li><a href="#step-1">Step 1 · Normalize the paper's matrix</a></li>
+        <li><a href="#normalizing-equations">What normalizing does to the paper's equations</a></li>
+        <li><a href="#step-2">Step 2 · The 3–5% change map (Sec. 1.2)</a></li>
+        <li><a href="#step-3">Step 3 · Kappa and the chance it corrects for</a></li>
+        <li><a href="#step-4">Step 4 · Kappa follows overall accuracy around</a></li>
+        <li><a href="#step-5">Step 5 · Does it pass 85%?</a></li>
+        <li><a href="#check">Check against the paper</a></li>
+        <li><a href="#notes">What the paper says</a></li>
+        </ol>
+      </nav>
+    </div>
   </header>
 
-  <section class="box lab" aria-label="Normalize the error matrix">
+  <section class="box lab" id="step-1" aria-label="Normalize the error matrix">
     <h2>Step 1 · Normalize the paper's matrix</h2>
     <div class="controls">
       <fieldset class="seg two" id="msel">
@@ -212,7 +241,7 @@ footer p{max-width:none}
     </div>
   </section>
 
-  <section class="box">
+  <section class="box" id="normalizing-equations">
     <h2>What normalizing does to the paper's equations</h2>
     <p>The paper gives no equation for normalizing, only the result: every row and column total forced to 1/c, and user's accuracy made equal to producer's (Sec. 4.1, p. 10). Here is the rescaling we run, and what it does to Eqs. 3 and 4 for anchovy.</p>
     <div class="eqs">
@@ -231,7 +260,7 @@ footer p{max-width:none}
     </div>
   </section>
 
-  <section class="box lab" aria-label="A change map with little change">
+  <section class="box lab" id="step-2" aria-label="A change map with little change">
     <h2>Step 2 · The 3–5% change map (Sec. 1.2)</h2>
     <div class="controls">
       <p>The paper's own example of a matrix that isn't map relevant: a change / no-change map of a region with about 3–5% change, whose error matrix shows each class as about half the area (Sec. 1.2, criterion 1, pp. 3–4). Normalizing does exactly that. Here anchovy stands in for change.</p>
@@ -272,7 +301,7 @@ footer p{max-width:none}
     </div>
   </section>
 
-  <section class="box lab" aria-label="Kappa and chance agreement">
+  <section class="box lab" id="step-3" aria-label="Kappa and chance agreement">
     <h2>Step 3 · Kappa and the chance it corrects for</h2>
     <div class="controls">
       <p>Kappa (Eq. 24) takes overall accuracy and subtracts the agreement a map would get "by chance", then rescales so a perfect map scores 1. For Table 5 that chance agreement is <span id="k-e">41.3%</span> and kappa is <span class="k-bad" id="k-v">0.653</span> (<i>ours</i>; the paper prints no kappa).</p>
@@ -315,7 +344,7 @@ footer p{max-width:none}
     </div>
   </section>
 
-  <section class="box">
+  <section class="box" id="step-4">
     <h2>Step 4 · Kappa follows overall accuracy around</h2>
     <p>Liu et al. (2007) found kappa highly correlated with overall accuracy across published assessments (Sec. 4.8). Here are <span id="n-maps">300</span> maps of the paper pizza's real toppings, each scored by overall accuracy and kappa. The maps are <i>ours</i>: the kit bakes Table 5 exactly every time, so for variety we drew the map's mistakes ourselves. Each map spoils a random share of spots at topping edges (0–60%), and some also call part of the pizza cheese out of laziness, or call spots near anchovy anchovy out of keenness, which moves the map's shares around. The paper pizza is the big marker.</p>
     <div class="histctl">
@@ -326,7 +355,7 @@ footer p{max-width:none}
     <p class="sum" id="s4-sum"></p>
   </section>
 
-  <section class="box">
+  <section class="box" id="step-5">
     <h2>Step 5 · Does it pass 85%?</h2>
     <p>The 85% benchmark comes from Anderson (1971), who set it for large-area maps of broad land cover classes. It has no universal status (Sec. 1.1 and 7.5, pp. 3 and 19). A target should be set for the application before the analysis, and then the question is whether the estimate and its interval clear it. Here are Table 5's estimates with their 95% intervals (estimate ± 1.96 SE, Sec. 4.4). Move the target.</p>
     <div class="histctl">
@@ -341,25 +370,23 @@ footer p{max-width:none}
     <p class="sum" id="s5-sum"></p>
   </section>
 
-  <section class="lower">
-    <div class="box">
-      <h2>Check against the paper</h2>
-      <p>What the paper says, and what this page gets. Rows marked <i>ours</i> are figures the paper doesn't print.</p>
-      <div class="scroll"><table id="chk"></table></div>
-    </div>
-    <div class="box notes">
-      <h2>What the paper says</h2>
-      <h3>Where these habits came from</h3>
-      <p>Early accuracy assessment borrowed the statistics of two-way contingency tables (Congalton et al. 1983). The paper calls the normalized matrix and kappa two unfortunate remnants of that borrowing, both now recommended against (Sec. 1.1, p. 3).</p>
-      <h3>Normalizing fails the map relevant criterion</h3>
-      <p>An error matrix should reflect how much of the region each class really covers, in both the map and the reference (criterion 1, Sec. 1.2). Forcing every total to 1/c gives a matrix with no basis in the map or the ground, since classes are rarely equally common, and it makes user's equal producer's, which is almost never true of a real map (Sec. 4.1, p. 10; Stehman 2004). The same criterion is broken by reporting raw sample counts from an equal-allocation stratified sample, which is explainer 02's Table 4 story.</p>
-      <span class="formula">normalized matrix = a pizza nobody baked</span>
-      <h3>Kappa</h3>
-      <p>Chance agreement is a model construct; different models give different chance agreement, and no actual pixel can be identified as right by chance. A random classification is not a realistic alternative way to make a map (Ye et al. 2018). Kappa is highly correlated with overall accuracy (Liu et al. 2007), so reporting both is redundant, and chance correction is rarely carried through to the class level (conditional kappa). Pontius and Millones (2011) found it rarely if ever changed an assessment's conclusion. The paper's verdict: kappa is to accuracy assessment what the appendix is to the body (Sec. 4.8, p. 15).</p>
-      <h3>Three things to stop doing</h3>
-      <p>Sec. 7.5 (p. 19) names three widespread bad practices: an unjustified 85% target, normalizing the error matrix, and correcting for chance agreement. Correcting for chance may help when judging a classifier, but has no place in assessing a map. Targets should be set in advance and fit the purpose.</p>
-    </div>
-  </section>
+  <div class="box" id="check">
+    <h2>Check against the paper</h2>
+    <p>What the paper says, and what this page gets. Rows marked <i>ours</i> are figures the paper doesn't print.</p>
+    <div class="scroll"><table id="chk"></table></div>
+  </div>
+  <div class="box notes" id="notes">
+    <h2>What the paper says</h2>
+    <h3>Where these habits came from</h3>
+    <p>Early accuracy assessment borrowed the statistics of two-way contingency tables (Congalton et al. 1983). The paper calls the normalized matrix and kappa two unfortunate remnants of that borrowing, both now recommended against (Sec. 1.1, p. 3).</p>
+    <h3>Normalizing fails the map relevant criterion</h3>
+    <p>An error matrix should reflect how much of the region each class really covers, in both the map and the reference (criterion 1, Sec. 1.2). Forcing every total to 1/c gives a matrix with no basis in the map or the ground, since classes are rarely equally common, and it makes user's equal producer's, which is almost never true of a real map (Sec. 4.1, p. 10; Stehman 2004). The same criterion is broken by reporting raw sample counts from an equal-allocation stratified sample, which is explainer 02's Table 4 story.</p>
+    <span class="formula">normalized matrix = a pizza nobody baked</span>
+    <h3>Kappa</h3>
+    <p>Chance agreement is a model construct; different models give different chance agreement, and no actual pixel can be identified as right by chance. A random classification is not a realistic alternative way to make a map (Ye et al. 2018). Kappa is highly correlated with overall accuracy (Liu et al. 2007), so reporting both is redundant, and chance correction is rarely carried through to the class level (conditional kappa). Pontius and Millones (2011) found it rarely if ever changed an assessment's conclusion. The paper's verdict: kappa is to accuracy assessment what the appendix is to the body (Sec. 4.8, p. 15).</p>
+    <h3>Three things to stop doing</h3>
+    <p>Sec. 7.5 (p. 19) names three widespread bad practices: an unjustified 85% target, normalizing the error matrix, and correcting for chance agreement. Correcting for chance may help when judging a classifier, but has no place in assessing a map. Targets should be set in advance and fit the purpose.</p>
+  </div>
 
   <footer>
     <p>Based on Stehman, S.V. &amp; Foody, G.M. (2019). Key issues in rigorous accuracy assessment of land cover products. <i>Remote Sensing of Environment</i> 231, 111199, Sections 1.1, 1.2, 4.1, 4.8 and 7.5 (pp. 3–4, 10, 15, 19), Eq. 24, and Tables 4 and 5 (pp. 13–14). <a href="https://doi.org/10.1016/j.rse.2019.05.018">doi:10.1016/j.rse.2019.05.018</a></p>

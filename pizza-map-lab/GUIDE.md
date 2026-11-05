@@ -40,13 +40,16 @@ The look is a lab bench of square boxes on a gingham tablecloth, with pixel art,
 - **Type:** `Silkscreen` (pixel display face) for headings, labels, buttons and table headers. `IBM Plex Mono` for body text and numbers. Use `font-variant-numeric: tabular-nums` in tables.
 - **Colour tokens:** these live in each page's `:root`, with light and dark values in the three-block pattern (bare `:root`, `prefers-color-scheme: dark` guarded by `:not([data-theme="light"])`, and `[data-theme="dark"]`).
   - Ground: `--bg` (kraft), `--check` (gingham), `--panel`, `--ink`, `--muted`, `--line`, `--shadow`, `--tomato` (accent).
+  - The tablecloth (`--bg`, `--check`) stays light kraft and red gingham in both themes; only the cards go dark. Text sitting straight on the cloth (the index's stage headings, the footer) keeps dark ink through `--cloth-ink`, `--cloth-muted` and `--cloth-accent`, which a rule near `footer` swaps in for `--ink`, `--muted` and `--tomato`. Cards cast a dark brown `--cloth-shadow` in both themes; buttons inside cards keep `--shadow` (the author's decision, 2026-11-05).
   - Topping colours: `--cheese-a/b`, `--mush-a/b`, `--pep-a/b`, `--anch-a/b`, `--crust-a/b`. These are identical in both themes.
   - Page-specific semantics:
     - 01: commission `--commit` (magenta), omission `--omit` (basil green).
     - 02: raw counts `--raw` (muted brown), weighted `--good` (basil green).
     - Keep omission colours away from anything blue-grey, because that reads as anchovy.
+- **Masthead:** a card (`<header class="box mast">`) with the crumb, eyebrow and title, then `.mast-body`: the intro paragraphs in `.intro` beside an "On this page" `.toc` list. The list links to every top-level card that has an `h2`, by id: `step-N` for steps, `check`, `notes`, `formulas`, or a short name. Add a new card's link when you add the card. Step headings read `Step N · Title`.
 - **Components to reuse** (copy from 01/02): `.box`, `.btn`, `.seg` radio buttons, chunky square range sliders, `.probe` (dashed hover-readout box), `.legend` with `.sw` swatches, pixel `.meter`, error-matrix tables (rows = map, columns = reference, like the paper's Table 3), `.eq` paper-equation cards (`.eq-tag`, `.eq-m` rows, `.eq-cap`, plus the `math{}` rules).
 - **Layout:** `.wrap` max ~1120px, side gutter `max(16px, env(safe-area-inset-*))`, grids that stack to one column under ~820px, wide tables in `overflow-x:auto`.
+  - Cards stack one per row at full width. Don't put two cards side by side: a table squeezed into half a card grows tall and narrow (the author's decision, 2026-11-05). Inside a card, a short side-by-side pair (two small matrices to compare, controls beside a pizza) is fine.
 - **Copy:** plain, short, active sentences. The pizza jokes carry the silliness, so the prose doesn't need to. Avoid em-dash asides, "not X, but Y", and stock phrases. Name things the way a reader would. Cite the paper's section, equation or table on every page.
 - **Every page opens working:** the paper pizza loaded, a sample drawn, charts filled.
 
@@ -381,6 +384,14 @@ Each plan opens with **Based on**: the parts of the papers it draws from, with p
 | B1 | Round Pizza, Square Cuts | Later |
 
 ## Changelog
+
+- **2026-11-05** Style session (on `pizza-map-lab`, no new explainer).
+  - Cards no longer sit two to a row. Every page's `<section class="lower">` (the paper check beside the notes; 01's error matrix beside its notes; 02's Step 1 and Step 2) is unwrapped, so each card runs full width. 01's error matrix no longer scrolls sideways at desktop width. 07 and 08 keep `.lower` inside cards for their matrix pairs.
+  - Dark mode keeps the light tablecloth. The dark `--bg` and `--check` overrides are gone, and new `--cloth-*` tokens keep the index stage headings and footer readable on it. Cards cast a dark brown shadow in both themes (`--cloth-shadow`), so they match light mode.
+  - Each explainer's masthead is now a card, with an "On this page" list beside the intro that links to every card (ids added). Smooth scrolling unless the reader prefers reduced motion.
+  - 02's step headings now read `Step N · Title` like the other pages. 07's Step 5 stacks its histogram and the panel table.
+  - Considered and declined: two text columns in the notes cards to fill the space beside the 66ch text.
+  - Checked in headless Chrome, both themes, at 1280 and 500 px. `tests/check.js` passes.
 
 - **2026-11-05** 08, 09 and 10 session (on `pizza-map-lab`, no new branch). The author asked for all three pages at once, built by three parallel Fable sub-agents in the same working copy; another exception to the one-explainer rule. The lead session seeded each page from the 02 template and did the shared wiring first (`PAGES`, index cards, 07's Next link), so each agent owned only its page, its own block of `tests/check.js`, and (10 only) additions to the kit.
   - Kit: `PHOTO_BASE`, `bakePhoto`, `knnClassify`, `splitHalf` for 10. Additions only (44 lines); the paper-pizza fingerprints still pass.

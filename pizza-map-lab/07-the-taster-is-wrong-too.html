@@ -12,7 +12,7 @@
    taster's verdicts, Foody's two matrices, his curves across every share, 1,000 samples, a panel of tasters who
    disagree, then primary and alternate labels on the paper pizza, the paper check and the notes. */
 :root{
-  --bg:#efe2c8; --check:rgba(196,52,32,.085); --panel:#fffaf0; --ink:#2b1b12; --muted:#6e584a;
+  --bg:#efe2c8; --check:rgba(196,52,32,.085); --cloth-ink:#2b1b12; --cloth-muted:#6e584a; --cloth-accent:#c4341f; --cloth-shadow:#2b1b12; --panel:#fffaf0; --ink:#2b1b12; --muted:#6e584a;
   --line:#2b1b12; --shadow:#2b1b12; --tomato:#c4341f;
   --perfect:#118a36; --taster:#e0189e; --fix:#8a6f5c;
   --tint-g:rgba(17,138,54,.12); --tint-m:rgba(224,24,158,.12); --tint-d:rgba(43,27,18,.06);
@@ -23,13 +23,13 @@
   --f-body:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
-  --bg:#1b1310; --check:rgba(196,52,32,.13); --panel:#2a1e18; --ink:#f3e7d3; --muted:#c3ae98;
+  --panel:#2a1e18; --ink:#f3e7d3; --muted:#c3ae98;
   --line:#f3e7d3; --shadow:#8a2a16; --tomato:#ff6a4d; --perfect:#3ddc6e; --taster:#ff52c9; --fix:#b89c86;
   --tint-g:rgba(61,220,110,.15); --tint-m:rgba(255,82,201,.15); --tint-d:rgba(243,231,211,.07);
   color-scheme:dark;
 }}
 :root[data-theme="dark"]{
-  --bg:#1b1310; --check:rgba(196,52,32,.13); --panel:#2a1e18; --ink:#f3e7d3; --muted:#c3ae98;
+  --panel:#2a1e18; --ink:#f3e7d3; --muted:#c3ae98;
   --line:#f3e7d3; --shadow:#8a2a16; --tomato:#ff6a4d; --perfect:#3ddc6e; --taster:#ff52c9; --fix:#b89c86;
   --tint-g:rgba(61,220,110,.15); --tint-m:rgba(255,82,201,.15); --tint-d:rgba(243,231,211,.07);
   color-scheme:dark;
@@ -47,11 +47,20 @@ h2{font-size:20px; margin:0 0 10px; text-wrap:balance}
 h3{font-size:15px; margin:18px 0 6px}
 p{margin:0 0 10px; max-width:66ch}
 a{color:var(--tomato)}
-.box{background:var(--panel); border:3px solid var(--line); box-shadow:6px 6px 0 var(--shadow); padding:18px; min-width:0}
+.box{background:var(--panel); border:3px solid var(--line); box-shadow:6px 6px 0 var(--cloth-shadow); padding:18px; min-width:0}
 .mast{display:grid; gap:12px}
 .crumb{font-size:12px; color:var(--ink); justify-self:start}
 .eyebrow{font-size:13px; display:inline-block; background:var(--tomato); color:#fffaf0; padding:4px 8px; justify-self:start}
 .mast p{font-size:16px}
+.mast-body{display:grid; grid-template-columns:minmax(0,66ch) minmax(0,1fr); gap:12px 32px; align-items:start}
+.intro{display:grid; gap:10px} .intro p{margin:0}
+.toc{border-left:2px solid var(--line); padding-left:18px; display:grid; gap:8px}
+.toc ol{list-style:none; margin:0; padding:0; display:grid; gap:4px; font-size:13px}
+.toc a{color:var(--ink); text-decoration:none} .toc a:hover{color:var(--tomato); text-decoration:underline}
+.toc a:focus-visible{outline:3px dashed var(--tomato); outline-offset:2px}
+@media (max-width:820px){.mast-body{grid-template-columns:minmax(0,1fr)} .toc{border-left:0; border-top:2px solid var(--line); padding:12px 0 0}}
+.box[id]{scroll-margin-top:16px}
+@media (prefers-reduced-motion:no-preference){html{scroll-behavior:smooth}}
 .lab{display:grid; grid-template-columns:minmax(0,300px) minmax(0,1fr); gap:22px}
 @media (max-width:820px){.lab{grid-template-columns:minmax(0,1fr)}}
 .lab > h2{grid-column:1/-1; margin:0}
@@ -127,6 +136,7 @@ td.dim{color:var(--muted)}
 th.c-true{color:var(--perfect)} th.c-app{color:var(--taster)}
 .mx{min-width:400px} #cmp{min-width:560px} #rep-tab{min-width:560px} #pan-tab{min-width:460px} #panel{min-width:420px} #alt-tab{min-width:480px} #chk{min-width:480px}
 .lower{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:22px; align-items:start}
+.stack{display:grid; gap:16px}
 @media (max-width:980px){.lower{grid-template-columns:minmax(0,1fr)}}
 .histctl{display:flex; flex-wrap:wrap; gap:10px 16px; align-items:center; margin-bottom:12px}
 .histctl .seg{min-width:min(100%,300px)}
@@ -146,6 +156,9 @@ mfrac > :nth-child(2), msqrt, mover > :first-child{math-shift:compact}
 .eq-m{overflow-x:auto; overflow-y:hidden; padding:3px 0}
 @media (max-width:480px){.eq-m math{font-size:1em}}
 .eq-cap{font-size:12.5px; color:var(--muted); margin:0}
+/* The tablecloth stays light in both themes, so text sitting straight on it keeps the light ink. */
+.stage > h2,.stage > p,footer{--ink:var(--cloth-ink); --muted:var(--cloth-muted); --tomato:var(--cloth-accent)}
+.stage > h2{color:var(--ink)}
 footer{font-size:13px; color:var(--muted)}
 footer p{max-width:none}
 @media (prefers-reduced-motion:reduce){.btn:active{transform:none}}
@@ -153,14 +166,31 @@ footer p{max-width:none}
 </head>
 <body>
 <main class="wrap">
-  <header class="mast">
+  <header class="box mast">
     <a class="crumb" href="index.html">← Pizza Map Lab</a>
     <span class="eyebrow">Pizza Map Lab · Explainer 07</span>
     <h1>The Taster Is Wrong Too</h1>
-    <p>Every page so far trusted the taster. When the taster said anchovy, it was anchovy. Real reference data are another classification, and they make mistakes too (Sec. 6). Foody (2013) worked out what that does to a rare class. A taster who is right 95% of the time, checking a map that is right 90% of the time, makes a 1% topping look nearly six times bigger. This page uses a pizza with only two toppings, anchovy and everything else, so you can set how rare the anchovy is.</p>
+    <div class="mast-body">
+      <div class="intro">
+        <p>Every page so far trusted the taster. When the taster said anchovy, it was anchovy. Real reference data are another classification, and they make mistakes too (Sec. 6). Foody (2013) worked out what that does to a rare class. A taster who is right 95% of the time, checking a map that is right 90% of the time, makes a 1% topping look nearly six times bigger. This page uses a pizza with only two toppings, anchovy and everything else, so you can set how rare the anchovy is.</p>
+      </div>
+      <nav class="toc" aria-label="On this page">
+        <span class="lbl">On this page</span>
+        <ol>
+        <li><a href="#step-1">Step 1 · A taster who slips</a></li>
+        <li><a href="#step-2">Step 2 · Two matrices for one map</a></li>
+        <li><a href="#step-3">Step 3 · Every share of anchovy</a></li>
+        <li><a href="#step-4">Step 4 · Taste a sample, 1,000 times</a></li>
+        <li><a href="#step-5">Step 5 · Tasters disagree</a></li>
+        <li><a href="#step-6">Step 6 · Spots that are two toppings at once</a></li>
+        <li><a href="#check">Check against the papers</a></li>
+        <li><a href="#notes">What Section 6 says</a></li>
+        </ol>
+      </nav>
+    </div>
   </header>
 
-  <section class="box lab" aria-label="Set the pizza, the map and the taster">
+  <section class="box lab" id="step-1" aria-label="Set the pizza, the map and the taster">
     <h2>Step 1 · A taster who slips</h2>
     <div class="controls">
       <div class="ctl">
@@ -233,7 +263,7 @@ footer p{max-width:none}
     </div>
   </section>
 
-  <section class="box">
+  <section class="box" id="step-2">
     <h2>Step 2 · Two matrices for one map</h2>
     <p>The same map, checked two ways. On the left against the real pizza, which nobody gets to see in real life. On the right against the taster, which is what an accuracy assessment really does. Both come from checking every spot, so there is no sampling error here, only taster error. This is Foody's Fig. 1(b) and (c) (p. 784). Rows are the map and columns the check, as in the paper's Table 3.</p>
     <div class="lower">
@@ -274,7 +304,7 @@ footer p{max-width:none}
     </div>
   </section>
 
-  <section class="box">
+  <section class="box" id="step-3">
     <h2>Step 3 · Every share of anchovy</h2>
     <p>Foody's Figs. 2–4 (pp. 788–790) run Eqs. 1–4 over every share from 0 to 100%, with the taster and map you set in Step 1. The marker is your pizza. Foody counts an area as badly off if it lands outside 0.9 to 1.1 times the real one (p. 787).</p>
     <div class="histctl">
@@ -297,7 +327,7 @@ footer p{max-width:none}
     <p class="sum" id="curve-sum"></p>
   </section>
 
-  <section class="box">
+  <section class="box" id="step-4">
     <h2>Step 4 · Taste a sample, 1,000 times</h2>
     <p>Real assessments taste a sample, so here the taster tastes a stratified sample by map class and the area comes from the paper's Eq. 19, as in explainer 06. The <span class="k-true">perfect taster</span> centres on the real share. <span class="k-app">This taster</span> centres on Foody's Eq. 4 instead, however many tastes you add. Sec. 4.3.2 (p. 13): reference error is the only source of bias in a sample-based area estimate.</p>
     <div class="histctl">
@@ -315,7 +345,7 @@ footer p{max-width:none}
     <p class="sum" id="hsum"></p>
   </section>
 
-  <section class="box">
+  <section class="box" id="step-5">
     <h2>Step 5 · Tasters disagree</h2>
     <p>Hire a different taster and you get different labels (Sec. 6.3). Here a panel of eight tasters share the average accuracy you set in Step 1, but each is a bit keener or a bit warier on anchovy. Every repeat hires one of them at random. McRoberts et al. (2018) showed that this kind of variability inflates the standard errors of area estimates. The simulation is <i>ours</i>.</p>
     <div class="histctl">
@@ -324,7 +354,7 @@ footer p{max-width:none}
         <input type="range" id="dif" min="0" max="15" step="1" value="10">
       </div>
     </div>
-    <div class="lower">
+    <div class="stack">
       <div>
         <canvas id="hist5" aria-label="Histograms of 1,000 area estimates with one taster and with a panel"></canvas>
         <div class="legend" style="margin-top:8px"><span><i class="sw taster"></i>Always the same taster</span><span><i class="sw fix"></i>A taster from the panel</span></div>
@@ -335,7 +365,7 @@ footer p{max-width:none}
     <p class="sum" id="psum"></p>
   </section>
 
-  <section class="box lab" aria-label="Primary and alternate labels on the paper pizza">
+  <section class="box lab" id="step-6" aria-label="Primary and alternate labels on the paper pizza">
     <h2>Step 6 · Spots that are two toppings at once</h2>
     <div class="controls">
       <p>Back on the paper pizza. A spot at a topping's edge can be part cheese and part mushroom, and one label doesn't describe it. Sec. 6.2 suggests a primary label and, where needed, an alternate one. The map then counts as right if it matches either.</p>
@@ -360,28 +390,26 @@ footer p{max-width:none}
     </div>
   </section>
 
-  <section class="lower">
-    <div class="box">
-      <h2>Check against the papers</h2>
-      <p>Foody's figures, from his Eqs. 1–8, and the same settings baked into a pizza and checked spot by spot. Rows marked <i>ours</i> are not printed in either paper.</p>
-      <div class="scroll"><table id="chk"></table></div>
-      <p class="sum">Foody's Fig. 1(c) prints 23.73% and 79.88%. His Eqs. 1 and 2 give 23.738% and 79.888%, so the figure cuts the digits off rather than rounding. His text also says a 99%/99% taster gives 1.89%; his Eq. 4 gives 1.98%, which fits his own "close to double".</p>
-    </div>
-    <div class="box notes">
-      <h2>What Section 6 says</h2>
-      <h3>The reference is just another classification</h3>
-      <p>Accuracy assessment assumes the reference labels are the truth. In reality they are another classification, and they can be wrong (Sec. 6, p. 16). Every disagreement gets blamed on the map, even when the taster made the mistake. The paper names three problems: wrong labels (6.1), spots one label can't describe (6.2), and interpreters who disagree (6.3).</p>
-      <h3>Small taster errors, big area errors</h3>
-      <p>Even small reference error can bias accuracy and area a lot, shrinking a class's apparent accuracy and inflating its area (Sec. 6.1, pp. 16–17). Foody's "nearly a factor of 6" is Scenario I; his "nearly 40" is Scenario II at 0.5%. Reference error also makes accuracy depend on how common the class is.</p>
-      <span class="formula">rare class + slightly wrong taster = much too much anchovy</span>
-      <h3>What to do about it</h3>
-      <p>If the taster's accuracy is known, the real accuracy can be worked out (Sec. 6.1, citing Staquet et al. 1981 and Foody 2010). Step 4's corrected row does that for area. With several labels per spot but no known accuracy, latent class analysis can estimate it (Foody 2012).</p>
-      <h3>Design-based inference assumes the labels are right</h3>
-      <p>The standard errors on every page of this lab only count sampling error (Sec. 5, pp. 15–16). Taster error and taster disagreement need measurement error models on top. That's why Steps 4 and 5 show formula SEs that miss the real problem.</p>
-      <h3>Mixed spots</h3>
-      <p>Report how many spots were ambiguous and whether they were used (Sec. 6.2, p. 17). Matching the primary label alone is close to the fuzzy MAX operator; matching the primary or the alternate is close to RIGHT (Gopal and Woodcock 1994; Stehman et al. 2003).</p>
-    </div>
-  </section>
+  <div class="box" id="check">
+    <h2>Check against the papers</h2>
+    <p>Foody's figures, from his Eqs. 1–8, and the same settings baked into a pizza and checked spot by spot. Rows marked <i>ours</i> are not printed in either paper.</p>
+    <div class="scroll"><table id="chk"></table></div>
+    <p class="sum">Foody's Fig. 1(c) prints 23.73% and 79.88%. His Eqs. 1 and 2 give 23.738% and 79.888%, so the figure cuts the digits off rather than rounding. His text also says a 99%/99% taster gives 1.89%; his Eq. 4 gives 1.98%, which fits his own "close to double".</p>
+  </div>
+  <div class="box notes" id="notes">
+    <h2>What Section 6 says</h2>
+    <h3>The reference is just another classification</h3>
+    <p>Accuracy assessment assumes the reference labels are the truth. In reality they are another classification, and they can be wrong (Sec. 6, p. 16). Every disagreement gets blamed on the map, even when the taster made the mistake. The paper names three problems: wrong labels (6.1), spots one label can't describe (6.2), and interpreters who disagree (6.3).</p>
+    <h3>Small taster errors, big area errors</h3>
+    <p>Even small reference error can bias accuracy and area a lot, shrinking a class's apparent accuracy and inflating its area (Sec. 6.1, pp. 16–17). Foody's "nearly a factor of 6" is Scenario I; his "nearly 40" is Scenario II at 0.5%. Reference error also makes accuracy depend on how common the class is.</p>
+    <span class="formula">rare class + slightly wrong taster = much too much anchovy</span>
+    <h3>What to do about it</h3>
+    <p>If the taster's accuracy is known, the real accuracy can be worked out (Sec. 6.1, citing Staquet et al. 1981 and Foody 2010). Step 4's corrected row does that for area. With several labels per spot but no known accuracy, latent class analysis can estimate it (Foody 2012).</p>
+    <h3>Design-based inference assumes the labels are right</h3>
+    <p>The standard errors on every page of this lab only count sampling error (Sec. 5, pp. 15–16). Taster error and taster disagreement need measurement error models on top. That's why Steps 4 and 5 show formula SEs that miss the real problem.</p>
+    <h3>Mixed spots</h3>
+    <p>Report how many spots were ambiguous and whether they were used (Sec. 6.2, p. 17). Matching the primary label alone is close to the fuzzy MAX operator; matching the primary or the alternate is close to RIGHT (Gopal and Woodcock 1994; Stehman et al. 2003).</p>
+  </div>
 
   <footer>
     <p>Based on Stehman, S.V. &amp; Foody, G.M. (2019). Key issues in rigorous accuracy assessment of land cover products. <i>Remote Sensing of Environment</i> 231, 111199, Sections 4.3.2, 5 and 6 (pp. 13, 15–17). <a href="https://doi.org/10.1016/j.rse.2019.05.018">doi:10.1016/j.rse.2019.05.018</a></p>

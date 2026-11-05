@@ -12,7 +12,7 @@
    pizza with three sliders that each move one component (quantity, exchange, shift), Step 3 merges two toppings, then
    the paper check beside the notes. */
 :root{
-  --bg:#efe2c8; --check:rgba(196,52,32,.085); --panel:#fffaf0; --ink:#2b1b12; --muted:#6e584a;
+  --bg:#efe2c8; --check:rgba(196,52,32,.085); --cloth-ink:#2b1b12; --cloth-muted:#6e584a; --cloth-accent:#c4341f; --cloth-shadow:#2b1b12; --panel:#fffaf0; --ink:#2b1b12; --muted:#6e584a;
   --line:#2b1b12; --shadow:#2b1b12; --tomato:#c4341f;
   --qty:#d9730d; --exch:#6b4bc4; --shift:#118a36; --agree:#8a6f5c;
   --tint-e:rgba(217,115,13,.13); --tint-d:rgba(43,27,18,.06);
@@ -23,14 +23,14 @@
   --f-body:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
-  --bg:#1b1310; --check:rgba(196,52,32,.13); --panel:#2a1e18; --ink:#f3e7d3; --muted:#c3ae98;
+  --panel:#2a1e18; --ink:#f3e7d3; --muted:#c3ae98;
   --line:#f3e7d3; --shadow:#8a2a16; --tomato:#ff6a4d;
   --qty:#ff9d4d; --exch:#a98bff; --shift:#3ddc6e; --agree:#b89c86;
   --tint-e:rgba(255,157,77,.15); --tint-d:rgba(243,231,211,.07);
   color-scheme:dark;
 }}
 :root[data-theme="dark"]{
-  --bg:#1b1310; --check:rgba(196,52,32,.13); --panel:#2a1e18; --ink:#f3e7d3; --muted:#c3ae98;
+  --panel:#2a1e18; --ink:#f3e7d3; --muted:#c3ae98;
   --line:#f3e7d3; --shadow:#8a2a16; --tomato:#ff6a4d;
   --qty:#ff9d4d; --exch:#a98bff; --shift:#3ddc6e; --agree:#b89c86;
   --tint-e:rgba(255,157,77,.15); --tint-d:rgba(243,231,211,.07);
@@ -49,11 +49,20 @@ h2{font-size:20px; margin:0 0 10px; text-wrap:balance}
 h3{font-size:15px; margin:18px 0 6px}
 p{margin:0 0 10px; max-width:66ch}
 a{color:var(--tomato)}
-.box{background:var(--panel); border:3px solid var(--line); box-shadow:6px 6px 0 var(--shadow); padding:18px; min-width:0}
+.box{background:var(--panel); border:3px solid var(--line); box-shadow:6px 6px 0 var(--cloth-shadow); padding:18px; min-width:0}
 .mast{display:grid; gap:12px}
 .crumb{font-size:12px; color:var(--ink); justify-self:start}
 .eyebrow{font-size:13px; display:inline-block; background:var(--tomato); color:#fffaf0; padding:4px 8px; justify-self:start}
 .mast p{font-size:16px}
+.mast-body{display:grid; grid-template-columns:minmax(0,66ch) minmax(0,1fr); gap:12px 32px; align-items:start}
+.intro{display:grid; gap:10px} .intro p{margin:0}
+.toc{border-left:2px solid var(--line); padding-left:18px; display:grid; gap:8px}
+.toc ol{list-style:none; margin:0; padding:0; display:grid; gap:4px; font-size:13px}
+.toc a{color:var(--ink); text-decoration:none} .toc a:hover{color:var(--tomato); text-decoration:underline}
+.toc a:focus-visible{outline:3px dashed var(--tomato); outline-offset:2px}
+@media (max-width:820px){.mast-body{grid-template-columns:minmax(0,1fr)} .toc{border-left:0; border-top:2px solid var(--line); padding:12px 0 0}}
+.box[id]{scroll-margin-top:16px}
+@media (prefers-reduced-motion:no-preference){html{scroll-behavior:smooth}}
 .lab{display:grid; grid-template-columns:minmax(0,320px) minmax(0,1fr); gap:22px}
 @media (max-width:820px){.lab{grid-template-columns:minmax(0,1fr)}}
 .lab > h2, .lab > .full{grid-column:1/-1; margin:0}
@@ -145,8 +154,6 @@ td.zero{color:var(--muted)}
 #t2 th,#t2 td,#t3 th,#t3 td{padding:6px 4px}
 #t2 th .pc,#t3 th .pc{display:inline-block}
 #chk th.rowh{white-space:normal; min-width:170px}
-.lower{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:22px; align-items:start}
-@media (max-width:980px){.lower{grid-template-columns:minmax(0,1fr)}}
 .sum{font-size:14px; margin-top:10px}
 .notes p{font-size:14px}
 .formula{display:inline-block; border:2px solid var(--line); padding:4px 8px; margin:2px 0 8px; font-weight:600; background:var(--tint-d)}
@@ -163,6 +170,9 @@ mfrac > :nth-child(2), msqrt, mover > :first-child{math-shift:compact}
 .eq-m{overflow-x:auto; overflow-y:hidden; padding:3px 0}
 @media (max-width:480px){.eq-m math{font-size:1em}}
 .eq-cap{font-size:12.5px; color:var(--muted); margin:0}
+/* The tablecloth stays light in both themes, so text sitting straight on it keeps the light ink. */
+.stage > h2,.stage > p,footer{--ink:var(--cloth-ink); --muted:var(--cloth-muted); --tomato:var(--cloth-accent)}
+.stage > h2{color:var(--ink)}
 footer{font-size:13px; color:var(--muted)}
 footer p{max-width:none}
 @media (prefers-reduced-motion:reduce){.btn:active{transform:none}}
@@ -170,14 +180,29 @@ footer p{max-width:none}
 </head>
 <body>
 <main class="wrap">
-  <header class="mast">
+  <header class="box mast">
     <a class="crumb" href="index.html">← Pizza Map Lab</a>
     <span class="eyebrow">Pizza Map Lab · Explainer 09</span>
     <h1>Wrong Amount, Wrong Place</h1>
-    <p>The map gets 20.4% of the pizza wrong (Table 5: overall accuracy 79.6%). That one number hides two different sins. The map puts down too much cheese and too little anchovy: the <span class="k-q">wrong amount</span>. And even where the amounts are right, it drops toppings on the wrong spots. Pontius and Millones split the 20.4 into quantity and allocation (Eqs. 6 to 11), and Pontius and Santacruz split allocation again into <span class="k-e">exchange</span> (two spots that traded labels) and <span class="k-s">shift</span> (everything else). This page pulls the map's mistakes apart those three ways, and lets you add mistakes of exactly one kind.</p>
+    <div class="mast-body">
+      <div class="intro">
+        <p>The map gets 20.4% of the pizza wrong (Table 5: overall accuracy 79.6%). That one number hides two different sins. The map puts down too much cheese and too little anchovy: the <span class="k-q">wrong amount</span>. And even where the amounts are right, it drops toppings on the wrong spots. Pontius and Millones split the 20.4 into quantity and allocation (Eqs. 6 to 11), and Pontius and Santacruz split allocation again into <span class="k-e">exchange</span> (two spots that traded labels) and <span class="k-s">shift</span> (everything else). This page pulls the map's mistakes apart those three ways, and lets you add mistakes of exactly one kind.</p>
+      </div>
+      <nav class="toc" aria-label="On this page">
+        <span class="lbl">On this page</span>
+        <ol>
+        <li><a href="#step-1">Step 1 · Six-spot pizzas</a></li>
+        <li><a href="#step-2">Step 2 · The paper pizza, pulled apart</a></li>
+        <li><a href="#where-it-goes">Where the 20.4 goes</a></li>
+        <li><a href="#step-3">Step 3 · Merge two toppings</a></li>
+        <li><a href="#check">Check against the papers</a></li>
+        <li><a href="#notes">What the papers say</a></li>
+        </ol>
+      </nav>
+    </div>
   </header>
 
-  <section class="box">
+  <section class="box" id="step-1">
     <h2>Step 1 · Six-spot pizzas</h2>
     <p>Pontius and Santacruz open with seven tiny maps of six pixels each (their Fig. 1, p. 7545). Here they are as six-spot pizzas with three toppings. Click a spot to change it: the left tray is what the map says, the right tray is what is really there. The matrix and the three components follow. Only the matrix matters for the sums, so two spots that "swap" needn't be neighbours.</p>
     <div class="cases" id="cases"></div>
@@ -193,7 +218,7 @@ footer p{max-width:none}
     <div class="fall" id="fall1" style="margin-top:10px"></div>
   </section>
 
-  <section class="box lab" aria-label="The paper pizza, pulled apart">
+  <section class="box lab" id="step-2" aria-label="The paper pizza, pulled apart">
     <h2>Step 2 · The paper pizza, pulled apart</h2>
     <div class="controls">
       <fieldset class="seg three" id="view">
@@ -232,7 +257,7 @@ footer p{max-width:none}
     </div>
   </section>
 
-  <section class="box">
+  <section class="box" id="where-it-goes">
     <h2>Where the 20.4 goes</h2>
     <p>One bar for the whole pizza, then one per topping. A topping's own difference <math><msub><mi>d</mi><mi>k</mi></msub></math> counts every spot in its row or column that is off the diagonal, so the four add to twice the total and the paper halves the sum (Eqs. 7, 9; Pontius &amp; Santacruz Eqs. 6 to 9). Click a row to put that topping in the equation cards.</p>
     <div class="fall" id="fall2"></div>
@@ -296,7 +321,7 @@ footer p{max-width:none}
     </div>
   </section>
 
-  <section class="box">
+  <section class="box" id="step-3">
     <h2>Step 3 · Merge two toppings</h2>
     <p>Pontius and Santacruz's biggest exchange was between coniferous and deciduous forest: 6.49% of the town of Ipswich. Call both "forest" and that error vanishes (Sec. 4, p. 7550). On this pizza the lookalikes are cheese and mushroom. Pick two toppings to merge and watch the matrix shrink to three rows.</p>
     <div class="two">
@@ -313,26 +338,24 @@ footer p{max-width:none}
     </div>
   </section>
 
-  <section class="lower">
-    <div class="box">
-      <h2>Check against the papers</h2>
-      <p>Figures from Stehman &amp; Foody (Sec. 4.1) and Pontius &amp; Santacruz, against this page's sums. Rows marked <i>ours</i> are our own numbers, computed from the papers' equations but not printed in them.</p>
-      <div class="scroll"><table id="chk"></table></div>
-      <p class="sum" id="chk-note"></p>
-    </div>
-    <div class="box notes">
-      <h2>What the papers say</h2>
-      <h3>Two sins, not one</h3>
-      <p>Quantity disagreement is the part of the map's error that comes from getting the amounts wrong; allocation disagreement is the rest, the mistakes that remain once the amounts are matched as well as they can be (Pontius &amp; Millones 2011; Eqs. 6 to 11, p. 11). Map bias (Eq. 5) can sit near zero while both error rates are high, because omission and commission cancel (Sec. 4.1). That is exactly a map with quantity 0 and allocation high.</p>
-      <span class="formula">D = quantity + exchange + shift</span>
-      <h3>Exchange and shift</h3>
-      <p>Pontius and Santacruz split allocation again. Exchange is allocation that pairwise confusion explains: for every spot mapped A that is really B, a spot mapped B that is really A. Shift is allocation that no pairing explains, and needs at least three classes (their Sec. 2.1). Stehman and Foody mention both as a way to supplement, not replace, the matrix and the user's and producer's accuracies (p. 11).</p>
-      <h3>What each one hints at</h3>
-      <p>A spectral signature that is too narrow or too broad gives quantity error; two classes with similar signatures give exchange (their Sec. 4, p. 7550). They suggest fixing quantity first and then looking at the components again, because fixing amounts moves the other two as well. The anchovy slider on 06, read backwards, is this page's quantity.</p>
-      <h3>The caveats</h3>
-      <p>Exchange is a count from the matrix, not a list of spot pairs that traded places: no two spots on this pizza actually swapped. Stehman and Foody also warn that omission and commission are not interchangeable, so measures that pair <math><msub><mi>p</mi><mrow><mi>i</mi><mi>j</mi></mrow></msub></math> with <math><msub><mi>p</mi><mrow><mi>j</mi><mi>i</mi></mrow></msub></math> should sit next to the class-specific accuracies, not replace them (pp. 10–11). And these are census numbers from every spot; from a sample they would be estimated from the estimated matrix (Pontius &amp; Santacruz did this with a stratified sample, p. 7549) and would carry standard errors of their own.</p>
-    </div>
-  </section>
+  <div class="box" id="check">
+    <h2>Check against the papers</h2>
+    <p>Figures from Stehman &amp; Foody (Sec. 4.1) and Pontius &amp; Santacruz, against this page's sums. Rows marked <i>ours</i> are our own numbers, computed from the papers' equations but not printed in them.</p>
+    <div class="scroll"><table id="chk"></table></div>
+    <p class="sum" id="chk-note"></p>
+  </div>
+  <div class="box notes" id="notes">
+    <h2>What the papers say</h2>
+    <h3>Two sins, not one</h3>
+    <p>Quantity disagreement is the part of the map's error that comes from getting the amounts wrong; allocation disagreement is the rest, the mistakes that remain once the amounts are matched as well as they can be (Pontius &amp; Millones 2011; Eqs. 6 to 11, p. 11). Map bias (Eq. 5) can sit near zero while both error rates are high, because omission and commission cancel (Sec. 4.1). That is exactly a map with quantity 0 and allocation high.</p>
+    <span class="formula">D = quantity + exchange + shift</span>
+    <h3>Exchange and shift</h3>
+    <p>Pontius and Santacruz split allocation again. Exchange is allocation that pairwise confusion explains: for every spot mapped A that is really B, a spot mapped B that is really A. Shift is allocation that no pairing explains, and needs at least three classes (their Sec. 2.1). Stehman and Foody mention both as a way to supplement, not replace, the matrix and the user's and producer's accuracies (p. 11).</p>
+    <h3>What each one hints at</h3>
+    <p>A spectral signature that is too narrow or too broad gives quantity error; two classes with similar signatures give exchange (their Sec. 4, p. 7550). They suggest fixing quantity first and then looking at the components again, because fixing amounts moves the other two as well. The anchovy slider on 06, read backwards, is this page's quantity.</p>
+    <h3>The caveats</h3>
+    <p>Exchange is a count from the matrix, not a list of spot pairs that traded places: no two spots on this pizza actually swapped. Stehman and Foody also warn that omission and commission are not interchangeable, so measures that pair <math><msub><mi>p</mi><mrow><mi>i</mi><mi>j</mi></mrow></msub></math> with <math><msub><mi>p</mi><mrow><mi>j</mi><mi>i</mi></mrow></msub></math> should sit next to the class-specific accuracies, not replace them (pp. 10–11). And these are census numbers from every spot; from a sample they would be estimated from the estimated matrix (Pontius &amp; Santacruz did this with a stratified sample, p. 7549) and would carry standard errors of their own.</p>
+  </div>
 
   <footer>
     <p>Based on Stehman, S.V. &amp; Foody, G.M. (2019). Key issues in rigorous accuracy assessment of land cover products. <i>Remote Sensing of Environment</i> 231, 111199, Section 4.1, Eqs. 5–11, Table 5. <a href="https://doi.org/10.1016/j.rse.2019.05.018">doi:10.1016/j.rse.2019.05.018</a>. And Pontius Jr., R.G. &amp; Santacruz, A. (2014). Quantity, exchange, and shift components of difference in a square contingency table. <i>Int. J. Remote Sens.</i> 35, 7543–7554, Secs. 2.1, 2.2 and 4, Fig. 1, Eqs. 1–9, Table 4. <a href="https://doi.org/10.1080/2150704X.2014.969814">doi:10.1080/2150704X.2014.969814</a></p>
