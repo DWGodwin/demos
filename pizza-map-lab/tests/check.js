@@ -9,6 +9,9 @@
 //    catch the truth about 95% of the time once the sample is big (explainer 04).
 // 7. The clumping dials keep Table 5 exact, leave today's pizza unchanged at 0, and change precision but not bias:
 //    whole squares spread more as mistakes clump, spread-out designs less (explainer 05).
+// 8. Area from the sample: Eq. 21 adds up, Eq. 22 equals Eq. 19 under stratified sampling, and under simple random
+//    sampling Eq. 19 spreads least (explainer 06).
+// 9. An imperfect taster: Foody's (2013) Eq. 4 figures, the two-class pizza, and simulated areas that match Eq. 4 (explainer 07).
 const fs = require("fs"), path = require("path"), vm = require("vm");
 const root = path.join(__dirname, "..");
 let failed = 0;
@@ -32,10 +35,13 @@ for (const p of pages) {
   for (const [, id, loop] of s.matchAll(/setEq\("([\w-]+)"(\+)?/g))
     for (const want of loop ? [1, 2, 3, 4].map(k => id + k) : [id]) if (!ids.has(want)) missing.push(want);
   ok(!missing.length, `${p}: every live number has its slot${missing.length ? " (missing " + missing.join(", ") + ")" : ""}`);
+  // a slot must be a single MathML token: a placeholder like {-2.4} becomes an <mrow>, and text set on an mrow doesn't show
+  const rows = [...s.matchAll(/<mrow[^>]*\bid="([^"]+)"/g)].map(m => m[1]);
+  ok(!rows.length, `${p}: every live number is a token that can show text${rows.length ? " (mrow: " + rows.join(", ") + ")" : ""}`);
 }
 
 const kit = fs.readFileSync(path.join(root, "src", "kit.js"), "utf8");
-const K = new Function(kit + "; return {bakePaperPizza, SEED, TABLE5, MAP_SHARE, N, CUTS, rng, mapStrata, sampleSRS, sampleSystematic, allocate, sampleStratified, sampleClusters, pickFrom, edgePieceSpots, countMatrix, stratEstimate, clusterEstimate, sampleBySquare, sampleTwoStage, strataEstimate};")();
+const K = new Function(kit + "; return {bakePaperPizza, SEED, TABLE5, MAP_SHARE, N, CUTS, rng, mapStrata, sampleSRS, sampleSystematic, allocate, sampleStratified, sampleClusters, pickFrom, edgePieceSpots, countMatrix, stratEstimate, clusterEstimate, sampleBySquare, sampleTwoStage, strataEstimate, bakeAnchovyPizza, tasterSays, foody};")();
 
 console.log("Paper pizza matches Table 5");
 for (const seed of [K.SEED, 12345, 987654]) {
@@ -183,6 +189,95 @@ console.log("Clumped toppings and mistakes (explainer 05)");
     ok(m(u) < tU - 0.05, `2 whole squares: user's D, a ratio, leans low (${(100 * m(u)).toFixed(1)}% vs ${(100 * tU).toFixed(1)}%)`); }
   const a0 = run(P0, D["whole squares"], "A"), a1 = run(Pt, D["whole squares"], "A");
   ok(a1.sd > 1.2 * a0.sd && Math.abs(a1.m - 0.074) < 3 * a1.sd / Math.sqrt(2000) + 0.001, `toppings clumped: whole squares' anchovy area spreads more (${(100 * a0.sd).toFixed(1)} -> ${(100 * a1.sd).toFixed(1)}) and stays unbiased (${(100 * a1.m).toFixed(2)}%)`);
+}
+
+console.log("Area from the sample (explainer 06)");
+{
+  const m = a => a.reduce((x, y) => x + y, 0) / a.length, sd = a => { const u = m(a); return Math.sqrt(a.reduce((x, y) => x + (y - u) ** 2, 0) / (a.length - 1)); };
+  // Eq. 21 on the census: map share - commission + omission = real share, for every topping and several bakes
+  let worst = 0;
+  for (const seed of [K.SEED, 12345, 987654]) { const P = K.bakePaperPizza(seed);
+    for (let k = 0; k < 4; k++) { let com = 0, om = 0; for (let j = 0; j < 4; j++) if (j !== k) { com += P.cell[k][j]; om += P.cell[j][k]; }
+      worst = Math.max(worst, Math.abs(P.rowT[k] - com + om - P.colT[k])); } }
+  ok(worst === 0, "Eq. 21: map share - commission + omission = real share, spot for spot");
+  const P = K.bakePaperPizza(K.SEED), st = K.mapStrata(P), W = st.map(s => s.length / P.T), r = K.rng(31), T5 = K.TABLE5;
+  const comD = T5[3][0] + T5[3][1] + T5[3][2], omD = T5[0][3] + T5[1][3] + T5[2][3];
+  ok((5 - comD + omD).toFixed(1) === "7.4" && comD.toFixed(1) === "1.8" && omD.toFixed(1) === "4.2" && (5 - 7.4).toFixed(1) === "-2.4",
+    "Table 5, anchovy: 5.0 mapped - 1.8 commission + 4.2 omission = 7.4; map bias (Eq. 5) -2.4");
+  const e4 = K.stratEstimate([[21,3,1,0],[4,18,0,3],[0,2,20,3],[5,2,2,16]], [.6, .25, .1, .05]), hw = 1.96 * e4.se.area[3];
+  ok((100 * hw).toFixed(1) === "3.6" && (100 * (e4.area[3] - hw)).toFixed(1) === "3.8" && (100 * (e4.area[3] + hw)).toFixed(1) === "11.0",
+    `Table 4: anchovy area 95% interval 3.8% to 11.0% (half-width ${(100 * hw).toFixed(2)}, from the unrounded SE ${(100 * e4.se.area[3]).toFixed(2)})`);
+  // Eq. 22 = Eq. 19 exactly under stratified random sampling
+  let gap = 0;
+  for (let t = 0; t < 300; t++) { const e = K.stratEstimate(K.countMatrix(P, K.sampleStratified(st, [25, 25, 25, 25], r)), W);
+    for (let k = 0; k < 4; k++) { const pk = e.p[k].reduce((a, b) => a + b, 0); gap = Math.max(gap, Math.abs(W[k] + (e.area[k] - pk) - e.area[k])); } }
+  ok(gap < 1e-12, "Eq. 22 equals Eq. 19 on every stratified sample");
+  // one simple random sample read three ways: all unbiased, and Eq. 19 < Eq. 22 < ignoring the map in spread
+  const o = { plain: [], adj: [], est: [] }, n = 100, tA = P.colT[3] / P.T;
+  for (let t = 0; t < 4000; t++) { const ids = K.sampleSRS(P, n, r), c = K.countMatrix(P, ids), nk = ids.filter(i => P.truth[i] === 3).length, mk = ids.filter(i => P.map[i] === 3).length;
+    o.plain.push(nk / n); o.adj.push(W[3] + (nk - mk) / n); const e = K.stratEstimate(c, W); if (e.ok) o.est.push(e.area[3]); }
+  const near = a => Math.abs(m(a) - tA) < 3 * sd(a) / Math.sqrt(a.length) + 0.0005;
+  ok(near(o.plain) && near(o.adj) && near(o.est), `simple random, 100 tastes: all three centre on ${(100 * tA).toFixed(1)}% (${[o.plain, o.adj, o.est].map(a => (100 * m(a)).toFixed(2)).join(", ")})`);
+  ok(sd(o.est) < sd(o.adj) && sd(o.adj) < sd(o.plain), `spread: Eq. 19 ${(100 * sd(o.est)).toFixed(2)} < Eq. 22 ${(100 * sd(o.adj)).toFixed(2)} < ignoring the map ${(100 * sd(o.plain)).toFixed(2)}`);
+  // Eq. 23: at 25 per topping the sample beats pixel counting for anchovy; at 5 it doesn't; for pepperoni it doesn't at 100
+  const rmse = (k, nn) => { const a = []; for (let t = 0; t < 2000; t++) a.push(K.stratEstimate(K.countMatrix(P, K.sampleStratified(st, [nn, nn, nn, nn], r)), W).area[k]);
+    return Math.sqrt(m(a.map(v => (v - P.colT[k] / P.T) ** 2))); };
+  const bD = Math.abs(W[3] - P.colT[3] / P.T), bC = Math.abs(W[2] - P.colT[2] / P.T);
+  const r25 = rmse(3, 25), r5 = rmse(3, 5), rC = rmse(2, 100);
+  ok(r25 < bD && r5 > bD && rC > bC, `Eq. 23, anchovy: sample error ${(100 * r5).toFixed(1)} at 5 and ${(100 * r25).toFixed(1)} at 25 per topping vs pixel counting's ${(100 * bD).toFixed(1)}; pepperoni at 100: ${(100 * rC).toFixed(2)} vs ${(100 * bC).toFixed(2)}`);
+}
+
+console.log("The taster is wrong too (explainer 07)");
+{
+  const F = K.foody, near = (a, b, d) => Math.abs(a - b) <= d, p = v => (100 * v).toFixed(2);
+  // Foody (2013) Eq. 4: E^A = E(Pt + Po - 1) - Po + 1, the taster's accuracies only
+  const I = F(.01, .95, .95, .9, .9), II = F(.01, .8, .8, .7, .7), II5 = F(.005, .8, .8, .7, .7), III = F(.01, .8, .9, .7, .8);
+  ok((I.EA / .01).toFixed(1) === "5.9", `Scenario I at 1%: ${(I.EA / .01).toFixed(1)}x too big (Foody 5.9, S&F "nearly 6")`);
+  ok((II.EA / .01).toFixed(1) === "20.6", `Scenario II at 1%: ${(II.EA / .01).toFixed(1)}x (Foody 20.6)`);
+  ok((100 * II5.EA).toFixed(1) === "20.3" && (II5.EA / .005).toFixed(1) === "40.6", `Scenario II at 0.5%: ${p(II5.EA)}%, ${(II5.EA / .005).toFixed(1)}x (Foody 20.3%, 40.6x; S&F "nearly 40")`);
+  ok((100 * III.EA).toFixed(2) === "10.70", `Scenario III at 1%: ${p(III.EA)}% (Foody Fig. 1(c) 10.70%)`);
+  ok((100 * F(.01, .85, .95, .7, .8).EA).toFixed(1) === "5.8", "Scenario III with an 85/95 taster: 5.8%");
+  ok((100 * F(.01, .99, .99, .7, .8).EA).toFixed(2) === "1.98", "a 99/99 taster: 1.98% (Foody's text says 1.89%, a typo)");
+  ok(F(.01, .8, .9, 1, 1).EA === III.EA && F(.01, .8, .9, .5, .5).EA === III.EA, "the map's accuracy doesn't enter Eq. 4");
+  const c = III.cells, want = [.025, .179, .082, .713], got = [c.a, c.b, c.c, c.d];
+  ok(got.every((v, k) => near(v, want[k], .0011)), `Fig. 1(c) cells from Eqs. 5-8: ${got.map(v => v.toFixed(4)).join(" / ")} (printed .025/.179/.082/.713)`);
+  ok(near(100 * III.Pt, 23.73, .01) && near(100 * III.Ut, 12.39, .01) && near(100 * III.Po, 79.88, .01) && near(100 * III.truth.Ut, 3.41, .005),
+    `Fig. 1: apparent producer's t ${(100 * III.Pt).toFixed(3)}, user's t ${(100 * III.Ut).toFixed(3)}, producer's o ${(100 * III.Po).toFixed(3)}, true user's t ${(100 * III.truth.Ut).toFixed(2)}`);
+  ok(near(F(.25, .95, .95, .9, .9).EA / .25, 1.1, 1e-9) && near(F(.4, .8, .8, .7, .7).EA / .4, 1.1, 1e-9) && near(F(.25, .8, .9, .7, .8).EA / .25, 1.1, 1e-9) && near(F(.5, .8, .9, .7, .8).EA / .5, .9, 1e-9),
+    "within 10% from 25% (I), 40% (II), and only 25-50% (III), as Foody says");
+  ok((100 * F(.074, .95, .95, .432, .98).EA).toFixed(1) === "11.7", "the paper pizza's 7.4% anchovy reads 11.7% to a 95/95 taster (ours)");
+  // the two-class pizza and the taster: exact counts
+  let exact = true, groups = true, census = 0;
+  for (const seed of [K.SEED, 4242]) for (const E of [.005, .01, .074, .2, .5]) for (const [ct, co] of [[.7, .8], [.9, .9], [1, 1]]) {
+    const P = K.bakeAnchovyPizza(seed, E, ct, co), nA = Math.round(E * P.T), nO = P.T - nA, m = [[0, 0], [0, 0]];
+    for (const i of P.ids) m[P.map[i]][P.truth[i]]++;
+    exact = exact && P.nA === nA && m[1][1] === Math.round(ct * nA) && m[1][0] === Math.round((1 - co) * nO) && m[0][1] + m[1][1] === nA;
+    const [rt, ro] = [.8, .9], v = K.tasterSays(P, rt, ro, seed + 1), g = [[[0, 0], [0, 0]], [[0, 0], [0, 0]]];
+    for (const i of P.ids) { g[P.truth[i]][P.map[i]][0]++; g[P.truth[i]][P.map[i]][1] += v[i]; }
+    for (let t = 0; t < 2; t++) for (let mm = 0; mm < 2; mm++) groups = groups && g[t][mm][1] === Math.round((t ? rt : 1 - ro) * g[t][mm][0]);
+    let says = 0; for (const i of P.ids) says += v[i];
+    census = Math.max(census, Math.abs(says - P.T * F(nA / P.T, rt, ro, ct, co).EA));
+  }
+  ok(exact, "anchovy-or-not pizza: exact anchovy share and exact map hits and false alarms (0.5-50%, two seeds, three maps)");
+  ok(groups, "the taster's slips: exact counts in every (real, map) group, so they are independent of the map's");
+  ok(census <= 2, `the taster's census area equals Eq. 4 to within ${census.toFixed(1)} spots`);
+  // 3,000 stratified samples of 100 per map class: the perfect taster centres on E, this taster on Eq. 4
+  const P = K.bakeAnchovyPizza(K.SEED, .01, .7, .8), V = K.tasterSays(P, .8, .9, 9), r = K.rng(77);
+  const st = [[], []]; for (const i of P.ids) st[P.map[i] ? 0 : 1].push(i);
+  const W = st.map(a => a.length / P.T), m = a => a.reduce((x, y) => x + y, 0) / a.length, sd = a => { const u = m(a); return Math.sqrt(a.reduce((x, y) => x + (y - u) ** 2, 0) / (a.length - 1)); };
+  const area = (ids, lab) => { const c = [[0, 0], [0, 0]]; for (const i of ids) c[P.map[i] ? 0 : 1][lab[i] ? 0 : 1]++; const e = K.stratEstimate(c, W); return [e.area[0], e.se.area[0]]; };
+  const perf = [], tast = [], seT = [];
+  for (let k = 0; k < 3000; k++) { const ids = st.flatMap(a => K.pickFrom(a, 100, r)), [a] = area(ids, P.truth), [b, s] = area(ids, V); perf.push(a); tast.push(b); seT.push(s); }
+  const EA = F(.01, .8, .9, .7, .8).EA;
+  ok(near(m(perf), .01, 3 * sd(perf) / Math.sqrt(3000)), `perfect taster: Eq. 19 averages ${p(m(perf))}% (real 1.00%)`);
+  ok(near(m(tast), EA, 3 * sd(tast) / Math.sqrt(3000)), `Scenario III taster: Eq. 19 averages ${p(m(tast))}% (Eq. 4 says ${p(EA)}%)`);
+  ok(near(m(seT) / sd(tast), 1, .1), `one taster: the Eq. 20 SE matches the spread (${p(m(seT))} vs ${p(sd(tast))})`);
+  // a panel of tasters who differ by up to 10 points: spread grows, the formula SE doesn't (ours)
+  const offs = [-1, -5 / 7, -3 / 7, -1 / 7, 1 / 7, 3 / 7, 5 / 7, 1], perm = [5, 2, 7, 0, 3, 6, 1, 4];
+  const panel = offs.map((u, j) => K.tasterSays(P, Math.min(1, .8 + .1 * u), Math.min(1, .9 - .05 * offs[perm[j]]), 100 + j));
+  const pv = [], ps = [];
+  for (let k = 0; k < 3000; k++) { const ids = st.flatMap(a => K.pickFrom(a, 100, r)), [a, s] = area(ids, panel[Math.floor(r() * 8)]); pv.push(a); ps.push(s); }
+  ok(sd(pv) > 1.3 * m(ps), `a panel of tasters: spread ${p(sd(pv))} points against a formula SE of ${p(m(ps))}`);
 }
 
 console.log(failed ? `\n${failed} check(s) failed` : "\nAll checks passed");

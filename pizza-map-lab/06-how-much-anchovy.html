@@ -1,0 +1,951 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>How Much Anchovy?</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&family=IBM+Plex+Mono:ital,wght@0,400;0,600;1,400&display=swap">
+<style>
+/* Layout: same lab bench as 01-05. Step 1 pulls the map's count apart (Eq. 21) beside the pizza, Step 2 tastes 25 of
+   each and estimates area (Eqs. 19-20), Step 3 reads one simple random sample three ways (Eq. 22), Step 4 weighs pixel
+   counting against the sample (Eq. 23), then the paper check beside the notes. */
+:root{
+  --bg:#efe2c8; --check:rgba(196,52,32,.085); --panel:#fffaf0; --ink:#2b1b12; --muted:#6e584a;
+  --line:#2b1b12; --shadow:#2b1b12; --tomato:#c4341f;
+  --commit:#e0189e; --omit:#118a36; --pix:#8a6f5c; --est:#d9730d; --adj:#6b4bc4;
+  --tint-e:rgba(217,115,13,.13); --tint-d:rgba(43,27,18,.06);
+  --cheese-a:#f2c23c; --cheese-b:#f7d567; --mush-a:#cbb59a; --mush-b:#a68c70;
+  --pep-a:#b3261e; --pep-b:#8c1a14; --anch-a:#8ea3ba; --anch-b:#647891;
+  --crust-a:#c98a4b; --crust-b:#ad7036;
+  --f-display:"Silkscreen","Courier New",ui-monospace,monospace;
+  --f-body:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#1b1310; --check:rgba(196,52,32,.13); --panel:#2a1e18; --ink:#f3e7d3; --muted:#c3ae98;
+  --line:#f3e7d3; --shadow:#8a2a16; --tomato:#ff6a4d;
+  --commit:#ff52c9; --omit:#3ddc6e; --pix:#b89c86; --est:#ff9d4d; --adj:#a98bff;
+  --tint-e:rgba(255,157,77,.15); --tint-d:rgba(243,231,211,.07);
+  color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --bg:#1b1310; --check:rgba(196,52,32,.13); --panel:#2a1e18; --ink:#f3e7d3; --muted:#c3ae98;
+  --line:#f3e7d3; --shadow:#8a2a16; --tomato:#ff6a4d;
+  --commit:#ff52c9; --omit:#3ddc6e; --pix:#b89c86; --est:#ff9d4d; --adj:#a98bff;
+  --tint-e:rgba(255,157,77,.15); --tint-d:rgba(243,231,211,.07);
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{margin:0; background-color:var(--bg); color:var(--ink); font-family:var(--f-body); font-size:15px; line-height:1.55;
+  background-image:linear-gradient(90deg,var(--check) 50%,transparent 50%),linear-gradient(var(--check) 50%,transparent 50%);
+  background-size:56px 56px}
+.wrap{max-width:1120px; margin:0 auto; padding-block:28px 56px;
+  padding-left:max(16px,env(safe-area-inset-left,0px)); padding-right:max(16px,env(safe-area-inset-right,0px));
+  display:grid; gap:22px}
+h1,h2,h3,.eyebrow,.lbl,.btn,.seg label,th,.crumb,.big,.flbl{font-family:var(--f-display); font-weight:400; letter-spacing:.02em}
+h1{font-size:clamp(28px,5.4vw,52px); line-height:1.05; margin:0; text-wrap:balance}
+h2{font-size:20px; margin:0 0 10px; text-wrap:balance}
+h3{font-size:15px; margin:18px 0 6px}
+p{margin:0 0 10px; max-width:66ch}
+a{color:var(--tomato)}
+.box{background:var(--panel); border:3px solid var(--line); box-shadow:6px 6px 0 var(--shadow); padding:18px; min-width:0}
+.mast{display:grid; gap:12px}
+.crumb{font-size:12px; color:var(--ink); justify-self:start}
+.eyebrow{font-size:13px; display:inline-block; background:var(--tomato); color:#fffaf0; padding:4px 8px; justify-self:start}
+.mast p{font-size:16px}
+.lab{display:grid; grid-template-columns:minmax(0,320px) minmax(0,1fr); gap:22px}
+@media (max-width:820px){.lab{grid-template-columns:minmax(0,1fr)}}
+.lab > h2{grid-column:1/-1; margin:0}
+.controls{display:grid; gap:16px; align-content:start}
+.ctl{display:grid; gap:6px}
+.lbl{font-size:13px; display:flex; justify-content:space-between; gap:8px}
+.lbl output{font-family:var(--f-body); font-weight:600; font-size:14px}
+.hint{font-size:12.5px; color:var(--muted); margin:0}
+input[type=range]{-webkit-appearance:none; appearance:none; width:100%; height:24px; background:transparent; margin:0}
+input[type=range]::-webkit-slider-runnable-track{height:10px; background:var(--tint-d); border:2px solid var(--line)}
+input[type=range]::-moz-range-track{height:6px; background:var(--tint-d); border:2px solid var(--line)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none; width:20px; height:20px; margin-top:-7px; background:var(--tomato); border:2px solid var(--line); border-radius:0}
+input[type=range]::-moz-range-thumb{width:16px; height:16px; background:var(--tomato); border:2px solid var(--line); border-radius:0}
+input[type=range]:focus-visible{outline:3px dashed var(--tomato); outline-offset:3px}
+.seg{display:grid; grid-template-columns:minmax(0,1fr); gap:6px; border:0; padding:0; margin:0; min-width:0}
+.seg.two{grid-template-columns:repeat(2,minmax(0,1fr))}
+.seg.three{grid-template-columns:repeat(3,minmax(0,1fr))}
+.seg.four{grid-template-columns:repeat(4,minmax(0,1fr))}
+.seg legend{padding:0; margin-bottom:6px}
+.seg input{position:absolute; opacity:0; pointer-events:none}
+.seg label{border:2px solid var(--line); padding:7px 8px; font-size:12px; cursor:pointer; display:flex; align-items:center; justify-content:center; text-align:center; gap:7px; background:var(--panel)}
+.seg label:hover{background:var(--tint-d)}
+.seg input:checked + label{background:var(--ink); color:var(--panel)}
+.seg input:focus-visible + label{outline:3px dashed var(--tomato); outline-offset:2px}
+.btns{display:flex; flex-wrap:wrap; gap:8px}
+.btn{font-size:12px; border:2px solid var(--line); background:var(--panel); color:var(--ink); padding:7px 9px; cursor:pointer; box-shadow:3px 3px 0 var(--shadow); border-radius:0}
+.btn:hover{background:var(--tint-d)}
+.btn:active{transform:translate(3px,3px); box-shadow:0 0 0 var(--shadow)}
+.btn:focus-visible{outline:3px dashed var(--tomato); outline-offset:2px}
+select{font-family:var(--f-body); font-size:14px; border:2px solid var(--line); background:var(--panel); color:var(--ink); padding:6px 8px; border-radius:0; max-width:100%}
+select:focus-visible{outline:3px dashed var(--tomato); outline-offset:2px}
+.views{display:grid; gap:12px; align-content:start; min-width:0}
+.readout{display:flex; flex-wrap:wrap; align-items:baseline; gap:6px 14px}
+.big{font-size:clamp(30px,5vw,44px); line-height:1; color:var(--tomato)}
+.readout span:not(.big){font-size:14px; max-width:52ch}
+figure{margin:0; display:grid; gap:8px; min-width:0; justify-items:start; align-content:start}
+figcaption{font-size:12.5px; color:var(--muted)}
+figcaption b{font-family:var(--f-display); font-weight:400; font-size:13px; color:var(--ink)}
+canvas{display:block; border:2px solid var(--line); background:var(--tint-d)}
+.pie{width:100%; max-width:440px; aspect-ratio:1; image-rendering:pixelated; image-rendering:crisp-edges}
+.chart{width:100%}
+.legend{display:flex; flex-wrap:wrap; gap:6px 14px; font-size:12.5px}
+.legend span{display:inline-flex; align-items:center; gap:6px}
+.sw{width:12px; height:12px; border:2px solid var(--line); flex:none; display:inline-block}
+.sw.ring{background:var(--panel)}
+.sw.miss{background:var(--tomato)}
+.sw.cm{background:var(--commit)} .sw.om{background:var(--omit)}
+.sw.pix{background:var(--pix)} .sw.plain{background:var(--ink)} .sw.adj{background:var(--adj)} .sw.est{background:var(--est)}
+.cm{color:var(--commit); font-weight:600} .om{color:var(--omit); font-weight:600}
+.k-pix{color:var(--pix); font-weight:600} .k-est{color:var(--est); font-weight:600} .k-adj{color:var(--adj); font-weight:600}
+/* Eq. 21 as a waterfall: one track per line, bars placed on a shared scale */
+.fall{display:grid; gap:8px}
+.frow{display:grid; grid-template-columns:minmax(0,190px) minmax(0,1fr) 4.2em; gap:10px; align-items:center}
+@media (max-width:520px){.frow{grid-template-columns:minmax(0,1fr) 4.2em} .frow .track{grid-column:1/-1; grid-row:2}}
+.flbl{font-size:11.5px; line-height:1.3}
+.flbl small{display:block; font-family:var(--f-body); font-size:11px; color:var(--muted); letter-spacing:0}
+.track{position:relative; height:26px; border-bottom:2px solid var(--line); background:repeating-linear-gradient(90deg,transparent 0 calc(10% - 1px),var(--tint-d) calc(10% - 1px) 10%)}
+.track i{position:absolute; top:3px; bottom:3px; border:2px solid var(--line)}
+.track i.dash{border-style:dashed}
+.fval{font-weight:600; text-align:right; font-variant-numeric:tabular-nums}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse; font-variant-numeric:tabular-nums; width:100%}
+th,td{border:2px solid var(--line); padding:7px 6px; text-align:center; font-size:13.5px}
+th{font-size:11.5px; background:var(--tint-d)}
+th.rowh{text-align:left; white-space:nowrap}
+th .sw{vertical-align:-1px; margin-right:5px}
+th .pc{font-family:var(--f-body); color:var(--muted); margin-left:3px}
+td.acc{font-weight:600}
+.truth{border-style:dashed}
+td.dim{color:var(--muted)}
+tr.cur th,tr.cur td{background:var(--tint-e)}
+tr.pick{cursor:pointer}
+tr.pick:hover th,tr.pick:hover td{background:var(--tint-d)}
+#t1{min-width:600px} #t2{min-width:640px} #t3,#sum3{min-width:560px} #chk{min-width:520px}
+.lower{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:22px; align-items:start}
+@media (max-width:980px){.lower{grid-template-columns:minmax(0,1fr)}}
+.histctl{display:flex; flex-wrap:wrap; gap:10px 16px; align-items:end; margin-bottom:12px}
+.histctl .seg{min-width:min(100%,300px)}
+.histctl .ctl{min-width:min(100%,200px)}
+.sum{font-size:14px; margin-top:10px}
+.busy{color:var(--muted); font-style:italic}
+.notes p{font-size:14px}
+.formula{display:inline-block; border:2px solid var(--line); padding:4px 8px; margin:2px 0 8px; font-weight:600; background:var(--tint-d)}
+/* Paper equations: MathML that build.py makes from tex tags. Live numbers are tagged \id{...} and set with setEq. */
+math{font-family:"STIX Two Math","Cambria Math","Latin Modern Math",math; font-size:1.15em; font-style:normal; font-weight:normal; line-height:normal; letter-spacing:normal; text-transform:none; direction:ltr; font-feature-settings:"dtls" off}
+mfrac > :nth-child(2), msqrt, mover > :first-child{math-shift:compact}
+.eqs{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; margin-top:16px}
+@media (max-width:820px){.eqs{grid-template-columns:minmax(0,1fr)}}
+.eq{border:2px solid var(--line); background:var(--tint-d); padding:10px 12px; display:grid; gap:6px; align-content:start; min-width:0}
+.eq-tag{font-family:var(--f-display); font-size:11.5px; letter-spacing:.02em; display:flex; justify-content:space-between; gap:4px 10px; flex-wrap:wrap}
+.eq-tag i{font-style:normal; color:var(--muted)}
+.eq-m{overflow-x:auto; overflow-y:hidden; padding:3px 0}
+@media (max-width:480px){.eq-m math{font-size:1em}}
+.eq-cap{font-size:12.5px; color:var(--muted); margin:0}
+footer{font-size:13px; color:var(--muted)}
+footer p{max-width:none}
+@media (prefers-reduced-motion:reduce){.btn:active{transform:none}}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <header class="mast">
+    <a class="crumb" href="index.html">← Pizza Map Lab</a>
+    <span class="eyebrow">Pizza Map Lab · Explainer 06</span>
+    <h1>How Much Anchovy Is There?</h1>
+    <p>Count the anchovy spots on the map and you get 5.0% of the pizza. That's pixel counting, and it's quick. The paper's Table 5 says 7.4%, with a standard error of 1.9. The map undercounts because it misses more anchovy than it invents. Section 4.3 says area should come from the taster's sample, and the map's job is to make that estimate more precise. This page takes the map's count apart, estimates area from a sample, and asks when the map's count is good enough.</p>
+  </header>
+
+  <section class="box lab" aria-label="Take the map's count apart">
+    <h2>Step 1 · Take the map's count apart</h2>
+    <div class="controls">
+      <fieldset class="seg two" id="topk">
+        <legend class="lbl">Topping</legend>
+      </fieldset>
+      <fieldset class="seg three" id="view">
+        <legend class="lbl">Show</legend>
+        <input type="radio" name="view" id="v-err" value="err" checked><label for="v-err">Mistakes</label>
+        <input type="radio" name="view" id="v-map" value="map"><label for="v-map">The map</label>
+        <input type="radio" name="view" id="v-truth" value="truth"><label for="v-truth">Real pizza</label>
+      </fieldset>
+      <div class="readout"><span class="big" id="bias-big">−2.4</span><span id="bias-say"></span></div>
+      <p class="hint">Same pizza and map as every other page, baked so the map's true error matrix is the paper's Table 5. Every number in this step comes from checking all 14,400 spots.</p>
+    </div>
+    <div class="views">
+      <figure>
+        <canvas class="pie" id="cv1" width="512" height="512" aria-label="The map, with this topping's mistakes marked"></canvas>
+        <figcaption id="cv1-cap"></figcaption>
+      </figure>
+      <div class="legend" id="legend1"></div>
+    </div>
+  </section>
+
+  <section class="box">
+    <h2>The map's count, fixed with its own mistakes</h2>
+    <p>The real share of a topping is the map's share, minus the spots the map wrongly calls that topping (<span class="cm">commission</span>), plus the spots of that topping the map called something else (<span class="om">omission</span>). This is the paper's Eq. 21.</p>
+    <div class="fall" id="fall"></div>
+    <div class="scroll" style="margin-top:14px"><table id="t1"></table></div>
+    <div class="eqs">
+      <div class="eq">
+        <div class="eq-tag"><span>Eq. 21 · real share</span><i id="q21-tag">anchovy (class 4)</i></div>
+        <div class="eq-m"><math><mstyle scriptlevel="0" displaystyle="true"><msub><mi>p</mi><mrow><mo form="prefix" stretchy="false" lspace="0em" rspace="0em">+</mo><mi>k</mi></mrow></msub><mo>=</mo><msub><mi>p</mi><mrow><mi>k</mi><mo lspace="0em" rspace="0em">+</mo></mrow></msub><mo>−</mo><mrow><munder><mo movablelimits="false">∑</mo><mrow><mi>j</mi><mo>≠</mo><mi>k</mi></mrow></munder></mrow><msub><mi>p</mi><mrow><mi>k</mi><mi>j</mi></mrow></msub><mo>+</mo><mrow><munder><mo movablelimits="false">∑</mo><mrow><mi>i</mi><mo>≠</mo><mi>k</mi></mrow></munder></mrow><msub><mi>p</mi><mrow><mi>i</mi><mi>k</mi></mrow></msub></mstyle></math></div>
+        <div class="eq-m"><math><mstyle scriptlevel="0" displaystyle="true"><msub><mi>p</mi><mrow><mo form="prefix" stretchy="false" lspace="0em" rspace="0em">+</mo><mn id="q21-k">4</mn></mrow></msub><mo>=</mo><mn id="q21-m">5.0</mn><mi>%</mi><mo>−</mo><mn id="q21-c">1.8</mn><mi>%</mi><mo>+</mo><mn id="q21-o">4.2</mn><mi>%</mi><mo>=</mo><mn id="q21-v">7.4</mn><mi>%</mi></mstyle></math></div>
+        <p class="eq-cap">Rows are the map and columns the reference, as in the paper's Table 3. <math><msub><mi>p</mi><mrow><mi>k</mi><mo lspace="0em" rspace="0em">+</mo></mrow></msub></math> is the map's share, the row total. The first sum is the rest of row <math><mi>k</mi></math>, the second the rest of column <math><mi>k</mi></math>.</p>
+      </div>
+      <div class="eq">
+        <div class="eq-tag"><span>Eq. 5 · map bias</span><i>non-site-specific accuracy</i></div>
+        <div class="eq-m"><math><mstyle scriptlevel="0" displaystyle="true"><msub><mi>p</mi><mrow><mi>k</mi><mo lspace="0em" rspace="0em">+</mo></mrow></msub><mo>−</mo><msub><mi>p</mi><mrow><mo form="prefix" stretchy="false" lspace="0em" rspace="0em">+</mo><mi>k</mi></mrow></msub></mstyle></math></div>
+        <div class="eq-m"><math><mstyle scriptlevel="0" displaystyle="true"><msub><mi>p</mi><mrow><mn id="q5-k">4</mn><mo lspace="0em" rspace="0em">+</mo></mrow></msub><mo>−</mo><msub><mi>p</mi><mrow><mo form="prefix" stretchy="false" lspace="0em" rspace="0em">+</mo><mn id="q5-k2">4</mn></mrow></msub><mo>=</mo><mn id="q5-m">5.0</mn><mi>%</mi><mo>−</mo><mn id="q5-r">7.4</mn><mi>%</mi><mo>=</mo><mn id="q5-v">2.4</mn><mtext> points</mtext></mstyle></math></div>
+        <p class="eq-cap" id="q5-cap"></p>
+      </div>
+    </div>
+  </section>
+
+  <section class="box lab" aria-label="Estimate area from 25 tastes of each">
+    <h2>Step 2 · Estimate it from a sample</h2>
+    <div class="controls">
+      <div class="ctl">
+        <label class="lbl" for="n"><span>Tastes per topping</span><output id="n-o">25</output></label>
+        <input type="range" id="n" min="5" max="200" step="5" value="25">
+        <p class="hint">Stratified by the map, the same number from each topping. The paper's Table 4 uses 25.</p>
+      </div>
+      <div class="btns">
+        <button class="btn" type="button" id="draw">Taste again</button>
+        <button class="btn" type="button" id="newpie">Bake a new pizza</button>
+      </div>
+      <div class="readout"><span class="big" id="est-big">7.4%</span><span id="est-say"></span></div>
+    </div>
+    <div class="views">
+      <figure>
+        <canvas class="pie" id="cv2" width="512" height="512" aria-label="The map with the tasted spots lit up"></canvas>
+        <figcaption id="cv2-cap"></figcaption>
+      </figure>
+      <div class="legend" id="legend2"></div>
+    </div>
+  </section>
+
+  <section class="box">
+    <h2>What the sample says about area</h2>
+    <p>The taster's answers, weighted by each map topping's share (Eq. 19), give each topping's area. The standard error comes from Eq. 20. The map's own shares need no standard error, because they come from counting every spot (Sec. 4.4).</p>
+    <div class="scroll"><table id="t2"></table></div>
+    <div class="eqs">
+      <div class="eq">
+        <div class="eq-tag"><span>Eq. 19 · area from the sample</span><i id="q19-tag">anchovy (class 4)</i></div>
+        <div class="eq-m"><math><mstyle scriptlevel="0" displaystyle="true"><msub><mover><mi>p</mi><mo stretchy="false" class="chr-med wbk-med-acc" style="math-depth:0;">ˆ</mo></mover><mrow><mo form="prefix" stretchy="false" lspace="0em" rspace="0em">+</mo><mi>k</mi></mrow></msub><mo>=</mo><mrow><munderover><mo movablelimits="false">∑</mo><mrow><mi>i</mi><mo>=</mo><mn>1</mn></mrow><mi>c</mi></munderover></mrow><msub><mover><mi>p</mi><mo stretchy="false" class="chr-med wbk-med-acc" style="math-depth:0;">ˆ</mo></mover><mrow><mi>i</mi><mi>k</mi></mrow></msub><mo>=</mo><mrow><munderover><mo movablelimits="false">∑</mo><mrow><mi>i</mi><mo>=</mo><mn>1</mn></mrow><mi>c</mi></munderover></mrow><msub><mi>W</mi><mi>i</mi></msub><mspace width="0.1667em"></mspace><mfrac><msub><mi>n</mi><mrow><mi>i</mi><mi>k</mi></mrow></msub><msub><mi>n</mi><mrow><mi>i</mi><mo lspace="0em" rspace="0em">+</mo></mrow></msub></mfrac></mstyle></math></div>
+        <div class="eq-m"><math><mstyle scriptlevel="0" displaystyle="true"><msub><mover><mi>p</mi><mo stretchy="false" class="chr-med wbk-med-acc" style="math-depth:0;">ˆ</mo></mover><mrow><mo form="prefix" stretchy="false" lspace="0em" rspace="0em">+</mo><mn id="q19-k">4</mn></mrow></msub><mo>=</mo><mn id="q19-w1">60.0</mn><mi>%</mi><mo>×</mo><mfrac><mn id="q19-n1">0</mn><mn id="q19-r1">25</mn></mfrac><mo>+</mo><mn id="q19-w2">25.0</mn><mi>%</mi><mo>×</mo><mfrac><mn id="q19-n2">3</mn><mn id="q19-r2">25</mn></mfrac></mstyle></math></div>
+        <div class="eq-m"><math><mstyle scriptlevel="0" displaystyle="true"><mphantom><msub><mover><mi>p</mi><mo stretchy="false" class="chr-med wbk-med-acc" style="math-depth:0;">ˆ</mo></mover><mrow><mo form="prefix" stretchy="false" lspace="0em" rspace="0em">+</mo><mn>4</mn></mrow></msub></mphantom><mo>+</mo><mn id="q19-w3">10.0</mn><mi>%</mi><mo>×</mo><mfrac><mn id="q19-n3">3</mn><mn id="q19-r3">25</mn></mfrac><mo>+</mo><mn id="q19-w4">5.0</mn><mi>%</mi><mo>×</mo><mfrac><mn id="q19-n4">16</mn><mn id="q19-r4">25</mn></mfrac><mo>=</mo><mn id="q19-v">7.40</mn><mi>%</mi></mstyle></math></div>
+        <p class="eq-cap">Each map topping's share of the pizza, times the share of its tastes that turned out to be this topping. It is the column total of the estimated error matrix.</p>
+      </div>
+      <div class="eq">
+        <div class="eq-tag"><span>Eq. 20 · its standard error</span><i>with n<sub>i+</sub> − 1</i></div>
+        <div class="eq-m"><math><mstyle scriptlevel="0" displaystyle="true"><mover><mi>V</mi><mo stretchy="false" class="wbk-acc" style="math-depth:0;">ˆ</mo></mover><mrow><mo fence="true" form="prefix" stretchy="false">(</mo><msub><mover><mi>p</mi><mo stretchy="false" class="chr-med wbk-med-acc" style="math-depth:0;">ˆ</mo></mover><mrow><mo form="prefix" stretchy="false" lspace="0em" rspace="0em">+</mo><mi>k</mi></mrow></msub><mo fence="true" form="postfix" stretchy="false">)</mo></mrow><mo>=</mo><mrow><munderover><mo movablelimits="false">∑</mo><mrow><mi>i</mi><mo>=</mo><mn>1</mn></mrow><mi>c</mi></munderover></mrow><msubsup><mi>W</mi><mi>i</mi><mn>2</mn></msubsup><mspace width="0.1667em"></mspace><msub><mover><mi>p</mi><mo stretchy="false" class="chr-med wbk-med-acc" style="math-depth:0;">ˆ</mo></mover><mi>i</mi></msub><mrow><mo fence="true" form="prefix" stretchy="false">(</mo><mn>1</mn><mo>−</mo><msub><mover><mi>p</mi><mo stretchy="false" class="chr-med wbk-med-acc" style="math-depth:0;">ˆ</mo></mover><mi>i</mi></msub><mo fence="true" form="postfix" stretchy="false">)</mo></mrow><mi>/</mi><mrow><mo fence="true" form="prefix" stretchy="false">(</mo><msub><mi>n</mi><mrow><mi>i</mi><mo lspace="0em" rspace="0em">+</mo></mrow></msub><mo>−</mo><mn>1</mn><mo fence="true" form="postfix" stretchy="false">)</mo></mrow></mstyle></math></div>
+        <div class="eq-m"><math><mstyle scriptlevel="0" displaystyle="true"><mover><mi>V</mi><mo stretchy="false" class="wbk-acc" style="math-depth:0;">ˆ</mo></mover><mo>=</mo><mn id="q20-t1">0.00</mn><mo>+</mo><mn id="q20-t2">2.75</mn><mo>+</mo><mn id="q20-t3">0.44</mn><mo>+</mo><mn id="q20-t4">0.24</mn><mo>=</mo><mn id="q20-v">3.43</mn><msup><mtext> points</mtext><mn>2</mn></msup></mstyle></math></div>
+        <div class="eq-m"><math><mstyle scriptlevel="0" displaystyle="true"><mpadded lspace="0"><mi>SE</mi></mpadded><mo>=</mo><msqrt><mn id="q20-v2">3.43</mn></msqrt><mo>=</mo><mn id="q20-se">1.85</mn><mtext> points</mtext></mstyle></math></div>
+        <p class="eq-cap"><math><msub><mover><mi>p</mi><mo stretchy="false" class="chr-med wbk-med-acc" style="math-depth:0;">ˆ</mo></mover><mi>i</mi></msub></math> is the share of map topping <math><mi>i</mi></math>'s tastes that were this topping. The paper prints <math><msub><mi>n</mi><mrow><mi>i</mi><mo lspace="0em" rspace="0em">+</mo></mrow></msub></math>; Table 5's area standard errors need <math><mrow><msub><mi>n</mi><mrow><mi>i</mi><mo lspace="0em" rspace="0em">+</mo></mrow></msub><mo>−</mo><mn>1</mn></mrow></math>, as in Eqs. 16 to 18.</p>
+      </div>
+      <div class="eq">
+        <div class="eq-tag"><span>95% interval</span><i>Sec. 4.4</i></div>
+        <div class="eq-m"><math><mstyle scriptlevel="0" displaystyle="true"><msub><mover><mi>p</mi><mo stretchy="false" class="chr-med wbk-med-acc" style="math-depth:0;">ˆ</mo></mover><mrow><mo form="prefix" stretchy="false" lspace="0em" rspace="0em">+</mo><mi>k</mi></mrow></msub><mo>±</mo><mn>1.96</mn><mspace width="0.1667em"></mspace><mpadded lspace="0"><mi>SE</mi></mpadded></mstyle></math></div>
+        <div class="eq-m"><math><mstyle scriptlevel="0" displaystyle="true"><mn id="qci-p">7.40</mn><mi>%</mi><mo>±</mo><mn>1.96</mn><mo>×</mo><mn id="qci-se">1.85</mn><mo>=</mo><mn id="qci-lo">3.77</mn><mi>%</mi><mtext> to </mtext><mn id="qci-hi">11.03</mn><mi>%</mi></mstyle></math></div>
+        <p class="eq-cap" id="qci-cap"></p>
+      </div>
+      <div class="eq">
+        <div class="eq-tag"><span>Eq. 22 · the "bias-adjusted" form</span><i>stratified: same as Eq. 19</i></div>
+        <div class="eq-m"><math><mstyle scriptlevel="0" displaystyle="true"><msub><mover><mi>p</mi><mo stretchy="false" class="chr-med wbk-med-acc" style="math-depth:0;">ˆ</mo></mover><mrow><mo form="prefix" stretchy="false" lspace="0em" rspace="0em">+</mo><mi>k</mi></mrow></msub><mo>=</mo><msub><mi>p</mi><mrow><mi>k</mi><mo lspace="0em" rspace="0em">+</mo></mrow></msub><mo>+</mo><mrow><mo fence="true" form="prefix" stretchy="false">(</mo><msub><mover><mi>p</mi><mo stretchy="false" class="chr-med wbk-med-acc" style="math-depth:0;">ˆ</mo></mover><mrow><mo form="prefix" stretchy="false" lspace="0em" rspace="0em">+</mo><mi>k</mi></mrow></msub><mo>−</mo><msub><mover><mi>p</mi><mo stretchy="false" class="chr-med wbk-med-acc" style="math-depth:0;">ˆ</mo></mover><mrow><mi>k</mi><mo lspace="0em" rspace="0em">+</mo></mrow></msub><mo fence="true" form="postfix" stretchy="false">)</mo></mrow></mstyle></math></div>
+        <div class="eq-m"><math><mstyle scriptlevel="0" displaystyle="true"><mn id="q22-m">5.00</mn><mi>%</mi><mo>+</mo><mrow><mo fence="true" form="prefix" stretchy="false">(</mo><mn id="q22-r">7.40</mn><mi>%</mi><mo>−</mo><mn id="q22-e">5.00</mn><mi>%</mi><mo fence="true" form="postfix" stretchy="false">)</mo></mrow><mo>=</mo><mn id="q22-v">7.40</mn><mi>%</mi></mstyle></math></div>
+        <p class="eq-cap">Start from the map's count and add the sample's estimate of the map's bias. With a sample stratified by the map, the estimated map share <math><msub><mover><mi>p</mi><mo stretchy="false" class="chr-med wbk-med-acc" style="math-depth:0;">ˆ</mo></mover><mrow><mi>k</mi><mo lspace="0em" rspace="0em">+</mo></mrow></msub></math> is exactly <math><msub><mi>W</mi><mi>k</mi></msub></math>, so the map's count cancels and Eq. 22 is Eq. 19 (Sec. 4.3.1). Step 3 shows a design where they differ.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="box">
+    <h2>Step 3 · One random sample, read three ways</h2>
+    <p>Now the taster picks spots at random from the whole pizza, without looking at the map. There are three ways to turn those tastes into an area. <b>Ignore the map</b>: the share of tastes that were this topping. <span class="k-adj">Eq. 22</span>: the map's count, corrected by the gap between what the taster found and what the map said at the same spots. <span class="k-est">Eq. 19</span>: weight the tastes by map topping, which the paper calls poststratification (Sec. 4.2). All three use the same tastes.</p>
+    <div class="histctl">
+      <div class="ctl"><label class="lbl" for="k3">Topping</label><select id="k3"></select></div>
+      <fieldset class="seg three" id="srsn">
+        <legend class="lbl">Random tastes</legend>
+        <input type="radio" name="srsn" id="s-100" value="100" checked><label for="s-100">100</label>
+        <input type="radio" name="srsn" id="s-400" value="400"><label for="s-400">400</label>
+        <input type="radio" name="srsn" id="s-1000" value="1000"><label for="s-1000">1,000</label>
+      </fieldset>
+      <button class="btn" type="button" id="draw3">Taste again</button>
+    </div>
+    <div class="scroll"><table id="t3"></table></div>
+    <h3>Repeat it 1,000 times</h3>
+    <canvas id="hist" aria-label="Histograms of 1,000 repeated area estimates for each method"></canvas>
+    <div class="legend" style="margin-top:8px"><span><i class="sw pix"></i>Pixel counting</span><span><i class="sw plain"></i>Ignore the map</span><span><i class="sw adj"></i>Eq. 22</span><span><i class="sw est"></i>Eq. 19</span></div>
+    <div class="btns" style="margin-top:10px"><button class="btn" type="button" id="rerun">Repeat 1,000 more</button></div>
+    <div class="scroll" style="margin-top:12px"><table id="sum3"></table></div>
+    <p class="sum" id="hsum"></p>
+    <div class="eqs">
+      <div class="eq">
+        <div class="eq-tag"><span>Eq. 22 on a random sample</span><i>bias from plain shares</i></div>
+        <div class="eq-m"><math><mstyle scriptlevel="0" displaystyle="true"><msub><mover><mi>p</mi><mo stretchy="false" class="chr-med wbk-med-acc" style="math-depth:0;">ˆ</mo></mover><mrow><mo form="prefix" stretchy="false" lspace="0em" rspace="0em">+</mo><mi>k</mi></mrow></msub><mo>=</mo><msub><mi>p</mi><mrow><mi>k</mi><mo lspace="0em" rspace="0em">+</mo></mrow></msub><mo>+</mo><mrow><mo fence="true" form="prefix" stretchy="true">(</mo><mfrac><msub><mi>n</mi><mrow><mo form="prefix" stretchy="false" lspace="0em" rspace="0em">+</mo><mi>k</mi></mrow></msub><mi>n</mi></mfrac><mo>−</mo><mfrac><msub><mi>n</mi><mrow><mi>k</mi><mo lspace="0em" rspace="0em">+</mo></mrow></msub><mi>n</mi></mfrac><mo fence="true" form="postfix" stretchy="true">)</mo></mrow></mstyle></math></div>
+        <div class="eq-m"><math><mstyle scriptlevel="0" displaystyle="true"><mn id="q22s-m">5.00</mn><mi>%</mi><mo>+</mo><mrow><mo fence="true" form="prefix" stretchy="true">(</mo><mfrac><mn id="q22s-r">8</mn><mn id="q22s-n">100</mn></mfrac><mo>−</mo><mfrac><mn id="q22s-e">5</mn><mn id="q22s-n2">100</mn></mfrac><mo fence="true" form="postfix" stretchy="true">)</mo></mrow><mo>=</mo><mn id="q22s-v">8.00</mn><mi>%</mi></mstyle></math></div>
+        <p class="eq-cap">The bias in brackets is estimated from plain shares of the random tastes: <math><msub><mi>n</mi><mrow><mo form="prefix" stretchy="false" lspace="0em" rspace="0em">+</mo><mi>k</mi></mrow></msub></math> tastes were this topping, <math><msub><mi>n</mi><mrow><mi>k</mi><mo lspace="0em" rspace="0em">+</mo></mrow></msub></math> were mapped as it. This is the McRoberts and Walters (2012) estimator the paper describes. If you poststratify the bracket instead, <math><msub><mover><mi>p</mi><mo stretchy="false" class="chr-med wbk-med-acc" style="math-depth:0;">ˆ</mo></mover><mrow><mi>k</mi><mo lspace="0em" rspace="0em">+</mo></mrow></msub></math> becomes <math><msub><mi>W</mi><mi>k</mi></msub></math> and Eq. 22 turns into Eq. 19.</p>
+      </div>
+      <div class="eq">
+        <div class="eq-tag"><span>The map's job</span><i>Sec. 4.3.1</i></div>
+        <div class="eq-m"><math><mstyle scriptlevel="0" displaystyle="true"><mtext>spread: ignore the map </mtext><mn id="qj-a">2.7</mn><mspace width="0.2778em"></mspace><mo>→</mo><mspace width="0.2778em"></mspace><mtext>Eq. 22 </mtext><mn id="qj-b">2.4</mn><mspace width="0.2778em"></mspace><mo>→</mo><mspace width="0.2778em"></mspace><mtext>Eq. 19 </mtext><mn id="qj-c">2.3</mn></mstyle></math></div>
+        <p class="eq-cap" id="qj-cap"></p>
+      </div>
+    </div>
+  </section>
+
+  <section class="box">
+    <h2>Step 4 · Pixel counting or the sample?</h2>
+    <p>Pixel counting has no sampling error but a fixed bias. The sample has no bias but a standard error that shrinks as it grows. Eq. 23 puts both on one scale: mean square error is variance plus bias squared. The chart shows its square root, in points, so it reads like a standard error. The sample is stratified with the same number of tastes per topping, 500 repeats per point.</p>
+    <div class="histctl">
+      <div class="ctl"><label class="lbl" for="k4">Topping</label><select id="k4"></select></div>
+      <fieldset class="seg four" id="slip">
+        <legend class="lbl">Taster slips</legend>
+        <input type="radio" name="slip" id="sl-0" value="0" checked><label for="sl-0">0%</label>
+        <input type="radio" name="slip" id="sl-2" value="0.02"><label for="sl-2">2%</label>
+        <input type="radio" name="slip" id="sl-5" value="0.05"><label for="sl-5">5%</label>
+        <input type="radio" name="slip" id="sl-10" value="0.1"><label for="sl-10">10%</label>
+      </fieldset>
+    </div>
+    <p class="hint" style="margin-bottom:12px">A slip: the taster names the wrong topping, one of the other three at random. Section 4.3.2 says reference errors are the only source of bias for the sample. Explainer 07 is all about them.</p>
+    <canvas class="chart" id="mse" aria-label="Root mean square error of pixel counting and of the sample, against tastes per topping"></canvas>
+    <div class="legend" style="margin-top:8px"><span><i class="sw pix"></i>Pixel counting: its bias</span><span><i class="sw est"></i>The sample (Eq. 19)</span><span><i class="sw miss"></i>Where they cross</span></div>
+    <p class="sum" id="msum"></p>
+    <div class="eqs">
+      <div class="eq">
+        <div class="eq-tag"><span>Eq. 23 · mean square error</span><i id="q23-tag">anchovy, 25 per topping</i></div>
+        <div class="eq-m"><math><mstyle scriptlevel="0" displaystyle="true"><mpadded lspace="0"><mi>MSE</mi></mpadded><mo>=</mo><mtext>Variance</mtext><mrow><mspace width="0.222em"></mspace><mo>+</mo><mspace width="0.222em"></mspace></mrow><msup><mtext>Bias</mtext><mn>2</mn></msup></mstyle></math></div>
+        <div class="eq-m"><math><mstyle scriptlevel="0" displaystyle="true"><mtext>pixel counting: </mtext><mn>0</mn><mo>+</mo><msup><mrow><mo fence="true" form="prefix" stretchy="false">(</mo><mn id="q23-pb">2.4</mn><mo fence="true" form="postfix" stretchy="false">)</mo></mrow><mn>2</mn></msup><mo>=</mo><mn id="q23-pm">5.76</mn><msup><mtext> points</mtext><mn>2</mn></msup></mstyle></math></div>
+        <div class="eq-m"><math><mstyle scriptlevel="0" displaystyle="true"><mtext>sample: </mtext><msup><mn id="q23-sv">1.8</mn><mn>2</mn></msup><mo>+</mo><msup><mrow><mo fence="true" form="prefix" stretchy="false">(</mo><mn id="q23-sb">0.0</mn><mo fence="true" form="postfix" stretchy="false">)</mo></mrow><mn>2</mn></msup><mo>=</mo><mn id="q23-sm">3.24</mn><msup><mtext> points</mtext><mn>2</mn></msup></mstyle></math></div>
+        <p class="eq-cap" id="q23-cap"></p>
+      </div>
+      <div class="eq">
+        <div class="eq-tag"><span>Where they cross</span><i>ours, from Eq. 20</i></div>
+        <div class="eq-m"><math><mstyle scriptlevel="0" displaystyle="true"><msup><mpadded lspace="0"><mi>SE</mi></mpadded><mn>2</mn></msup><mo>≈</mo><mfrac><mn>1</mn><mi>n</mi></mfrac><mrow><munderover><mo movablelimits="false">∑</mo><mrow><mi>i</mi><mo>=</mo><mn>1</mn></mrow><mi>c</mi></munderover></mrow><msubsup><mi>W</mi><mi>i</mi><mn>2</mn></msubsup><mspace width="0.1667em"></mspace><msub><mi>p</mi><mi>i</mi></msub><mrow><mo fence="true" form="prefix" stretchy="false">(</mo><mn>1</mn><mo>−</mo><msub><mi>p</mi><mi>i</mi></msub><mo fence="true" form="postfix" stretchy="false">)</mo></mrow><mo>=</mo><msup><mtext>bias</mtext><mn>2</mn></msup><mspace width="0.2778em"></mspace><mo stretchy="false">⇒</mo><mspace width="0.2778em"></mspace><mi>n</mi><mo>≈</mo><mfrac><mrow><msub><mo movablelimits="false">∑</mo><mi>i</mi></msub><msubsup><mi>W</mi><mi>i</mi><mn>2</mn></msubsup><mspace width="0.1667em"></mspace><msub><mi>p</mi><mi>i</mi></msub><mrow><mo fence="true" form="prefix" stretchy="false">(</mo><mn>1</mn><mo>−</mo><msub><mi>p</mi><mi>i</mi></msub><mo fence="true" form="postfix" stretchy="false">)</mo></mrow></mrow><msup><mtext>bias</mtext><mn>2</mn></msup></mfrac></mstyle></math></div>
+        <div class="eq-m"><math><mstyle scriptlevel="0" displaystyle="true"><mi>n</mi><mo>≈</mo><mfrac><mn id="qx-s">82.3</mn><mn id="qx-b">5.76</mn></mfrac><mo>=</mo><mn id="qx-n">14</mn><mtext> tastes per topping</mtext></mstyle></math></div>
+        <p class="eq-cap" id="qx-cap"></p>
+      </div>
+    </div>
+  </section>
+
+  <section class="lower">
+    <div class="box">
+      <h2>Check against the paper</h2>
+      <p>Table 4's sample counts, run through Eqs. 19 and 20, and the claims of Sec. 4.3 tested on this pizza. Rows marked <i>ours</i> are not printed in the paper.</p>
+      <div class="scroll"><table id="chk"></table></div>
+      <p class="sum" id="chk-note"></p>
+    </div>
+    <div class="box notes">
+      <h2>What Section 4.3 says</h2>
+      <h3>Area comes from the sample</h3>
+      <p>The map's count is quick, but classification errors bias it (Eq. 5). Following Olofsson et al. (2014), the paper says to estimate area from the reference sample, because the taster's verdict is the best account of what is really on the pizza (Sec. 4.3).</p>
+      <h3>The map's job is precision</h3>
+      <p>The map still matters. It supplies the strata, for the design or afterwards, and the more accurate the map, the smaller the standard errors of the area estimates (Sec. 4.3.1).</p>
+      <span class="formula">the sample gives the area, the map shrinks its error</span>
+      <h3>"Bias-adjusted" is a misleading name</h3>
+      <p>Eq. 21 makes it tempting to think of the sample as a patch on the map's count. The paper says that framing puts the map in the wrong role: the sample supplies the data and the map is extra information. Eq. 22 matches Eq. 19 only for a stratified random sample, and the paper prefers Eq. 19 for its smaller standard error (Stehman 2013).</p>
+      <h3>When pixel counting could win</h3>
+      <p>Mean square error is variance plus bias squared (Eq. 23). Pixel counting's error is the map's bias. The sample's is its standard error, plus any bias from a wrong taster (Sec. 4.3.2). The paper says it is unclear what variance a map should carry; this page counts none, though a different training set would give a different map.</p>
+      <h3>Report both</h3>
+      <p>Report area as a percent of the study area with its standard error, next to the map's own shares (Sec. 4.4). Ideally the map would be adjusted to match the sample's area, which the paper leaves as an open problem.</p>
+    </div>
+  </section>
+
+  <footer>
+    <p>Based on Stehman, S.V. &amp; Foody, G.M. (2019). Key issues in rigorous accuracy assessment of land cover products. <i>Remote Sensing of Environment</i> 231, 111199, Sections 4.1, 4.3, 4.3.1, 4.3.2 and 4.4, Eqs. 5 and 19–23, Tables 4 and 5. <a href="https://doi.org/10.1016/j.rse.2019.05.018">doi:10.1016/j.rse.2019.05.018</a></p>
+    <p>Previous: <a href="05-every-square-its-own-pizza.html">05 · Every Square Its Own Pizza</a>. Next: <a href="07-the-taster-is-wrong-too.html">07 · The Taster Is Wrong Too</a>, where the taster's slips take over.</p>
+  </footer>
+</main>
+
+<script>
+(function(){
+"use strict";
+/* ---- Pizza Map Lab shared kit (src/kit.js), pasted identically into every page ----
+   The "paper pizza": a square sheet pizza, 120x120 spots inside a crust border and cut into
+   an 8x8 grid of 15x15 squares (think image chips), whose true error matrix is exactly
+   Table 5 of Stehman & Foody (2019). Classes A-D are cheese, mushroom, pepperoni, anchovy.
+   Map shares are 60/25/10/5 and reference shares are 55.4/26.4/10.8/7.4. */
+const N=128, EDGE=4, CUTS=8, CHIP=15, SEED=20190518; /* study area is x,y in [EDGE, EDGE+CUTS*CHIP) */
+const NAMES=["cheese","mushroom","pepperoni","anchovy"];
+const TITLE=["Cheese","Mushroom","Pepperoni","Anchovy"];
+const PAPER_CLASS=["A","B","C","D"];
+const VAR=[["--cheese-a","--cheese-b"],["--mush-a","--mush-b"],["--pep-a","--pep-b"],["--anch-a","--anch-b"]];
+const TABLE5=[[50.4,7.2,2.4,0],[4.0,18.0,0,3.0],[0,0.8,8.0,1.2],[1.0,0.4,0.4,3.2]]; /* % of area; rows map, columns reference */
+const MAP_SHARE=[60,25,10,5];
+function rng(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+function nb4(i){const x=i%N,y=(i/N)|0,o=[]; if(x>0)o.push(i-1); if(x<N-1)o.push(i+1); if(y>0)o.push(i-N); if(y<N-1)o.push(i+N); return o;}
+/* opt.clumpTop (0-1) piles each topping around its hot spots; opt.clumpErr (0-1) pulls the map's mistakes toward a
+   camera glare spot. Both leave Table 5 exact. At 0 they take no random draws and change nothing, so the default
+   pizza is the same spot for spot. The hot spots and glare come from their own seeded stream. */
+function bakePaperPizza(seed,opt){
+  const ct=Math.max(0,Math.min(1,(opt&&opt.clumpTop)||0)), ce=Math.max(0,Math.min(1,(opt&&opt.clumpErr)||0));
+  const rc=rng(seed*17+3), S=CUTS*CHIP, spot=m=>[EDGE+m+rc()*(S-2*m), EDGE+m+rc()*(S-2*m)];
+  /* hot spots: two for mushroom, two for pepperoni, one for anchovy, kept apart so one topping doesn't fill another's */
+  const hot=[[],[],[],[]], HOT_R=16;
+  for(const k of [1,1,2,2,3]){ let best=null, far=-1;
+    for(let t=0;t<30;t++){ const p=spot(16), d=Math.min(99,...hot.flat().map(h=>Math.hypot(h[0]-p[0],h[1]-p[1]))); if(d>far){far=d; best=p;} if(d>=44) break; }
+    hot[k].push(best); }
+  const glare=spot(24);
+  /* with chance clumpTop, a topping is dropped near one of its hot spots instead of anywhere */
+  const place=(k,pt,m)=>{ if(!ct||rc()>=ct) return pt; const h=hot[k][Math.floor(rc()*hot[k].length)], a=2*Math.PI*rc(), d=HOT_R*Math.sqrt(-2*Math.log(1-rc()));
+    return [Math.max(EDGE+m,Math.min(EDGE+S-m,h[0]+d*Math.cos(a))), Math.max(EDGE+m,Math.min(EDGE+S-m,h[1]+d*Math.sin(a)))]; };
+  const tries=n=>ct?Math.round(n*(1+2*ct)):n;
+  const r=rng(seed), NN=N*N, inside=new Uint8Array(NN), crust=new Uint8Array(NN), piece=new Int16Array(NN).fill(-1), ids=[], END=EDGE+CUTS*CHIP;
+  for(let y=0;y<N;y++)for(let x=0;x<N;x++){const i=y*N+x;
+    if(x>=EDGE&&x<END&&y>=EDGE&&y<END){inside[i]=1; ids.push(i); piece[i]=Math.floor((y-EDGE)/CHIP)*CUTS+Math.floor((x-EDGE)/CHIP);}
+    else crust[i]=1;}
+  const T=ids.length;
+  /* target cell counts: Table 5 scaled to this pizza, map row totals exactly 60/25/10/5 */
+  const rowT=MAP_SHARE.map(w=>Math.round(w*T/100)); rowT[0]=T-rowT[1]-rowT[2]-rowT[3];
+  const cell=TABLE5.map((row,i)=>row.map((v,j)=>i===j?0:Math.round(v*T/100)));
+  for(let i=0;i<4;i++){let off=0; for(let j=0;j<4;j++) if(j!==i) off+=cell[i][j]; cell[i][i]=rowT[i]-off;}
+  const colT=[0,1,2,3].map(j=>cell[0][j]+cell[1][j]+cell[2][j]+cell[3][j]);
+  /* the real pizza */
+  const truth=new Int8Array(NN).fill(-1); for(const i of ids) truth[i]=0;
+  const count=[T,0,0,0], put=(i,k)=>{count[truth[i]]--; truth[i]=k; count[k]++;};
+  const stamp=(cells,k,minFrac)=>{let ok=0; const keep=[];
+    for(const [x,y] of cells){ if(x<0||y<0||x>=N||y>=N) continue; const i=y*N+x; if(inside[i]&&truth[i]===0){ok++; keep.push(i);} }
+    if(cells.length&&ok/cells.length>=minFrac){keep.forEach(i=>put(i,k)); return true;} return false;};
+  const randPt=m=>[EDGE+m+r()*(CUTS*CHIP-2*m), EDGE+m+r()*(CUTS*CHIP-2*m)];
+  const peps=[];
+  for(let t=0;t<tries(5000)&&count[2]<colT[2]-80;t++){ const [px,py]=place(2,randPt(8),8);
+    if(!peps.every(p=>Math.hypot(p[0]-px,p[1]-py)>14.5)) continue;
+    const cells=[]; for(let y=Math.floor(py-7);y<=py+7;y++) for(let x=Math.floor(px-7);x<=px+7;x++) if(Math.hypot(x+.5-px,y+.5-py)<6.3) cells.push([x,y]);
+    if(stamp(cells,2,1)) peps.push([px,py]); }
+  const cap=[]; for(let dy=-5;dy<=0;dy++) for(let dx=-7;dx<=7;dx++) if((dx/7.5)**2+(dy/5.5)**2<=1) cap.push([dx,dy]);
+  for(let dy=1;dy<=5;dy++) for(let dx=-2;dx<=1;dx++) cap.push([dx,dy]);
+  const rots=[cap, cap.map(([a,b])=>[-b,a]), cap.map(([a,b])=>[-a,-b]), cap.map(([a,b])=>[b,-a])];
+  for(let t=0;t<tries(9000)&&count[1]<colT[1]-60;t++){ const [mx,my]=place(1,randPt(7),7), o=rots[Math.floor(r()*4)];
+    stamp(o.map(([a,b])=>[Math.round(mx)+a,Math.round(my)+b]),1,.85); }
+  for(let t=0;t<tries(9000)&&count[3]<colT[3]-40;t++){ const [ax,ay]=place(3,randPt(10),10), th=r()*Math.PI, L=16+r()*10, ux=Math.cos(th), uy=Math.sin(th), cells=[];
+    for(let y=Math.floor(ay-L/2-2);y<=ay+L/2+2;y++) for(let x=Math.floor(ax-L/2-2);x<=ax+L/2+2;x++){
+      const vx=x+.5-ax, vy=y+.5-ay, s=vx*ux+vy*uy, q=Math.abs(-vx*uy+vy*ux); if(Math.abs(s)<=L/2&&q<=1.4) cells.push([x,y]); }
+    stamp(cells,3,.9); }
+  /* nudge each topping's edges until the reference shares are exact */
+  for(const k of [2,1,3]) for(let pass=0;pass<400&&count[k]!==colT[k];pass++){
+    const need=colT[k]-count[k];
+    const cand=ids.filter(i=>need>0?(truth[i]===0&&nb4(i).some(j=>truth[j]===k)):(truth[i]===k&&nb4(i).some(j=>truth[j]===0)));
+    for(let a=cand.length-1;a>0;a--){const b=Math.floor(r()*(a+1)); const t=cand[a]; cand[a]=cand[b]; cand[b]=t;}
+    const m=Math.min(Math.abs(need),Math.max(1,Math.ceil(cand.length/3)),cand.length);
+    for(let q=0;q<m;q++) put(cand[q],need>0?k:0); }
+  /* distance from every pixel to the nearest pixel of each real topping */
+  const dist=[0,1,2,3].map(k=>{const d=new Int16Array(NN).fill(9999), q=[]; for(const i of ids) if(truth[i]===k){d[i]=0; q.push(i);}
+    for(let h=0;h<q.length;h++){const i=q[h]; for(const j of nb4(i)) if(d[j]>d[i]+1){d[j]=d[i]+1; q.push(j);}} return d;});
+  const rp=rng(seed*31+7), jit=new Float64Array(NN), tex=new Uint8Array(NN);
+  for(let i=0;i<NN;i++){jit[i]=rp(); tex[i]=rp()<.3?1:0;}
+  /* the classifier's map: each Table 5 mistake is placed where that topping's edge is closest,
+     or, as clumpErr grows, closer to the glare */
+  const map=Int8Array.from(truth), gd=new Float64Array(NN);
+  if(ce) for(const i of ids) gd[i]=Math.hypot(i%N+.5-glare[0],((i/N)|0)+.5-glare[1]);
+  for(let j=0;j<4;j++){ let pool=ids.filter(i=>truth[i]===j);
+    const order=[0,1,2,3].filter(i=>i!==j&&cell[i][j]>0).sort((a,b)=>cell[b][j]-cell[a][j]);
+    for(const i of order){
+      if(!ce) pool.sort((a,b)=>(dist[i][a]+4*jit[a])-(dist[i][b]+4*jit[b]));
+      else { const g=ce<1?(ce/(1-ce))**2/10:1e6, key=a=>dist[i][a]+4*jit[a]+g*gd[a]; pool.sort((a,b)=>key(a)-key(b)); }
+      for(const p of pool.slice(0,cell[i][j])) map[p]=i; pool=pool.slice(cell[i][j]); } }
+  return {inside,crust,piece,ids,T,truth,map,dist,jit,tex,cell,rowT,colT,hot,glare,clumpTop:ct,clumpErr:ce};
+}
+function hexRGB(h){h=String(h).trim().replace("#",""); if(h.length===3) h=h.split("").map(c=>c+c).join(""); const n=parseInt(h,16); return [n>>16&255,n>>8&255,n&255];}
+function cssVar(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim();}
+function pizzaPalette(){return {top:VAR.map(v=>[hexRGB(cssVar(v[0])),hexRGB(cssVar(v[1]))]), crust:[hexRGB(cssVar("--crust-a")),hexRGB(cssVar("--crust-b"))]};}
+/* paint one colour per pizza pixel (colorAt returns [r,g,b,alpha] or null), scaled up with crisp edges */
+function paintPizza(cv,colorAt){
+  if(!cv._off){cv._off=document.createElement("canvas"); cv._off.width=N; cv._off.height=N;}
+  const octx=cv._off.getContext("2d"), img=octx.createImageData(N,N), d=img.data;
+  for(let i=0;i<N*N;i++){const c=colorAt(i); if(!c) continue; d[4*i]=c[0]; d[4*i+1]=c[1]; d[4*i+2]=c[2]; d[4*i+3]=c.length>3?c[3]:255;}
+  octx.putImageData(img,0,0);
+  const ctx=cv.getContext("2d"); ctx.imageSmoothingEnabled=false; ctx.clearRect(0,0,cv.width,cv.height); ctx.drawImage(cv._off,0,0,cv.width,cv.height);
+  /* faint knife cuts between the 8x8 squares */
+  const s=cv.width/N; ctx.save(); ctx.globalAlpha=.22; ctx.fillStyle="#2b1b12";
+  for(let k=1;k<CUTS;k++){const p=Math.round((EDGE+k*CHIP)*s)-1; ctx.fillRect(p,EDGE*s,2,CUTS*CHIP*s); ctx.fillRect(EDGE*s,p,CUTS*CHIP*s,2);}
+  ctx.restore();
+  return ctx;
+}
+/* ---- sampling designs (Sec. 2). Each returns pixel indices; r is a PRNG such as rng(seed) or Math.random ---- */
+const SIDE=CUTS*CHIP; /* the study area is SIDE x SIDE spots */
+const mapStrata=P=>{const s=[[],[],[],[]]; for(const i of P.ids) s[P.map[i]].push(i); return s;};
+/* n distinct picks from a list, every member equally likely */
+function pickFrom(list,n,r){ n=Math.min(n,list.length); const got=new Set();
+  if(n>list.length/2){const a=list.slice(); for(let k=0;k<n;k++){const j=k+Math.floor(r()*(a.length-k)); const t=a[k]; a[k]=a[j]; a[j]=t;} return a.slice(0,n);}
+  while(got.size<n) got.add(list[Math.floor(r()*list.length)]); return [...got]; }
+const sampleSRS=(P,n,r)=>pickFrom(P.ids,n,r);
+/* one random start, then every s-th spot across and down; n must be a square whose root divides SIDE */
+function sampleSystematic(P,n,r){ const s=SIDE/Math.sqrt(n); if(s%1) throw new Error("systematic: "+n+" spots don't make a grid");
+  const x0=Math.floor(r()*s), y0=Math.floor(r()*s), out=[];
+  for(let gy=y0;gy<SIDE;gy+=s) for(let gx=x0;gx<SIDE;gx+=s) out.push((EDGE+gy)*N+EDGE+gx); return out; }
+/* split n by shares, rounding so the parts still add to n (largest remainder) */
+function allocate(n,shares){ const t=shares.reduce((a,b)=>a+b,0), raw=shares.map(v=>n*v/t), out=raw.map(Math.floor);
+  const order=raw.map((v,k)=>[v-out[k],k]).sort((a,b)=>b[0]-a[0]); for(let q=0;q<n-out.reduce((a,b)=>a+b,0);q++) out[order[q][1]]++; return out; }
+/* simple random within each stratum: alloc[h] picks from strata[h] */
+const sampleStratified=(strata,alloc,r)=>strata.flatMap((s,h)=>pickFrom(s,alloc[h],r));
+/* one-stage cluster: the study area is tiled by b x b blocks; m blocks are picked at random and every spot in them is tasted */
+function sampleClusters(m,b,r){ const per=SIDE/b; if(per%1) throw new Error("clusters: "+b+" doesn't tile the pizza");
+  const blocks=pickFrom([...Array(per*per).keys()],m,r);
+  return blocks.map(q=>{const bx=(q%per)*b, by=Math.floor(q/per)*b, g=[];
+    for(let y=0;y<b;y++) for(let x=0;x<b;x++) g.push((EDGE+by+y)*N+EDGE+bx+x); return g;}); }
+/* the spots of one square (0-63), and k distinct random spots from it */
+const squareSpots=q=>{const bx=EDGE+(q%CUTS)*CHIP, by=EDGE+Math.floor(q/CUTS)*CHIP, g=[]; for(let y=0;y<CHIP;y++) for(let x=0;x<CHIP;x++) g.push((by+y)*N+bx+x); return g;};
+const SQUARE_SPOTS=[...Array(CUTS*CUTS).keys()].map(squareSpots);
+/* spatial strata (Sec. 2.4): every square is a stratum, b random bites in each. Returns one list per square */
+const sampleBySquare=(b,r)=>SQUARE_SPOTS.map(g=>pickFrom(g,b,r));
+/* two-stage cluster: m random squares, then k random bites in each. Returns one list per picked square */
+const sampleTwoStage=(m,k,r)=>pickFrom([...Array(CUTS*CUTS).keys()],m,r).map(q=>pickFrom(SQUARE_SPOTS[q],k,r));
+/* spots in the outer ring of squares, the pieces with crust: where a convenience taster would grab from */
+const edgePieceSpots=P=>P.ids.filter(i=>{const q=P.piece[i], qx=q%CUTS, qy=Math.floor(q/CUTS); return qx===0||qy===0||qx===CUTS-1||qy===CUTS-1;});
+/* ---- estimators (Sec. 4.2). Rows are the map (strata), columns the reference ---- */
+function countMatrix(P,ids){ const c=[[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]]; for(const i of ids) c[P.map[i]][P.truth[i]]++; return c; }
+/* Stratified estimator, Eqs. 12-20, as proportions (0-1). W = each map class's share of the map.
+   Used for stratified samples and, as poststratification, for simple random and systematic ones.
+   Variances use n_i+ - 1 throughout, which reproduces every Table 5 standard error from Table 4.
+   A row with no tastes can't be estimated (ok=false); a row with one taste gives estimates but no variance.
+   Optional Nh (spots in each stratum) applies the finite population correction, 1 - n_i+/N_i+, to each stratum's
+   variance term. The paper's formulas leave it out (real maps have millions of pixels); 04 uses it to show the gap. */
+function stratEstimate(c,W,Nh){
+  const K=c.length, nr=c.map(row=>row.reduce((a,b)=>a+b,0)), p=c.map((row,i)=>row.map(v=>nr[i]?W[i]*v/nr[i]:0));
+  const q=nr.map((n,i)=>(Nh?1-n/Nh[i]:1)/(n-1)); /* each stratum's variance divisor, with the correction if asked */
+  const col=[...Array(K).keys()].map(j=>p.reduce((a,row)=>a+row[j],0));
+  const U=nr.map((n,i)=>n?c[i][i]/n:NaN), Pa=col.map((v,j)=>v?p[j][j]/v:NaN);
+  let O=0, vO=0; for(let i=0;i<K;i++){O+=p[i][i]; vO+=W[i]**2*U[i]*(1-U[i])*q[i];}
+  const vU=U.map((u,i)=>u*(1-u)*q[i]);
+  const vP=Pa.map((Pj,j)=>{ let s=0; for(let i=0;i<K;i++) if(i!==j&&nr[i]){const f=c[i][j]/nr[i]; s+=W[i]**2*f*(1-f)*q[i];}
+    return (W[j]**2*(1-Pj)**2*U[j]*(1-U[j])*q[j]+Pj**2*s)/col[j]**2; });
+  const vA=col.map((_,k)=>{let s=0; for(let i=0;i<K;i++) if(nr[i]){const f=c[i][k]/nr[i]; s+=W[i]**2*f*(1-f)*q[i];} return s;});
+  const se=v=>v>=0&&isFinite(v)?Math.sqrt(v):NaN;
+  return {ok:nr.every(n=>n>0), nr, p, O, U, P:Pa, area:col, se:{O:se(vO), U:vU.map(se), P:vP.map(se), area:vA.map(se)}};
+}
+/* One-stage cluster estimator for m equal-size blocks picked by simple random sampling (Stehman 1997b):
+   proportions are block averages, accuracies are ratios, and standard errors come from the spread between blocks.
+   Without the finite population correction, like the paper's stratified formulas. */
+function clusterEstimate(P,groups){
+  const m=groups.length, K=4, z=()=>new Float64Array(m), ok=z(), tr=[...Array(K)].map(z), mp=[...Array(K)].map(z), hit=[...Array(K)].map(z);
+  groups.forEach((g,c)=>{ for(const i of g){const a=P.map[i], b=P.truth[i]; tr[b][c]++; mp[a][c]++; if(a===b){ok[c]++; hit[a][c]++;}}
+    const L=g.length; ok[c]/=L; for(let k=0;k<K;k++){tr[k][c]/=L; mp[k][c]/=L; hit[k][c]/=L;} });
+  const mean=a=>a.reduce((s,v)=>s+v,0)/m;
+  const seMean=a=>{const u=mean(a); return Math.sqrt(a.reduce((s,v)=>s+(v-u)**2,0)/(m-1)/m);};
+  const ratio=(y,x)=>{const R=mean(y)/mean(x), xb=mean(x); let s=0; for(let c=0;c<m;c++) s+=(y[c]-R*x[c])**2;
+    return [R, xb?Math.sqrt(s/(m-1)/m)/xb:NaN];};
+  const P_=[], U=[], seP=[], seU=[];
+  for(let k=0;k<K;k++){ [P_[k],seP[k]]=ratio(hit[k],tr[k]); [U[k],seU[k]]=ratio(hit[k],mp[k]); }
+  const O=mean(ok), area=tr.map(mean);
+  return {ok:true, m, O, U, P:P_, area, se:{O:seMean(ok), U:seU, P:seP, area:tr.map(seMean)}};
+}
+/* Stratified estimator for equal-size strata with the same number of bites in each, such as one stratum per square
+   (Sec. 2.4's spatial strata). With a single stratum it is the simple random sample estimator. Every spot has the same
+   chance, so estimates are plain shares of the bites (ratios for user's and producer's). Standard errors come from
+   the spread within each stratum, so with one bite per stratum there are none (NaN): design criterion 6 in Sec. 2.2.
+   For overall accuracy this is Eq. 16 with the squares as strata, W_h = 1/H. No finite population correction. */
+function strataEstimate(P,groups){
+  const H=groups.length, K=4, Z=()=>[0,0,0,0];
+  const cnt=groups.map(g=>{const c={b:g.length,ok:0,tr:Z(),mp:Z(),hit:Z()};
+    for(const i of g){const a=P.map[i], t=P.truth[i]; c.tr[t]++; c.mp[a]++; if(a===t){c.ok++; c.hit[a]++;}} return c;});
+  const tot=f=>cnt.reduce((s,c)=>s+f(c),0), n=tot(c=>c.b);
+  /* variance of R = sum(y)/sum(x), where a bite with y = 1 always has x = 1: per stratum, the residuals d = y - R x
+     have sum of squares Sy(1 - 2R) + R^2 Sx and mean (Sy - R Sx)/b */
+  const vr=(Y,X,R)=>{ if(!isFinite(R)) return NaN; let s=0;
+    for(const c of cnt){ const b=c.b; if(b<2) return NaN; const y=Y(c), x=X(c), dm=(y-R*x)/b; s+=(y*(1-2*R)+R*R*x-b*dm*dm)/(b-1)/b; }
+    const xb=tot(X)/n; return xb?s/H/H/xb/xb:NaN; };
+  const se=v=>isFinite(v)&&v>=0?Math.sqrt(v):NaN, all=c=>c.b, O=tot(c=>c.ok)/n, U=[], Pa=[], area=[], sU=[], sP=[], sA=[];
+  for(let k=0;k<K;k++){ const hit=c=>c.hit[k], mp=c=>c.mp[k], tr=c=>c.tr[k], h=tot(hit), m=tot(mp), t=tot(tr);
+    U[k]=m?h/m:NaN; Pa[k]=t?h/t:NaN; area[k]=t/n;
+    sU[k]=se(vr(hit,mp,U[k])); sP[k]=se(vr(hit,tr,Pa[k])); sA[k]=se(vr(tr,all,area[k])); }
+  return {ok:true, H, n, O, U, P:Pa, area, se:{O:se(vr(c=>c.ok,all,O)), U:sU, P:sP, area:sA}};
+}
+/* ---- repeats histogram on a fixed 0-100% axis: one row of columns per method, a dashed truth line, a triangle at each row's average.
+   rows = [{name, vals (in %), col (CSS colour), dim}]; opt = {bin, left (label width), px (device pixel ratio)}.
+   Returns [{mean, sd, n}] per row ---- */
+function drawRepeats(cv,rows,truth,opt={}){
+  const px=opt.px||1, ctx=cv.getContext("2d"), Wd=cv.width/px, Hd=cv.height/px, ink=cssVar("--ink"), muted=cssVar("--muted"), font=cssVar("--f-body");
+  ctx.setTransform(px,0,0,px,0,0); ctx.clearRect(0,0,Wd,Hd);
+  const bin=opt.bin||1, lo=0, hi=100; /* always the full 0-100% scale, so every metric and design reads on the same axis */
+  const L=opt.left||150, Rm=24, T=22, B=34, gap=10, ph=(Hd-T-B-gap*(rows.length-1))/rows.length, X=v=>L+(v-lo)/(hi-lo)*(Wd-L-Rm);
+  const nb=Math.ceil((hi-lo)/bin), bw=(Wd-L-Rm)/nb;
+  ctx.font=`12px ${font}`; ctx.textBaseline="middle";
+  const out=rows.map((row,ri)=>{
+    const top=T+ri*(ph+gap), bins=new Array(nb).fill(0); row.vals.forEach(v=>bins[Math.max(0,Math.min(nb-1,Math.floor((v-lo)/bin)))]++);
+    const mx=Math.max(1,...bins); ctx.globalAlpha=row.dim?.35:1; ctx.fillStyle=row.col;
+    bins.forEach((c,b)=>{ if(!c) return; const h=Math.max(2,(ph-6)*c/mx); ctx.fillRect(Math.round(X(lo+b*bin))+1, Math.round(top+ph-h), Math.max(1,Math.round(bw)-1), Math.round(h)); });
+    ctx.strokeStyle=ink; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(L,top+ph+.5); ctx.lineTo(Wd-Rm,top+ph+.5); ctx.stroke();
+    const n=row.vals.length, mean=n?row.vals.reduce((a,b)=>a+b,0)/n:NaN, sd=n>1?Math.sqrt(row.vals.reduce((a,v)=>a+(v-mean)**2,0)/(n-1)):NaN;
+    if(n){ ctx.fillStyle=row.col; ctx.beginPath(); ctx.moveTo(X(mean),top+ph+2); ctx.lineTo(X(mean)-6,top+ph+10); ctx.lineTo(X(mean)+6,top+ph+10); ctx.closePath(); ctx.fill(); }
+    ctx.textAlign="left"; ctx.fillStyle=ink; ctx.fillText(row.name,6,top+ph/2-8);
+    ctx.fillStyle=muted; ctx.fillText(n?"avg "+mean.toFixed(1)+"%":"no estimate",6,top+ph/2+9);
+    ctx.globalAlpha=1; return {mean,sd,n}; });
+  ctx.strokeStyle=ink; ctx.lineWidth=2; ctx.setLineDash([5,4]); ctx.beginPath(); ctx.moveTo(X(truth),T-6); ctx.lineTo(X(truth),Hd-B+4); ctx.stroke(); ctx.setLineDash([]);
+  const rt=X(truth)>Wd-90; ctx.fillStyle=ink; ctx.textAlign=rt?"right":"left"; ctx.fillText("truth "+truth.toFixed(1)+"%",X(truth)+(rt?-6:6),T-10);
+  ctx.textAlign="center"; ctx.fillStyle=muted; const step=Wd<520?20:10;
+  for(let v=lo;v<=hi;v+=step){ ctx.fillRect(X(v)-1,Hd-B+6,2,5); ctx.fillText(v+"%",X(v),Hd-B+20); }
+  return out;
+}
+/* ---- the anchovy-or-not pizza (07): two classes, for Foody (2013). truth and map are 1 = anchovy, 0 = the rest ----
+   E is the real anchovy share (0-1). The map calls exactly round(mapPt*nA) real anchovy spots anchovy (its misses sit at
+   fillet edges) and exactly round((1-mapPo)*nO) other spots anchovy (false alarms nearest the fillets). Same crust and
+   squares as the paper pizza. The paper pizza itself is untouched. */
+function bakeAnchovyPizza(seed,E,mapPt,mapPo){
+  const r=rng(seed*13+5), NN=N*N, inside=new Uint8Array(NN), crust=new Uint8Array(NN), piece=new Int16Array(NN).fill(-1), ids=[], END=EDGE+CUTS*CHIP;
+  for(let y=0;y<N;y++)for(let x=0;x<N;x++){const i=y*N+x;
+    if(x>=EDGE&&x<END&&y>=EDGE&&y<END){inside[i]=1; ids.push(i); piece[i]=Math.floor((y-EDGE)/CHIP)*CUTS+Math.floor((x-EDGE)/CHIP);}
+    else crust[i]=1;}
+  const T=ids.length, nA=Math.max(1,Math.min(T-1,Math.round(E*T))), truth=new Int8Array(NN).fill(-1); for(const i of ids) truth[i]=0;
+  let cnt=0; const S=CUTS*CHIP;
+  /* anchovy fillets, as on the paper pizza, until nearly enough */
+  for(let t=0;t<20000&&cnt<nA-30;t++){ const ax=EDGE+10+r()*(S-20), ay=EDGE+10+r()*(S-20), th=r()*Math.PI, L=16+r()*10, ux=Math.cos(th), uy=Math.sin(th), cells=[];
+    for(let y=Math.floor(ay-L/2-2);y<=ay+L/2+2;y++) for(let x=Math.floor(ax-L/2-2);x<=ax+L/2+2;x++){
+      const vx=x+.5-ax, vy=y+.5-ay, s=vx*ux+vy*uy, q=Math.abs(-vx*uy+vy*ux); if(Math.abs(s)<=L/2&&q<=1.4) cells.push(y*N+x); }
+    const free=cells.filter(i=>inside[i]&&truth[i]===0); if(!cells.length||free.length/cells.length<.9||cnt+free.length>nA) continue;
+    for(const i of free) truth[i]=1; cnt+=free.length; }
+  /* nudge fillet edges until the share is exact */
+  for(let pass=0;pass<600&&cnt!==nA;pass++){ const need=nA-cnt;
+    let cand=ids.filter(i=>need>0?(truth[i]===0&&nb4(i).some(j=>truth[j]===1)):(truth[i]===1&&nb4(i).some(j=>truth[j]===0)));
+    if(!cand.length) cand=ids.filter(i=>truth[i]===(need>0?0:1));
+    for(let a=cand.length-1;a>0;a--){const b=Math.floor(r()*(a+1)); const t=cand[a]; cand[a]=cand[b]; cand[b]=t;}
+    const m=Math.min(Math.abs(need),Math.max(1,Math.ceil(cand.length/3)),cand.length);
+    for(let q=0;q<m;q++) truth[cand[q]]=need>0?1:0; cnt+=need>0?m:-m; }
+  const bfs=k=>{const d=new Int16Array(NN).fill(9999), q=[]; for(const i of ids) if(truth[i]===k){d[i]=0; q.push(i);}
+    for(let h=0;h<q.length;h++){const i=q[h]; for(const j of nb4(i)) if(inside[j]&&d[j]>d[i]+1){d[j]=d[i]+1; q.push(j);}} return d;};
+  const dA=bfs(1), dO=bfs(0), rp=rng(seed*31+7), jit=new Float64Array(NN), tex=new Uint8Array(NN);
+  for(let i=0;i<NN;i++){jit[i]=rp(); tex[i]=rp()<.3?1:0;}
+  const nO=T-nA, hitA=Math.round(Math.max(0,Math.min(1,mapPt))*nA), fa=Math.round((1-Math.max(0,Math.min(1,mapPo)))*nO);
+  const map=Int8Array.from(truth);
+  const A=ids.filter(i=>truth[i]===1).sort((a,b)=>(dO[a]+4*jit[a])-(dO[b]+4*jit[b])), O=ids.filter(i=>truth[i]===0).sort((a,b)=>(dA[a]+4*jit[a])-(dA[b]+4*jit[b]));
+  for(const i of A.slice(0,nA-hitA)) map[i]=0;
+  for(const i of O.slice(0,fa)) map[i]=1;
+  const cell=[[nO-fa,nA-hitA],[fa,hitA]]; /* rows map (0 rest, 1 anchovy), columns real */
+  return {inside,crust,piece,ids,T,truth,map,jit,tex,nA,nO,E:nA/T,cell};
+}
+/* the taster's fixed verdict at every spot (1 = says anchovy). In each (real, map) group exactly round(pt*n) real anchovy
+   spots or round((1-po)*n) other spots are called anchovy, picked at random, so the taster's slips are independent of
+   the map's, as Foody's (2013) equations assume */
+function tasterSays(P,pt,po,seed){
+  const r=rng(seed), v=new Int8Array(N*N).fill(-1), g=[[[],[]],[[],[]]];
+  for(const i of P.ids){ v[i]=0; g[P.truth[i]][P.map[i]].push(i); }
+  for(let t=0;t<2;t++) for(let m=0;m<2;m++){ const a=g[t][m], k=Math.round((t?pt:1-po)*a.length);
+    for(let q=0;q<k;q++){const j=q+Math.floor(r()*(a.length-q)); const x=a[q]; a[q]=a[j]; a[j]=x; v[a[q]]=1;} }
+  return v;
+}
+/* Foody (2013) Eqs. 1-4: apparent accuracies and area when the map (C) is checked against an imperfect reference (R)
+   instead of the truth (T). E is the real share; rt, ro the taster's accuracy on anchovy and the rest; ct, co the map's */
+function foody(E,rt,ro,ct,co){
+  const Pt=((1-ro)*(1-co)+E*(rt*ct-(1-ro)*(1-co)))/((1-ro)+E*(rt+ro-1));
+  const Po=(ro*co+E*((1-rt)*(1-ct)-ro*co))/(ro-E*(rt+ro-1));
+  const EA=E*(rt+ro-1)-ro+1, U=(e,pt,po)=>e*pt/(e*pt+(1-po)*(1-e));
+  const a=E*rt*ct+(1-ro)*(1-co)*(1-E), b=E*ct*(1-rt)+ro*(1-co)*(1-E), c=E*rt*(1-ct)+co*(1-ro)*(1-E), d=E*(1-rt)*(1-ct)+ro*co*(1-E);
+  return {EA, Pt, Po, Ut:U(EA,Pt,Po), O:a+d, cells:{a,b,c,d}, truth:{Pt:ct, Po:co, Ut:U(E,ct,co), O:E*ct+(1-E)*co}};
+}
+/* ---- end shared kit ---- */
+const TABLE4=[[21,3,1,0],[4,18,0,3],[0,2,20,3],[5,2,2,16]], W4=[.6,.25,.1,.05];
+const REPS=1000, MSE_REPS=500, GRID=[5,10,15,20,25,30,40,50,75,100,150,200,300,400];
+const METHODS=[
+  {key:"pix",   name:"Pixel counting", col:"--pix"},
+  {key:"plain", name:"Ignore the map", col:"--ink"},
+  {key:"adj",   name:"Eq. 22",         col:"--adj"},
+  {key:"est",   name:"Eq. 19",         col:"--est"},
+];
+const st={seed:SEED, k:3, view:"err", n:25, srsN:100, slip:0};
+let P, strata, Nh, W, mapS, real, com, omi, smp, s3, reps, mse=null, mseJob=0, say=null;
+
+const $=id=>document.getElementById(id);
+const sum=a=>a.reduce((x,y)=>x+y,0);
+const mean=a=>a.length?sum(a)/a.length:NaN;
+const sdev=a=>{if(a.length<2) return NaN; const m=mean(a); return Math.sqrt(sum(a.map(v=>(v-m)**2))/(a.length-1));};
+const f1=v=>isFinite(v)?(100*v).toFixed(1)+"%":"–";
+const f2=v=>isFinite(v)?(100*v).toFixed(2):"–";
+const pt=v=>isFinite(v)?(100*v).toFixed(1):"–";
+const sgn=v=>(v<0?"−":v>0?"+":"")+Math.abs(v).toFixed(1);
+const fmt=v=>Math.round(v).toLocaleString("en");
+const sw=k=>`<i class="sw" style="background:var(${VAR[k][0]})"></i>`;
+const setEq=(id,v)=>{$(id).textContent=v;};
+const top=k=>`${TITLE[k]}<span class="pc">(${PAPER_CLASS[k]})</span>`;
+const Z=()=>[[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]];
+/* sample counts against a label array (the taster's verdicts): rows map, columns what the taster said */
+const counts=(ids,lab)=>{const c=Z(); for(const i of ids) c[P.map[i]][lab[i]]++; return c;};
+
+/* ---- the pizza and its census numbers ---- */
+function setup(){
+  P=bakePaperPizza(st.seed); strata=mapStrata(P); Nh=strata.map(s=>s.length); W=Nh.map(v=>v/P.T);
+  mapS=P.rowT.map(v=>v/P.T); real=P.colT.map(v=>v/P.T);
+  com=[0,1,2,3].map(k=>(P.rowT[k]-P.cell[k][k])/P.T); omi=[0,1,2,3].map(k=>(P.colT[k]-P.cell[k][k])/P.T);
+  say=null;
+}
+/* the taster's fixed verdict at every spot: with chance `slip` they name one of the other three toppings */
+function taster(){
+  if(say&&say.slip===st.slip) return say.lab;
+  let lab=P.truth;
+  if(st.slip>0){ const r=rng(st.seed*13+Math.round(st.slip*1000)); lab=Int8Array.from(P.truth);
+    for(const i of P.ids) if(r()<st.slip){ const o=[0,1,2,3].filter(k=>k!==P.truth[i]); lab[i]=o[Math.floor(r()*3)]; } }
+  say={slip:st.slip, lab}; return lab;
+}
+
+/* ---- Step 1 ---- */
+function drawPizza1(){
+  const cv=$("cv1"), pal=pizzaPalette(), CM=hexRGB(cssVar("--commit")), OM=hexRGB(cssVar("--omit")), k=st.k, v=st.view;
+  paintPizza(cv,i=>{
+    if(P.crust[i]) return pal.crust[P.tex[i]];
+    if(!P.inside[i]) return null;
+    if(v==="map") return pal.top[P.map[i]][P.tex[i]];
+    if(v==="truth") return pal.top[P.truth[i]][P.tex[i]];
+    const m=P.map[i], t=P.truth[i];
+    if(m===k&&t!==k) return [CM[0],CM[1],CM[2],255];
+    if(t===k&&m!==k) return [OM[0],OM[1],OM[2],255];
+    const c=pal.top[m][P.tex[i]]; return [c[0],c[1],c[2],m===k?255:55];
+  });
+  const n=NAMES[k];
+  $("cv1-cap").innerHTML={err:`<b>${TITLE[k]} on the map</b> Bright: the map says ${n}. Magenta: the map says ${n}, but it isn't. Green: real ${n} the map missed.`,
+    map:"<b>The map</b> What the classifier says, and what pixel counting counts.", truth:"<b>The real pizza</b> What a taster would find at every spot."}[v];
+  $("legend1").innerHTML=v==="err"
+    ?`<span>${sw(k)}Map says ${n}, and it is</span><span><i class="sw cm"></i>Map says ${n}, it isn't</span><span><i class="sw om"></i>Real ${n} the map missed</span>`
+    :NAMES.map((x,j)=>`<span>${sw(j)}${TITLE[j]}</span>`).join("");
+}
+function renderFall(){
+  const k=st.k, m=mapS[k], c=com[k], o=omi[k], r=real[k], hi=Math.max(m,r)*1.12, X=v=>(100*v/hi).toFixed(2)+"%";
+  const row=(lbl,small,a,b,col,val,dash)=>`<div class="frow"><span class="flbl">${lbl}<small>${small}</small></span><div class="track"><i class="${dash?"dash":""}" style="left:${X(a)};width:${X(b-a)};background:${col}"></i></div><span class="fval">${val}</span></div>`;
+  const tc=`var(${VAR[k][0]})`, n=NAMES[k];
+  $("fall").innerHTML=
+    row("Map says",`pixel counting, p<sub>${k+1}+</sub>`,0,m,tc,pt(m)+"%")+
+    row("− Commission",`map says ${n}, it isn't`,m-c,m,"var(--commit)","− "+pt(c))+
+    row("+ Omission",`real ${n} the map missed`,m-c,m-c+o,"var(--omit)","+ "+pt(o))+
+    row("= Real share",`p<sub>+${k+1}</sub>, every spot checked`,0,r,tc,pt(r)+"%",true);
+}
+function renderT1(){
+  let h=`<thead><tr><th class="rowh">Topping</th><th>Map says<br>(pixel count)</th><th>− Commission</th><th>+ Omission</th><th class="truth">= Real share</th><th>Map bias<br>(Eq. 5)</th></tr></thead><tbody>`;
+  for(let k=0;k<4;k++) h+=`<tr class="pick${k===st.k?" cur":""}" data-k="${k}"><th class="rowh">${sw(k)}${top(k)}</th><td>${f1(mapS[k])}</td><td class="cm">− ${pt(com[k])}</td><td class="om">+ ${pt(omi[k])}</td><td class="truth acc">${f1(real[k])}</td><td class="acc">${sgn(100*(mapS[k]-real[k]))}</td></tr>`;
+  $("t1").innerHTML=h+"</tbody>";
+  $("t1").querySelectorAll("tr[data-k]").forEach(r=>r.addEventListener("click",()=>pickTopping(+r.dataset.k)));
+}
+function renderStep1(){
+  const k=st.k, b=100*(mapS[k]-real[k]), n=NAMES[k];
+  $("bias-big").textContent=sgn(b);
+  $("bias-say").innerHTML=`points: the map's ${n} share minus the real one. ${Math.abs(b)<.05?"The map's mistakes cancel out.":b<0?`The map misses more ${n} (${pt(omi[k])}) than it invents (${pt(com[k])}), so pixel counting comes up short.`:`The map invents more ${n} (${pt(com[k])}) than it misses (${pt(omi[k])}), so pixel counting runs high.`}`;
+  drawPizza1(); renderFall(); renderT1();
+  setEq("q21-tag",`${n} (class ${k+1})`); setEq("q21-k",k+1); setEq("q21-m",pt(mapS[k])); setEq("q21-c",pt(com[k])); setEq("q21-o",pt(omi[k])); setEq("q21-v",pt(real[k]));
+  setEq("q5-k",k+1); setEq("q5-k2",k+1); setEq("q5-m",pt(mapS[k])); setEq("q5-r",pt(real[k])); setEq("q5-v",sgn(b));
+  $("q5-cap").textContent=`Called non-site-specific accuracy in the paper, and also map bias: the bias of pixel counting. Commission and omission can cancel, so it can be near zero even when the map makes many mistakes (Sec. 4.1). Here ${pt(com[k])} points of commission and ${pt(omi[k])} of omission leave ${sgn(b)}.`;
+}
+
+/* ---- Step 2: stratified sample, Eqs. 19-20 ---- */
+function drawSample(){ const ids=sampleStratified(strata,[st.n,st.n,st.n,st.n],Math.random); smp={ids, set:new Set(ids), c:countMatrix(P,ids)}; smp.e=stratEstimate(smp.c,W); }
+function drawPizza2(){
+  const cv=$("cv2"), pal=pizzaPalette(), s=cv.width/N, k=st.k;
+  const ctx=paintPizza(cv,i=>{
+    if(P.crust[i]) return pal.crust[P.tex[i]];
+    if(!P.inside[i]) return null;
+    const c=pal.top[P.map[i]][P.tex[i]]; return [c[0],c[1],c[2],smp.set.has(i)?255:70];
+  });
+  const ink=cssVar("--ink"), panel=cssVar("--panel"), r=smp.ids.length>500?3:5;
+  for(const i of smp.ids){ const cx=(i%N)*s+s/2, cy=((i/N)|0)*s+s/2, t=P.truth[i], c=pal.top[t][0];
+    ctx.fillStyle=t===k?`rgb(${c.join(",")})`:panel; ctx.fillRect(cx-r,cy-r,2*r,2*r);
+    if(r>3){ctx.lineWidth=2; ctx.strokeStyle=ink; ctx.strokeRect(cx-r,cy-r,2*r,2*r);} }
+  const nk=smp.ids.filter(i=>P.truth[i]===k).length;
+  $("cv2-cap").innerHTML=`<b>${fmt(smp.ids.length)} tastes</b> ${st.n} from each topping on the map. ${nk} turned out to be ${NAMES[k]}.`;
+  $("legend2").innerHTML=NAMES.map((n,j)=>`<span>${sw(j)}${TITLE[j]}</span>`).join("")+
+    `<span>${sw(k)}Taste was ${NAMES[k]}</span><span><i class="sw ring"></i>Taste was something else</span>`;
+}
+function renderT2(){
+  const e=smp.e, k=st.k;
+  let h=`<thead><tr><th class="rowh">Topping</th><th>Map says<br>(pixel count)</th><th>Sample says<br>(Eq. 19)</th><th>SE<br>(Eq. 20)</th><th>95% interval</th><th class="truth">Real share</th><th>Interval catches it?</th></tr></thead><tbody>`;
+  for(let j=0;j<4;j++){ const a=e.area[j], s=e.se.area[j], lo=a-1.96*s, hi=a+1.96*s, hit=real[j]>=lo&&real[j]<=hi;
+    h+=`<tr class="pick${j===k?" cur":""}" data-k="${j}"><th class="rowh">${sw(j)}${top(j)}</th><td>${f1(mapS[j])}</td><td class="acc">${f1(a)}</td><td>± ${pt(s)}</td><td>${isFinite(s)?pt(Math.max(0,lo))+" to "+pt(hi)+"%":"–"}</td><td class="truth">${f1(real[j])}</td><td>${isFinite(s)?(hit?"yes":"no"):"–"}</td></tr>`; }
+  $("t2").innerHTML=h+"</tbody>";
+  $("t2").querySelectorAll("tr[data-k]").forEach(r=>r.addEventListener("click",()=>pickTopping(+r.dataset.k)));
+}
+function renderStep2(){
+  const e=smp.e, k=st.k, a=e.area[k], s=e.se.area[k], n=NAMES[k];
+  $("n-o").textContent=st.n;
+  $("est-big").textContent=f1(a);
+  const lo=a-1.96*s, hi=a+1.96*s, out=mapS[k]<lo||mapS[k]>hi;
+  $("est-say").innerHTML=`of the pizza is ${n}, says this sample, ± ${pt(s)} points. The map says ${f1(mapS[k])}${out?", outside this sample's 95% interval":", inside this sample's 95% interval"}. The truth is ${f1(real[k])}.`;
+  drawPizza2(); renderT2();
+  /* Eq. 19 for topping k */
+  setEq("q19-tag",`${n} (class ${k+1})`); setEq("q19-k",k+1);
+  for(let i=0;i<4;i++){ setEq("q19-w"+(i+1),pt(W[i])); setEq("q19-n"+(i+1),smp.c[i][k]); setEq("q19-r"+(i+1),e.nr[i]); }
+  setEq("q19-v",f2(a));
+  /* Eq. 20, each stratum's term in points squared */
+  const terms=[0,1,2,3].map(i=>{const p=smp.c[i][k]/e.nr[i]; return 1e4*W[i]**2*p*(1-p)/(e.nr[i]-1);}), V=sum(terms);
+  for(let i=0;i<4;i++) setEq("q20-t"+(i+1),terms[i].toFixed(2));
+  setEq("q20-v",V.toFixed(2)); setEq("q20-v2",V.toFixed(2)); setEq("q20-se",Math.sqrt(V).toFixed(2));
+  setEq("qci-p",f2(a)); setEq("qci-se",(100*s).toFixed(2)); setEq("qci-lo",f2(Math.max(0,lo))); setEq("qci-hi",f2(hi));
+  $("qci-cap").textContent=`With the paper's own Table 4, anchovy comes out 7.40% ± 1.96 × 1.85 = 3.77% to 11.03%. Rounding the SE to 1.9 first would give ± 3.7 instead of ± 3.6.`;
+  const pk=sum(e.p[k]); setEq("q22-m",f2(mapS[k])); setEq("q22-r",f2(a)); setEq("q22-e",f2(pk)); setEq("q22-v",f2(mapS[k]+(a-pk)));
+}
+
+/* ---- Step 3: one simple random sample, three estimators ---- */
+function threeWays(ids,lab){
+  const n=ids.length, c=counts(ids,lab), q=stratEstimate(c,W), out=[];
+  for(let k=0;k<4;k++){
+    const nk=c[0][k]+c[1][k]+c[2][k]+c[3][k], mk=sum(c[k]), both=c[k][k], p=nk/n, d=(nk-mk)/n, sd2=((nk-both)+(mk-both)-n*d*d)/(n-1);
+    out.push({nk, mk,
+      pix:{v:mapS[k], se:0},
+      plain:{v:p, se:Math.sqrt(p*(1-p)/(n-1))},
+      adj:{v:mapS[k]+d, se:Math.sqrt(Math.max(0,sd2)/n)},
+      est:q.ok?{v:q.area[k], se:q.se.area[k]}:{v:NaN, se:NaN}});
+  }
+  return out;
+}
+function drawS3(){ const ids=sampleSRS(P,st.srsN,Math.random); s3={ids, r:threeWays(ids,P.truth), nr:[0,1,2,3].map(h=>ids.filter(i=>P.map[i]===h).length)}; }
+function runReps(){
+  reps={n:st.srsN, v:[0,1,2,3].map(()=>({plain:[],adj:[],est:[],seP:[],seA:[],seE:[]})), miss:0};
+  for(let r=0;r<REPS;r++){ const o=threeWays(sampleSRS(P,st.srsN,Math.random),P.truth);
+    if(!isFinite(o[0].est.v)) reps.miss++;
+    o.forEach((x,k)=>{ const v=reps.v[k]; v.plain.push(100*x.plain.v); v.adj.push(100*x.adj.v); if(isFinite(x.est.v)) v.est.push(100*x.est.v);
+      v.seP.push(100*x.plain.se); v.seA.push(100*x.adj.se); if(isFinite(x.est.se)) v.seE.push(100*x.est.se); }); }
+}
+function renderT3(){
+  const k=st.k, x=s3.r[k], n=st.srsN;
+  let h=`<thead><tr><th class="rowh">Method</th><th>Uses</th><th>This sample</th><th>SE</th><th class="truth">Real share</th></tr></thead><tbody>`;
+  const row=(m,uses,o)=>`<tr><th class="rowh"><i class="sw ${m.key}"></i>${m.name}</th><td>${uses}</td><td class="acc">${f1(o.v)}</td><td>${o.se===0?"none":isFinite(o.se)?"± "+pt(o.se):"–"}</td><td class="truth">${f1(real[k])}</td></tr>`;
+  h+=row(METHODS[0],"the map only",x.pix)+row(METHODS[1],"the tastes only",x.plain)+row(METHODS[2],"map count + tastes",x.adj)+row(METHODS[3],"tastes, weighted by map topping",x.est);
+  $("t3").innerHTML=h+"</tbody>";
+  setEq("q22s-m",f2(mapS[k])); setEq("q22s-r",x.nk); setEq("q22s-n",n); setEq("q22s-e",x.mk); setEq("q22s-n2",n); setEq("q22s-v",f2(x.adj.v));
+}
+function prep(cv,h){ const w=cv.clientWidth||600, px=window.devicePixelRatio||1; cv.style.width="100%"; cv.style.height=h+"px"; cv.width=Math.round(w*px); cv.height=Math.round(h*px);
+  const ctx=cv.getContext("2d"); ctx.setTransform(px,0,0,px,0,0); ctx.clearRect(0,0,w,h); ctx.font=`12px ${cssVar("--f-body")}`; ctx.textBaseline="middle"; return {ctx,w,h,px}; }
+function renderHist(){
+  const cv=$("hist"), w=cv.clientWidth||900, narrow=w<560, h=METHODS.length*(narrow?52:58)+56; prep(cv,h);
+  const k=st.k, v=reps.v[k], t=100*real[k];
+  const rows=[{name:"Pixel counting",vals:new Array(REPS).fill(100*mapS[k]),col:cssVar("--pix")},
+    {name:"Ignore the map",vals:v.plain,col:cssVar("--ink")},{name:"Eq. 22",vals:v.adj,col:cssVar("--adj")},{name:"Eq. 19",vals:v.est,col:cssVar("--est")}];
+  const stats=drawRepeats(cv,rows,t,{px:window.devicePixelRatio||1,left:narrow?112:150,bin:k===0||k===1?1:.5});
+  const fse=[NaN,mean(v.seP),mean(v.seA),mean(v.seE)];
+  let tab=`<thead><tr><th class="rowh">Method</th><th>Average</th><th class="truth">Real share</th><th>Off by</th><th>Spread</th><th>Formula SE</th></tr></thead><tbody>`;
+  METHODS.forEach((m,j)=>{ const s=stats[j]; m._sd=s.sd; m._mean=s.mean; m._fse=fse[j];
+    tab+=`<tr><th class="rowh"><i class="sw ${m.key}"></i>${m.name}</th><td>${s.mean.toFixed(2)}%</td><td class="truth">${t.toFixed(2)}%</td><td>${sgn(s.mean-t)}</td><td class="acc">${j===0?"0":s.sd.toFixed(2)}</td><td>${j===0?"none":fse[j].toFixed(2)}</td></tr>`; });
+  $("sum3").innerHTML=tab+"</tbody>";
+  const [Pm,Pl,Ad,Es]=METHODS, n=NAMES[k];
+  let s=`For ${n} with ${fmt(st.srsN)} random tastes: pixel counting is always ${pt(mapS[k])}%, off by ${sgn(100*mapS[k]-t)} points every time. The three sample methods all centre on the truth. Ignoring the map, the answers spread ${Pl._sd.toFixed(2)} points. Eq. 22 spreads ${Ad._sd.toFixed(2)}, and Eq. 19 ${Es._sd.toFixed(2)}. `;
+  s+=Es._sd<Ad._sd&&Ad._sd<Pl._sd?`The more the method uses the map, the tighter it gets, and Eq. 19 is tightest, as the paper says (Sec. 4.3.1). `:`Here the order isn't clean; repeat to see if it is noise. `;
+  s+=`Eq. 19 is worth about ${fmt(st.srsN*(Pl._sd/Es._sd)**2)} tastes of the map-blind kind. `;
+  if(reps.miss) s+=`In ${reps.miss} of 1,000 samples no taste landed on map ${NAMES[3]}, so Eq. 19 couldn't weight that row and those samples are left out of its pile. `;
+  $("hsum").innerHTML=s;
+  setEq("qj-a",Pl._sd.toFixed(1)); setEq("qj-b",Ad._sd.toFixed(1)); setEq("qj-c",Es._sd.toFixed(1));
+  $("qj-cap").textContent=`Spread of 1,000 estimates for ${n}, in points. Eq. 22 uses the map's count; Eq. 19 uses which map topping each taste came from. Neither changes where the estimates centre, only how tightly.`;
+}
+
+/* ---- Step 4: root mean square error against tastes per topping (runs in pieces so the page stays responsive) ---- */
+function startMSE(){
+  const job=++mseJob, lab=taster(), seed=st.seed, slip=st.slip;
+  mse={slip, seed, rmse:[0,1,2,3].map(()=>[]), sd:[0,1,2,3].map(()=>[]), bias:[0,1,2,3].map(()=>[]), done:0};
+  drawMSE(); let gi=0;
+  const step=()=>{ if(job!==mseJob) return;
+    const n=GRID[gi], acc=[0,1,2,3].map(()=>[]);
+    for(let r=0;r<MSE_REPS;r++){ const ids=sampleStratified(strata,[n,n,n,n],Math.random), e=stratEstimate(counts(ids,lab),W); for(let k=0;k<4;k++) acc[k].push(e.area[k]); }
+    for(let k=0;k<4;k++){ const a=acc[k], m=mean(a); mse.bias[k][gi]=100*(m-real[k]); mse.sd[k][gi]=100*sdev(a); mse.rmse[k][gi]=100*Math.sqrt(mean(a.map(v=>(v-real[k])**2))); }
+    mse.done=++gi; drawMSE(); if(gi<GRID.length) setTimeout(step,0); else {renderEq23(); renderCheck();} };
+  setTimeout(step,30);
+}
+function crossing(k){ /* first grid size where the sample's error drops below pixel counting's, interpolated on the log scale */
+  const b=Math.abs(100*(mapS[k]-real[k])), r=mse.rmse[k];
+  if(r[0]<b) return {n:GRID[0], below:true};
+  for(let g=1;g<mse.done;g++) if(r[g]<b){ const t=(r[g-1]-b)/(r[g-1]-r[g]); return {n:Math.exp(Math.log(GRID[g-1])+t*(Math.log(GRID[g])-Math.log(GRID[g-1]))), g}; }
+  return null;
+}
+function drawMSE(){
+  const cv=$("mse"), {ctx,w,h}=prep(cv,(cv.clientWidth||600)<520?280:320), ink=cssVar("--ink"), muted=cssVar("--muted"), tom=cssVar("--tomato"), cE=cssVar("--est"), cP=cssVar("--pix");
+  const k=st.k, b=Math.abs(100*(mapS[k]-real[k])), r=mse.rmse[k].slice(0,mse.done), L=46, R=16, T=16, B=46;
+  const topY=Math.max(1,Math.ceil(Math.max(b,...r.filter(isFinite))*1.12)), lx=v=>Math.log(v), X=v=>L+(lx(v)-lx(GRID[0]))/(lx(GRID[GRID.length-1])-lx(GRID[0]))*(w-L-R), Y=v=>T+(1-v/topY)*(h-T-B);
+  const stepY=topY>10?2:topY>4?1:.5;
+  ctx.fillStyle=muted; ctx.textAlign="right";
+  for(let v=0;v<=topY+1e-9;v+=stepY){ ctx.globalAlpha=.25; ctx.fillRect(L,Math.round(Y(v)),w-L-R,1); ctx.globalAlpha=1; ctx.fillText(v,L-8,Y(v)); }
+  ctx.textAlign="center"; for(const n of GRID) if(w>=520||[5,10,25,50,100,200,400].includes(n)) ctx.fillText(n,X(n),h-B+16);
+  ctx.textAlign="right"; ctx.fillText("tastes per topping →",w-R,h-8);
+  ctx.save(); ctx.translate(12,T+(h-T-B)/2); ctx.rotate(-Math.PI/2); ctx.textAlign="center"; ctx.fillText("error (points)",0,0); ctx.restore();
+  ctx.strokeStyle=cP; ctx.lineWidth=3; ctx.beginPath(); ctx.moveTo(L,Y(b)); ctx.lineTo(w-R,Y(b)); ctx.stroke();
+  ctx.fillStyle=cP; ctx.textAlign="right"; ctx.fillText(`pixel counting ${b.toFixed(1)}`,w-R-4,Y(b)-10);
+  ctx.strokeStyle=cE; ctx.fillStyle=cE; ctx.lineWidth=3; ctx.beginPath(); r.forEach((v,g)=>g?ctx.lineTo(X(GRID[g]),Y(v)):ctx.moveTo(X(GRID[g]),Y(v))); ctx.stroke();
+  r.forEach((v,g)=>ctx.fillRect(X(GRID[g])-3,Y(v)-3,6,6));
+  /* the sample's bias floor, when the taster slips */
+  if(mse.slip>0&&mse.done){ const fl=Math.abs(mean(mse.bias[k].slice(0,mse.done))); ctx.strokeStyle=cE; ctx.lineWidth=2; ctx.setLineDash([5,4]); ctx.beginPath(); ctx.moveTo(L,Y(fl)); ctx.lineTo(w-R,Y(fl)); ctx.stroke(); ctx.setLineDash([]);
+    ctx.textAlign="right"; ctx.fillText(`taster's bias ${fl.toFixed(1)}`,w-R-4,Y(fl)+(fl>b?-10:12)); }
+  const nowX=X(Math.max(GRID[0],st.n)); ctx.strokeStyle=muted; ctx.lineWidth=1; ctx.setLineDash([3,3]); ctx.beginPath(); ctx.moveTo(nowX,T); ctx.lineTo(nowX,h-B); ctx.stroke(); ctx.setLineDash([]);
+  ctx.fillStyle=muted; ctx.textAlign="left"; ctx.fillText(`Step 2: ${st.n}`,nowX+5,T+6);
+  if(mse.done===GRID.length){ const c=crossing(k); if(c&&!c.below){ ctx.fillStyle=tom; ctx.strokeStyle=ink; ctx.lineWidth=2; ctx.fillRect(X(c.n)-6,Y(b)-6,12,12); ctx.strokeRect(X(c.n)-6,Y(b)-6,12,12); } }
+  ctx.strokeStyle=ink; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(L,T); ctx.lineTo(L,h-B); ctx.lineTo(w-R,h-B); ctx.stroke();
+  if(mse.done<GRID.length){ ctx.fillStyle=muted; ctx.textAlign="center"; ctx.fillText(`tasting ${GRID[mse.done]} per topping…`,L+(w-L-R)/2,T+24); }
+  renderMSESum();
+}
+function renderMSESum(){
+  const el=$("msum");
+  if(mse.done<GRID.length){ el.innerHTML=`<span class="busy">Working…</span>`; return; }
+  const k=st.k, n=NAMES[k], b=100*(mapS[k]-real[k]), c=crossing(k), fl=mean(mse.bias[k]);
+  let s=`For ${n}, pixel counting is off by ${Math.abs(b).toFixed(1)} points every time. `;
+  if(c&&c.below) s+=`Even at ${GRID[0]} tastes per topping the sample's error is smaller. `;
+  else if(c) s+=`The sample's error drops below that at about ${Math.round(c.n)} tastes per topping (${fmt(4*c.n)} in all). With fewer, pixel counting is closer on average. `;
+  else s+=`At every size up to ${GRID[GRID.length-1]} per topping, pixel counting is closer. `;
+  if(k===2&&!st.slip) s+=`Pepperoni is the surprise: the map is only ${Math.abs(b).toFixed(1)} points off, and pepperoni is hard to pin down by sampling, so the map's count holds out for a long time. `;
+  if(st.slip>0) s+=`With a taster who slips on ${Math.round(100*st.slip)}% of spots, the sample is off by ${sgn(fl)} points on average however many tastes it takes: the dashed line is a floor. ${Math.abs(fl)>Math.abs(b)?`That is worse than the map's own bias, so pixel counting wins at every size.`:`It is still smaller than the map's bias, so a big enough sample still wins.`} `;
+  el.innerHTML=s;
+}
+function renderEq23(){
+  if(!mse||mse.done<GRID.length) return;
+  const k=st.k, g=GRID.reduce((a,v,i)=>Math.abs(v-st.n)<Math.abs(GRID[a]-st.n)?i:a,0), b=100*(mapS[k]-real[k]), sv=mse.sd[k][g], sb=mse.bias[k][g];
+  setEq("q23-tag",`${NAMES[k]}, ${GRID[g]} per topping`);
+  const r1=v=>Math.round(10*v)/10, B=r1(b), SV=r1(sv), SB=r1(sb); /* square the numbers as shown, so the line adds up */
+  setEq("q23-pb",sgn(B)); setEq("q23-pm",(B*B).toFixed(2)); setEq("q23-sv",SV.toFixed(1)); setEq("q23-sb",sgn(SB)); setEq("q23-sm",(SV*SV+SB*SB).toFixed(2));
+  $("q23-cap").textContent=`From 500 samples of ${GRID[g]} per topping (nearest to Step 2's ${st.n}). The map counts every spot, so this page gives it no variance; Sec. 4.3.2 notes a different training set or technician would give a different map.`+(st.slip>0?` The sample's bias comes from the taster's ${Math.round(100*st.slip)}% slips.`:" With a taster who never slips, the sample's bias is only simulation noise.");
+  /* a rough crossing from Eq. 20 with the census shares: SE^2 ~ S/n per topping, with S = sum W_i^2 p_i(1-p_i) over strata */
+  let S=0; for(let i=0;i<4;i++){ const p=P.cell[i][k]/P.rowT[i]; S+=W[i]**2*p*(1-p); }
+  const bb=b*b, S2=1e4*S; setEq("qx-s",S2.toFixed(1)); setEq("qx-b",bb.toFixed(2)); setEq("qx-n",bb>0?fmt(S2/bb):"∞");
+  const c=crossing(k);
+  $("qx-cap").textContent=`Both in points squared. p_i is the real share of ${NAMES[k]} among map topping i's spots, from the census. It ignores the small-pizza correction and any taster slips, so it can differ from the simulated crossing${c&&!c.below?` (about ${Math.round(c.n)} here)`:""}.`;
+}
+
+/* ---- check against the paper ---- */
+function renderCheck(){
+  const e=stratEstimate(TABLE4,W4), A=[55.4,26.4,10.8,7.4], SE=[4.9,4.6,2.6,1.9];
+  const same=e.area.every((v,k)=>(100*v).toFixed(1)===A[k].toFixed(1))&&e.se.area.every((v,k)=>(100*v).toFixed(1)===SE[k].toFixed(1));
+  const k=3, lo=e.area[k]-1.96*e.se.area[k], hi=e.area[k]+1.96*e.se.area[k];
+  const pk=sum(smp.e.p[st.k]), gap=Math.abs(mapS[st.k]+(smp.e.area[st.k]-pk)-smp.e.area[st.k]);
+  const [,Pl,Ad,Es]=METHODS, n=NAMES[st.k], cx=mse&&mse.done===GRID.length?crossing(3):null;
+  const rows=[
+    ["Table 4 through Eqs. 19–20 (Table 5)","area 55.4 / 26.4 / 10.8 / 7.4, SEs 4.9 / 4.6 / 2.6 / 1.9",`${e.area.map(pt).join(" / ")}, SEs ${e.se.area.map(pt).join(" / ")}${same?" ✓":""}`],
+    ["Anchovy 95% interval <i>ours</i>","7.4 ± 1.96 SE (Sec. 4.4)",`${pt(lo)}% to ${pt(hi)}% (± ${pt(1.96*e.se.area[k])}; SE 1.85 unrounded)`],
+    ["Eq. 21 for anchovy (Table 5's D row and column)","5.0 − (1.0 + 0.4 + 0.4) + (0 + 3.0 + 1.2) = 7.4",`${pt(mapS[3])} − ${pt(com[3])} + ${pt(omi[3])} = ${pt(real[3])}`],
+    ["Eq. 5, map bias for anchovy","5.0 − 7.4 = −2.4",sgn(100*(mapS[3]-real[3]))+" points"],
+    ["Sec. 4.3.1: Eq. 22 = Eq. 19 under stratified random sampling","equal",`differ by ${gap<1e-12?"0":gap.toExponential(1)} on Step 2's sample`],
+    ["Sec. 4.3.1: Eq. 19 has the smaller SE (Stehman 2013)","Eq. 19 smaller",`spread ${Es._sd.toFixed(2)} vs ${Ad._sd.toFixed(2)} for ${n}, ${fmt(st.srsN)} random tastes`],
+    ["Sec. 4.3.1: the map shrinks the standard error","smaller with the map",`${Es._sd.toFixed(2)} with it, ${Pl._sd.toFixed(2)} without`],
+    ["Eq. 23: where pixel counting stops winning, anchovy <i>ours</i>","no number given",cx?(cx.below?`the sample wins from ${GRID[0]} per topping`:`about ${Math.round(cx.n)} per topping`):(mse&&mse.done===GRID.length?"pixel counting wins at every size":"working…")],
+  ];
+  $("chk").innerHTML=`<thead><tr><th class="rowh">Check</th><th>Paper</th><th>This page</th></tr></thead><tbody>`+rows.map(r=>`<tr><th class="rowh">${r[0]}</th><td>${r[1]}</td><td>${r[2]}</td></tr>`).join("")+"</tbody>";
+  $("chk-note").innerHTML=`The first two rows don't depend on this pizza: they are the paper's own counts. The paper prints no interval for area; with its rounded SE of 1.9 the half-width would be 3.7 instead of 3.6.`;
+}
+
+/* ---- wiring ---- */
+function buildControls(){
+  $("topk").insertAdjacentHTML("beforeend",NAMES.map((n,k)=>`<input type="radio" name="topk" id="k-${k}" value="${k}"${k===st.k?" checked":""}><label for="k-${k}">${TITLE[k]}</label>`).join(""));
+  for(const id of ["k3","k4"]) $(id).innerHTML=NAMES.map((n,k)=>`<option value="${k}"${k===st.k?" selected":""}>${TITLE[k]} (${PAPER_CLASS[k]})</option>`).join("");
+}
+function pickTopping(k){
+  st.k=k; $("k-"+k).checked=true; $("k3").value=k; $("k4").value=k;
+  renderStep1(); renderStep2(); renderT3(); renderHist(); if(mse) {drawMSE(); renderEq23();} renderCheck();
+}
+function newSample(){ drawSample(); renderStep2(); renderCheck(); }
+function step3(){ drawS3(); renderT3(); }
+function repeats(){ runReps(); renderHist(); renderCheck(); }
+function all(){ setup(); renderStep1(); drawSample(); renderStep2(); step3(); repeats(); startMSE(); }
+buildControls();
+$("topk").addEventListener("change",e=>pickTopping(+e.target.value));
+$("k3").addEventListener("change",e=>pickTopping(+e.target.value));
+$("k4").addEventListener("change",e=>pickTopping(+e.target.value));
+$("view").addEventListener("change",e=>{st.view=e.target.value; drawPizza1();});
+$("n").addEventListener("input",e=>{st.n=+e.target.value; newSample(); if(mse) {drawMSE(); renderEq23();}});
+$("draw").addEventListener("click",newSample);
+$("newpie").addEventListener("click",()=>{st.seed=(Math.random()*1e9)|0; all();});
+$("srsn").addEventListener("change",e=>{st.srsN=+e.target.value; step3(); repeats();});
+$("draw3").addEventListener("click",step3);
+$("rerun").addEventListener("click",repeats);
+$("slip").addEventListener("change",e=>{st.slip=+e.target.value; startMSE();});
+const repaint=()=>{drawPizza1(); drawPizza2(); renderHist(); if(mse) drawMSE();};
+const mq=window.matchMedia("(prefers-color-scheme: dark)"); if(mq.addEventListener) mq.addEventListener("change",repaint);
+new MutationObserver(repaint).observe(document.documentElement,{attributes:true,attributeFilter:["data-theme"]});
+if(document.fonts&&document.fonts.ready) document.fonts.ready.then(()=>{renderHist(); if(mse) drawMSE();});
+let lastW=0; if(window.ResizeObserver) new ResizeObserver(()=>{const w=$("hist").clientWidth; if(w&&w!==lastW){lastW=w; renderHist(); if(mse) drawMSE();}}).observe(document.body);
+
+all();
+})();
+</script>
+</body>
+</html>

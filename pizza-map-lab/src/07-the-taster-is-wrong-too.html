@@ -1,0 +1,676 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>The Taster Is Wrong Too</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&family=IBM+Plex+Mono:ital,wght@0,400;0,600;1,400&display=swap">
+<style>
+/* Layout: same lab bench as 01-06. An anchovy-or-not pizza with a taster who slips: the real pizza, the map and the
+   taster's verdicts, Foody's two matrices, his curves across every share, 1,000 samples, a panel of tasters who
+   disagree, then primary and alternate labels on the paper pizza, the paper check and the notes. */
+:root{
+  --bg:#efe2c8; --check:rgba(196,52,32,.085); --panel:#fffaf0; --ink:#2b1b12; --muted:#6e584a;
+  --line:#2b1b12; --shadow:#2b1b12; --tomato:#c4341f;
+  --perfect:#118a36; --taster:#e0189e; --fix:#8a6f5c;
+  --tint-g:rgba(17,138,54,.12); --tint-m:rgba(224,24,158,.12); --tint-d:rgba(43,27,18,.06);
+  --cheese-a:#f2c23c; --cheese-b:#f7d567; --mush-a:#cbb59a; --mush-b:#a68c70;
+  --pep-a:#b3261e; --pep-b:#8c1a14; --anch-a:#8ea3ba; --anch-b:#647891;
+  --crust-a:#c98a4b; --crust-b:#ad7036;
+  --f-display:"Silkscreen","Courier New",ui-monospace,monospace;
+  --f-body:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#1b1310; --check:rgba(196,52,32,.13); --panel:#2a1e18; --ink:#f3e7d3; --muted:#c3ae98;
+  --line:#f3e7d3; --shadow:#8a2a16; --tomato:#ff6a4d; --perfect:#3ddc6e; --taster:#ff52c9; --fix:#b89c86;
+  --tint-g:rgba(61,220,110,.15); --tint-m:rgba(255,82,201,.15); --tint-d:rgba(243,231,211,.07);
+  color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --bg:#1b1310; --check:rgba(196,52,32,.13); --panel:#2a1e18; --ink:#f3e7d3; --muted:#c3ae98;
+  --line:#f3e7d3; --shadow:#8a2a16; --tomato:#ff6a4d; --perfect:#3ddc6e; --taster:#ff52c9; --fix:#b89c86;
+  --tint-g:rgba(61,220,110,.15); --tint-m:rgba(255,82,201,.15); --tint-d:rgba(243,231,211,.07);
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{margin:0; background-color:var(--bg); color:var(--ink); font-family:var(--f-body); font-size:15px; line-height:1.55;
+  background-image:linear-gradient(90deg,var(--check) 50%,transparent 50%),linear-gradient(var(--check) 50%,transparent 50%);
+  background-size:56px 56px}
+.wrap{max-width:1120px; margin:0 auto; padding-block:28px 56px;
+  padding-left:max(16px,env(safe-area-inset-left,0px)); padding-right:max(16px,env(safe-area-inset-right,0px));
+  display:grid; gap:22px}
+h1,h2,h3,.eyebrow,.lbl,.btn,.seg label,th,.crumb,.big,.tile b{font-family:var(--f-display); font-weight:400; letter-spacing:.02em}
+h1{font-size:clamp(28px,5.4vw,52px); line-height:1.05; margin:0; text-wrap:balance}
+h2{font-size:20px; margin:0 0 10px; text-wrap:balance}
+h3{font-size:15px; margin:18px 0 6px}
+p{margin:0 0 10px; max-width:66ch}
+a{color:var(--tomato)}
+.box{background:var(--panel); border:3px solid var(--line); box-shadow:6px 6px 0 var(--shadow); padding:18px; min-width:0}
+.mast{display:grid; gap:12px}
+.crumb{font-size:12px; color:var(--ink); justify-self:start}
+.eyebrow{font-size:13px; display:inline-block; background:var(--tomato); color:#fffaf0; padding:4px 8px; justify-self:start}
+.mast p{font-size:16px}
+.lab{display:grid; grid-template-columns:minmax(0,300px) minmax(0,1fr); gap:22px}
+@media (max-width:820px){.lab{grid-template-columns:minmax(0,1fr)}}
+.lab > h2{grid-column:1/-1; margin:0}
+.controls{display:grid; gap:14px; align-content:start}
+.ctl{display:grid; gap:6px}
+.lbl{font-size:13px; display:flex; justify-content:space-between; gap:8px}
+.lbl output{font-family:var(--f-body); font-weight:600; font-size:14px}
+.hint{font-size:12.5px; color:var(--muted); margin:0}
+.grp{border:2px dashed var(--line); padding:10px; display:grid; gap:10px; margin:0; min-width:0}
+.grp legend{font-family:var(--f-display); font-size:12px; padding:0 4px}
+input[type=range]{-webkit-appearance:none; appearance:none; width:100%; height:24px; background:transparent; margin:0}
+input[type=range]::-webkit-slider-runnable-track{height:10px; background:var(--tint-d); border:2px solid var(--line)}
+input[type=range]::-moz-range-track{height:6px; background:var(--tint-d); border:2px solid var(--line)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none; width:20px; height:20px; margin-top:-7px; background:var(--tomato); border:2px solid var(--line); border-radius:0}
+input[type=range]::-moz-range-thumb{width:16px; height:16px; background:var(--tomato); border:2px solid var(--line); border-radius:0}
+input[type=range]:focus-visible{outline:3px dashed var(--tomato); outline-offset:3px}
+.seg{display:grid; grid-template-columns:minmax(0,1fr); gap:6px; border:0; padding:0; margin:0; min-width:0}
+.seg.two{grid-template-columns:repeat(2,minmax(0,1fr))}
+.seg.three{grid-template-columns:repeat(3,minmax(0,1fr))}
+.seg legend{padding:0; margin-bottom:6px}
+.seg input{position:absolute; opacity:0; pointer-events:none}
+.seg label{border:2px solid var(--line); padding:7px 8px; font-size:12px; cursor:pointer; display:flex; align-items:center; justify-content:center; text-align:center; gap:7px; background:var(--panel)}
+.seg label:hover{background:var(--tint-d)}
+.seg input:checked + label{background:var(--ink); color:var(--panel)}
+.seg input:focus-visible + label{outline:3px dashed var(--tomato); outline-offset:2px}
+.btns{display:flex; flex-wrap:wrap; gap:8px}
+.btn{font-size:12px; border:2px solid var(--line); background:var(--panel); color:var(--ink); padding:7px 9px; cursor:pointer; box-shadow:3px 3px 0 var(--shadow); border-radius:0}
+.btn:hover{background:var(--tint-d)}
+.btn:active{transform:translate(3px,3px); box-shadow:0 0 0 var(--shadow)}
+.btn:focus-visible{outline:3px dashed var(--tomato); outline-offset:2px}
+.btn[aria-pressed="true"]{background:var(--ink); color:var(--panel)}
+select{font-family:var(--f-body); font-size:14px; border:2px solid var(--line); background:var(--panel); color:var(--ink); padding:6px 8px; border-radius:0; max-width:100%}
+select:focus-visible{outline:3px dashed var(--tomato); outline-offset:2px}
+.views{display:grid; gap:12px; align-content:start; min-width:0}
+.pies{display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px}
+@media (max-width:560px){.pies{grid-template-columns:minmax(0,1fr)}}
+.pies.one{grid-template-columns:minmax(0,1fr)}
+.tiles{display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px}
+@media (max-width:640px){.tiles{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.tile{border:2px solid var(--line); padding:8px 10px; display:grid; gap:2px; align-content:start; min-width:0}
+.tile b{font-size:11.5px}
+.tile .big{font-size:clamp(22px,3.6vw,32px); line-height:1.1}
+.tile small{font-size:12px; color:var(--muted)}
+.tile.hot .big{color:var(--taster)}
+.tile.ok .big{color:var(--perfect)}
+.big{color:var(--tomato)}
+figure{margin:0; display:grid; gap:6px; min-width:0; justify-items:start; align-content:start}
+figcaption{font-size:12.5px; color:var(--muted)}
+figcaption b{font-family:var(--f-display); font-weight:400; font-size:13px; color:var(--ink)}
+canvas{display:block; border:2px solid var(--line); background:var(--tint-d)}
+.pie{width:100%; max-width:420px; aspect-ratio:1; image-rendering:pixelated; image-rendering:crisp-edges}
+.chart{width:100%}
+.legend{display:flex; flex-wrap:wrap; gap:6px 14px; font-size:12.5px}
+.legend span{display:inline-flex; align-items:center; gap:6px}
+.sw{width:12px; height:12px; border:2px solid var(--line); flex:none; display:inline-block}
+.sw.perfect{background:var(--perfect)} .sw.taster{background:var(--taster)} .sw.fix{background:var(--fix)} .sw.miss{background:var(--tomato)}
+.sw.faded{background:var(--tint-d)}
+.sw.line{height:4px; width:22px; border:0; background:var(--taster)}
+.sw.dash{height:0; width:22px; border:0; border-top:3px dashed var(--ink)}
+.sw.band{background:var(--tint-g)}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse; font-variant-numeric:tabular-nums; width:100%}
+th,td{border:2px solid var(--line); padding:7px 6px; text-align:center; font-size:13.5px}
+th{font-size:11.5px; background:var(--tint-d)}
+th.rowh{text-align:left}
+th.corner{font-size:10.5px; text-align:left; line-height:1.4}
+th .sw{vertical-align:-1px; margin-right:5px}
+td.acc{font-weight:600}
+td.diag{font-weight:600}
+.truth{border-style:dashed}
+td.dim{color:var(--muted)}
+.c-true{background:var(--tint-g)} .c-app{background:var(--tint-m)}
+th.c-true{color:var(--perfect)} th.c-app{color:var(--taster)}
+.mx{min-width:400px} #cmp{min-width:560px} #rep-tab{min-width:560px} #pan-tab{min-width:460px} #panel{min-width:420px} #alt-tab{min-width:480px} #chk{min-width:480px}
+.lower{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:22px; align-items:start}
+@media (max-width:980px){.lower{grid-template-columns:minmax(0,1fr)}}
+.histctl{display:flex; flex-wrap:wrap; gap:10px 16px; align-items:center; margin-bottom:12px}
+.histctl .seg{min-width:min(100%,300px)}
+.histctl .ctl{min-width:min(100%,300px)}
+.sum{font-size:14px; margin-top:10px}
+.k-true{color:var(--perfect); font-weight:600} .k-app{color:var(--taster); font-weight:600} .k-fix{color:var(--fix); font-weight:600}
+.notes p{font-size:14px}
+.formula{display:inline-block; border:2px solid var(--line); padding:4px 8px; margin:2px 0 8px; font-weight:600; background:var(--tint-d)}
+/* Paper equations: MathML that build.py makes from tex tags. Live numbers are tagged \id{...} and set with setEq. */
+math{font-family:"STIX Two Math","Cambria Math","Latin Modern Math",math; font-size:1.15em; font-style:normal; font-weight:normal; line-height:normal; letter-spacing:normal; text-transform:none; direction:ltr; font-feature-settings:"dtls" off}
+mfrac > :nth-child(2), msqrt, mover > :first-child{math-shift:compact}
+.eqs{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px}
+@media (max-width:820px){.eqs{grid-template-columns:minmax(0,1fr)}}
+.eq{border:2px solid var(--line); background:var(--tint-d); padding:10px 12px; display:grid; gap:6px; align-content:start; min-width:0}
+.eq-tag{font-family:var(--f-display); font-size:11.5px; letter-spacing:.02em; display:flex; justify-content:space-between; gap:4px 10px; flex-wrap:wrap}
+.eq-tag i{font-style:normal; color:var(--muted)}
+.eq-m{overflow-x:auto; overflow-y:hidden; padding:3px 0}
+@media (max-width:480px){.eq-m math{font-size:1em}}
+.eq-cap{font-size:12.5px; color:var(--muted); margin:0}
+footer{font-size:13px; color:var(--muted)}
+footer p{max-width:none}
+@media (prefers-reduced-motion:reduce){.btn:active{transform:none}}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <header class="mast">
+    <a class="crumb" href="index.html">← Pizza Map Lab</a>
+    <span class="eyebrow">Pizza Map Lab · Explainer 07</span>
+    <h1>The Taster Is Wrong Too</h1>
+    <p>Every page so far trusted the taster. When the taster said anchovy, it was anchovy. Real reference data are another classification, and they make mistakes too (Sec. 6). Foody (2013) worked out what that does to a rare class. A taster who is right 95% of the time, checking a map that is right 90% of the time, makes a 1% topping look nearly six times bigger. This page uses a pizza with only two toppings, anchovy and everything else, so you can set how rare the anchovy is.</p>
+  </header>
+
+  <section class="box lab" aria-label="Set the pizza, the map and the taster">
+    <h2>Step 1 · A taster who slips</h2>
+    <div class="controls">
+      <div class="ctl">
+        <label class="lbl" for="e"><span>Real anchovy</span><output id="e-v">1%</output></label>
+        <input type="range" id="e" min="0" max="12" step="1" value="1">
+        <p class="hint">Share of the pizza that really is anchovy. Foody looks hardest at 1% and below, because land cover change is often that rare. 7.4% is the paper pizza's anchovy.</p>
+      </div>
+      <fieldset class="grp">
+        <legend>The taster (reference)</legend>
+        <div class="ctl">
+          <label class="lbl" for="rt"><span>Right on real anchovy</span><output id="rt-v">95%</output></label>
+          <input type="range" id="rt" min="50" max="100" step="1" value="95">
+        </div>
+        <div class="ctl">
+          <label class="lbl" for="ro"><span>Right on the rest</span><output id="ro-v">95%</output></label>
+          <input type="range" id="ro" min="50" max="100" step="1" value="95">
+        </div>
+        <p class="hint">Foody's <tex>P_t^{\mathrm{RvT}}</tex> and <tex>P_o^{\mathrm{RvT}}</tex>: the reference checked against the truth.</p>
+      </fieldset>
+      <fieldset class="grp">
+        <legend>The map (classification)</legend>
+        <div class="ctl">
+          <label class="lbl" for="ct"><span>Right on real anchovy</span><output id="ct-v">90%</output></label>
+          <input type="range" id="ct" min="50" max="100" step="1" value="90">
+        </div>
+        <div class="ctl">
+          <label class="lbl" for="co"><span>Right on the rest</span><output id="co-v">90%</output></label>
+          <input type="range" id="co" min="50" max="100" step="1" value="90">
+        </div>
+        <p class="hint">Foody's <tex>P_t^{\mathrm{CvT}}</tex> and <tex>P_o^{\mathrm{CvT}}</tex>: the map checked against the truth.</p>
+      </fieldset>
+      <div class="ctl">
+        <span class="lbl">Try</span>
+        <div class="btns" id="presets">
+          <button class="btn" type="button" data-p="I">Scenario I</button>
+          <button class="btn" type="button" data-p="II">Scenario II</button>
+          <button class="btn" type="button" data-p="III">Scenario III</button>
+          <button class="btn" type="button" data-p="IIIb">III, better taster</button>
+          <button class="btn" type="button" data-p="near">Taster 99 / 99</button>
+          <button class="btn" type="button" data-p="perfect">Perfect map</button>
+          <button class="btn" type="button" data-p="paper">Paper pizza's anchovy</button>
+        </div>
+        <p class="hint" id="preset-hint"></p>
+      </div>
+      <div class="btns"><button class="btn" type="button" id="newpie">Bake a new pizza</button></div>
+    </div>
+    <div class="views">
+      <div class="pies">
+        <figure>
+          <canvas class="pie" id="cv-real" width="384" height="384" aria-label="The real pizza"></canvas>
+          <figcaption><b>The real pizza</b> What's really there.</figcaption>
+        </figure>
+        <figure>
+          <canvas class="pie" id="cv-map" width="384" height="384" aria-label="The map"></canvas>
+          <figcaption><b>The map</b> What the classifier says.</figcaption>
+        </figure>
+        <figure>
+          <canvas class="pie" id="cv-taste" width="384" height="384" aria-label="What the taster says at every spot"></canvas>
+          <figcaption><b>The taster</b> What the taster would say at every spot.</figcaption>
+        </figure>
+      </div>
+      <div class="legend"><span><i class="sw" style="background:var(--anch-a)"></i>Anchovy</span><span><i class="sw" style="background:var(--cheese-a)"></i>The rest</span></div>
+      <div class="tiles">
+        <div class="tile ok"><b>Real anchovy</b><span class="big" id="t-e">1.0%</span><small id="t-e-n"></small></div>
+        <div class="tile hot"><b>Taster says</b><span class="big" id="t-ea">5.9%</span><small id="t-ea-n"></small></div>
+        <div class="tile hot"><b>Too big by</b><span class="big" id="t-x">5.9×</span><small>taster ÷ real</small></div>
+        <div class="tile"><b>Map says</b><span class="big" id="t-map">10.8%</span><small>pixel counting</small></div>
+      </div>
+      <p class="sum" id="s1-sum"></p>
+    </div>
+  </section>
+
+  <section class="box">
+    <h2>Step 2 · Two matrices for one map</h2>
+    <p>The same map, checked two ways. On the left against the real pizza, which nobody gets to see in real life. On the right against the taster, which is what an accuracy assessment really does. Both come from checking every spot, so there is no sampling error here, only taster error. This is Foody's Fig. 1(b) and (c) (p. 784). Rows are the map and columns the check, as in the paper's Table 3.</p>
+    <div class="lower">
+      <div><h3><span class="k-true">True</span> · map vs the real pizza</h3><div class="scroll"><table class="mx" id="mx-true"></table></div></div>
+      <div><h3><span class="k-app">Apparent</span> · map vs the taster</h3><div class="scroll"><table class="mx" id="mx-app"></table></div></div>
+    </div>
+    <h3>What the taster makes of the map</h3>
+    <div class="scroll"><table id="cmp"></table></div>
+    <p class="sum" id="cmp-sum"></p>
+    <h3>Foody's equations</h3>
+    <p>Foody (2013, p. 786) rewrites Gart and Buck's (1966) equations for the apparent accuracy and area. T is the truth, R the reference (our taster) and C the classification (our map). Subscript t is the target class, anchovy, and o is the other class, the rest.</p>
+    <div class="eqs">
+      <div class="eq">
+        <div class="eq-tag"><span>Foody Eq. 4 · apparent area</span><i>no map in it</i></div>
+        <div class="eq-m"><tex display>E^{A} = E\,(P_t^{\mathrm{RvT}} + P_o^{\mathrm{RvT}} - 1) - P_o^{\mathrm{RvT}} + 1</tex></div>
+        <div class="eq-m"><tex display>E^{A} = \id{q4-e}{0.010} \times (\id{q4-rt}{0.95} + \id{q4-ro}{0.95} - 1) - \id{q4-ro2}{0.95} + 1 = \id{q4-v}{0.059}</tex></div>
+        <p class="eq-cap">Rearranged, it says the taster finds the real anchovy it catches plus every other spot it wrongly calls anchovy:</p>
+        <div class="eq-m"><tex display>E^{A} = E\,P_t^{\mathrm{RvT}} + (1-E)(1-P_o^{\mathrm{RvT}}) = \id{q4-a}{0.0095} + \id{q4-b}{0.0495}</tex></div>
+        <p class="eq-cap">The map's accuracy, <tex>P^{\mathrm{CvT}}</tex>, appears nowhere. A perfect map gets the same wrong area. When anchovy is rare, the second term is almost all of it.</p>
+      </div>
+      <div class="eq">
+        <div class="eq-tag"><span>Area too big by</span><i>Foody's estimated/actual ratio</i></div>
+        <div class="eq-m"><tex display>\frac{E^{A}}{E} = \frac{\id{qr-ea}{5.90}\%}{\id{qr-e}{1.00}\%} = \id{qr-v}{5.9} \times</tex></div>
+        <p class="eq-cap" id="qr-cap"></p>
+      </div>
+      <div class="eq">
+        <div class="eq-tag"><span>Foody Eq. 1 · apparent producer's</span><i>anchovy</i></div>
+        <div class="eq-m"><tex display>P_t^{\mathrm{CvR}} = \frac{(1-P_o^{\mathrm{RvT}})(1-P_o^{\mathrm{CvT}}) + E\,\big(P_t^{\mathrm{RvT}}P_t^{\mathrm{CvT}} - (1-P_o^{\mathrm{RvT}})(1-P_o^{\mathrm{CvT}})\big)}{(1-P_o^{\mathrm{RvT}}) + E\,(P_t^{\mathrm{RvT}} + P_o^{\mathrm{RvT}} - 1)}</tex></div>
+        <div class="eq-m"><tex display>P_t^{\mathrm{CvR}} = \id{q1-v}{23.7}\%, \qquad P_t^{\mathrm{CvT}} = \id{q1-t}{70.0}\%</tex></div>
+        <p class="eq-cap">The taster's false anchovy land in the map's "rest" row, so the map looks like it misses most of the anchovy.</p>
+      </div>
+      <div class="eq">
+        <div class="eq-tag"><span>Foody Eq. 3 · user's</span><i>anchovy</i></div>
+        <div class="eq-m"><tex display>U_t = \frac{E\,P_t}{E\,P_t + (1-P_o)(1-E)}</tex></div>
+        <div class="eq-m"><tex display>U_t^{\mathrm{CvR}} = \frac{\id{q3-a}{0.0254}}{\id{q3-a2}{0.0254} + \id{q3-b}{0.1796}} = \id{q3-v}{12.4}\%, \qquad U_t^{\mathrm{CvT}} = \id{q3-t}{3.4}\%</tex></div>
+        <p class="eq-cap">Foody uses the same equation for the true and apparent values, with <tex>E^{A}</tex> and the apparent producer's accuracies (Eqs. 1–2) put in for the apparent one.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="box">
+    <h2>Step 3 · Every share of anchovy</h2>
+    <p>Foody's Figs. 2–4 (pp. 788–790) run Eqs. 1–4 over every share from 0 to 100%, with the taster and map you set in Step 1. The marker is your pizza. Foody counts an area as badly off if it lands outside 0.9 to 1.1 times the real one (p. 787).</p>
+    <div class="histctl">
+      <label class="lbl" for="metric">Show</label>
+      <select id="metric">
+        <option value="ratio">Estimated ÷ real area (Fig. f)</option>
+        <option value="area">Estimated area (Fig. e)</option>
+        <option value="pt">Producer's accuracy, anchovy (Fig. a)</option>
+        <option value="po">Producer's accuracy, the rest (Fig. b)</option>
+        <option value="ut">User's accuracy, anchovy (Fig. c)</option>
+        <option value="oa">Overall accuracy (Fig. d)</option>
+      </select>
+      <fieldset class="seg two" id="zoom" aria-label="Range of real shares">
+        <input type="radio" name="zoom" id="z-all" value="all" checked><label for="z-all">0–100%</label>
+        <input type="radio" name="zoom" id="z-low" value="low"><label for="z-low">0–10%</label>
+      </fieldset>
+    </div>
+    <canvas class="chart" id="curve" aria-label="Apparent and true values against the real share of anchovy"></canvas>
+    <div class="legend" style="margin-top:8px" id="curve-legend"></div>
+    <p class="sum" id="curve-sum"></p>
+  </section>
+
+  <section class="box">
+    <h2>Step 4 · Taste a sample, 1,000 times</h2>
+    <p>Real assessments taste a sample, so here the taster tastes a stratified sample by map class and the area comes from the paper's Eq. 19, as in explainer 06. The <span class="k-true">perfect taster</span> centres on the real share. <span class="k-app">This taster</span> centres on Foody's Eq. 4 instead, however many tastes you add. Sec. 4.3.2 (p. 13): reference error is the only source of bias in a sample-based area estimate.</p>
+    <div class="histctl">
+      <fieldset class="seg three" id="sizes">
+        <legend class="lbl">Tastes per map class</legend>
+        <input type="radio" name="size" id="n-25" value="25"><label for="n-25">25</label>
+        <input type="radio" name="size" id="n-100" value="100" checked><label for="n-100">100</label>
+        <input type="radio" name="size" id="n-400" value="400"><label for="n-400">400</label>
+      </fieldset>
+      <button class="btn" type="button" id="rerun">Repeat 1,000 more</button>
+    </div>
+    <canvas id="hist" aria-label="Histograms of 1,000 repeated area estimates"></canvas>
+    <div class="legend" style="margin-top:8px"><span><i class="sw perfect"></i>Perfect taster</span><span><i class="sw taster"></i>This taster</span><span><i class="sw fix"></i>This taster, corrected with Eq. 4</span></div>
+    <div class="scroll" style="margin-top:12px"><table id="rep-tab"></table></div>
+    <p class="sum" id="hsum"></p>
+  </section>
+
+  <section class="box">
+    <h2>Step 5 · Tasters disagree</h2>
+    <p>Hire a different taster and you get different labels (Sec. 6.3). Here a panel of eight tasters share the average accuracy you set in Step 1, but each is a bit keener or a bit warier on anchovy. Every repeat hires one of them at random. McRoberts et al. (2018) showed that this kind of variability inflates the standard errors of area estimates. The simulation is <i>ours</i>.</p>
+    <div class="histctl">
+      <div class="ctl">
+        <label class="lbl" for="dif"><span>Tasters differ by up to</span><output id="dif-v">± 10 points</output></label>
+        <input type="range" id="dif" min="0" max="15" step="1" value="10">
+      </div>
+    </div>
+    <div class="lower">
+      <div>
+        <canvas id="hist5" aria-label="Histograms of 1,000 area estimates with one taster and with a panel"></canvas>
+        <div class="legend" style="margin-top:8px"><span><i class="sw taster"></i>Always the same taster</span><span><i class="sw fix"></i>A taster from the panel</span></div>
+        <div class="scroll" style="margin-top:12px"><table id="pan-tab"></table></div>
+      </div>
+      <div class="scroll"><table id="panel"></table></div>
+    </div>
+    <p class="sum" id="psum"></p>
+  </section>
+
+  <section class="box lab" aria-label="Primary and alternate labels on the paper pizza">
+    <h2>Step 6 · Spots that are two toppings at once</h2>
+    <div class="controls">
+      <p>Back on the paper pizza. A spot at a topping's edge can be part cheese and part mushroom, and one label doesn't describe it. Sec. 6.2 suggests a primary label and, where needed, an alternate one. The map then counts as right if it matches either.</p>
+      <fieldset class="seg three" id="wsel">
+        <legend class="lbl">Mixed if within</legend>
+        <input type="radio" name="w" id="w-1" value="1" checked><label for="w-1">1 spot</label>
+        <input type="radio" name="w" id="w-2" value="2"><label for="w-2">2 spots</label>
+        <input type="radio" name="w" id="w-3" value="3"><label for="w-3">3 spots</label>
+      </fieldset>
+      <p class="hint">A spot gets an alternate label, the nearest other topping, if that topping is this close. The taster here is otherwise perfect.</p>
+      <p class="sum" id="alt-sum"></p>
+    </div>
+    <div class="views">
+      <div class="pies one">
+        <figure>
+          <canvas class="pie" id="cv-alt" width="512" height="512" aria-label="The paper pizza with mixed spots marked"></canvas>
+          <figcaption><b>The paper pizza</b> Mixed spots bright, clear-cut spots faded.</figcaption>
+        </figure>
+      </div>
+      <div class="legend"><span><i class="sw faded"></i>Clear-cut spot</span><span><i class="sw" style="background:var(--mush-a)"></i>Mixed spot (bright)</span><span><i class="sw miss"></i>Map wrong on the primary label, right on the alternate</span></div>
+      <div class="scroll"><table id="alt-tab"></table></div>
+    </div>
+  </section>
+
+  <section class="lower">
+    <div class="box">
+      <h2>Check against the papers</h2>
+      <p>Foody's figures, from his Eqs. 1–8, and the same settings baked into a pizza and checked spot by spot. Rows marked <i>ours</i> are not printed in either paper.</p>
+      <div class="scroll"><table id="chk"></table></div>
+      <p class="sum">Foody's Fig. 1(c) prints 23.73% and 79.88%. His Eqs. 1 and 2 give 23.738% and 79.888%, so the figure cuts the digits off rather than rounding. His text also says a 99%/99% taster gives 1.89%; his Eq. 4 gives 1.98%, which fits his own "close to double".</p>
+    </div>
+    <div class="box notes">
+      <h2>What Section 6 says</h2>
+      <h3>The reference is just another classification</h3>
+      <p>Accuracy assessment assumes the reference labels are the truth. In reality they are another classification, and they can be wrong (Sec. 6, p. 16). Every disagreement gets blamed on the map, even when the taster made the mistake. The paper names three problems: wrong labels (6.1), spots one label can't describe (6.2), and interpreters who disagree (6.3).</p>
+      <h3>Small taster errors, big area errors</h3>
+      <p>Even small reference error can bias accuracy and area a lot, shrinking a class's apparent accuracy and inflating its area (Sec. 6.1, pp. 16–17). Foody's "nearly a factor of 6" is Scenario I; his "nearly 40" is Scenario II at 0.5%. Reference error also makes accuracy depend on how common the class is.</p>
+      <span class="formula">rare class + slightly wrong taster = much too much anchovy</span>
+      <h3>What to do about it</h3>
+      <p>If the taster's accuracy is known, the real accuracy can be worked out (Sec. 6.1, citing Staquet et al. 1981 and Foody 2010). Step 4's corrected row does that for area. With several labels per spot but no known accuracy, latent class analysis can estimate it (Foody 2012).</p>
+      <h3>Design-based inference assumes the labels are right</h3>
+      <p>The standard errors on every page of this lab only count sampling error (Sec. 5, pp. 15–16). Taster error and taster disagreement need measurement error models on top. That's why Steps 4 and 5 show formula SEs that miss the real problem.</p>
+      <h3>Mixed spots</h3>
+      <p>Report how many spots were ambiguous and whether they were used (Sec. 6.2, p. 17). Matching the primary label alone is close to the fuzzy MAX operator; matching the primary or the alternate is close to RIGHT (Gopal and Woodcock 1994; Stehman et al. 2003).</p>
+    </div>
+  </section>
+
+  <footer>
+    <p>Based on Stehman, S.V. &amp; Foody, G.M. (2019). Key issues in rigorous accuracy assessment of land cover products. <i>Remote Sensing of Environment</i> 231, 111199, Sections 4.3.2, 5 and 6 (pp. 13, 15–17). <a href="https://doi.org/10.1016/j.rse.2019.05.018">doi:10.1016/j.rse.2019.05.018</a></p>
+    <p>And Foody, G.M. (2013). Ground reference data error and the mis-estimation of the area of land cover change as a function of its abundance. <i>Remote Sensing Letters</i> 4, 783–792, Eqs. 1–8, Figs. 1–4 and Sec. 3. <a href="https://doi.org/10.1080/2150704X.2013.798708">doi:10.1080/2150704X.2013.798708</a></p>
+    <p>Previous: <a href="06-how-much-anchovy.html">06 · How Much Anchovy Is There?</a>. Next up: 08 · normalizing and kappa.</p>
+  </footer>
+</main>
+
+<script>
+(function(){
+"use strict";
+/* @@KIT@@ */
+const STOPS=[.005,.01,.02,.03,.05,.074,.1,.15,.2,.25,.3,.4,.5];
+const PRESETS={
+  I:{e:1, rt:95, ro:95, ct:90, co:90, say:"Scenario I (Foody p. 787): a very good taster and a very good map. Foody: 5.9 times too big at 1%."},
+  II:{e:0, rt:80, ro:80, ct:70, co:70, say:"Scenario II: both less accurate. Foody: 20.3% at a real 0.5%, 40.6 times too big. At 1% it's 20.6 times."},
+  III:{e:1, rt:80, ro:90, ct:70, co:80, say:"Scenario III at 1%, Foody's Fig. 1 example. The taster says 10.7%."},
+  IIIb:{e:1, rt:85, ro:95, ct:70, co:80, say:"Scenario III with a taster 5 points better on both classes (p. 791). Still 5.8%, against a real 1%."},
+  near:{e:1, rt:99, ro:99, ct:70, co:80, say:"A taster right 99% of the time on both. Eq. 4 gives 1.98%, about double the real 1%."},
+  perfect:{ct:100, co:100, say:"A map with no mistakes at all. The taster's area doesn't move: Eq. 4 has no map in it."},
+  paper:{e:5, rt:95, ro:95, ct:43, co:98, say:"The paper pizza's anchovy: 7.4% real, with a map that catches 43% of it and is right on 98% of the rest, as in Table 5. A 95% taster makes it 1.6 times too big (ours)."},
+};
+const REPS=1000, PANEL=8;
+const st={seed:SEED, ei:1, rt:.95, ro:.95, ct:.9, co:.9, metric:"ratio", zoom:"all", n:100, dif:.10, w:1};
+let P, V, cen, reps, pan, paper, alt;
+
+const $=id=>document.getElementById(id);
+const pc=(v,d=1)=>isFinite(v)?(100*v).toFixed(d)+"%":"–";
+const sum=a=>a.reduce((x,y)=>x+y,0);
+const mean=a=>a.length?sum(a)/a.length:NaN;
+const sdev=a=>{if(a.length<2) return NaN; const m=mean(a); return Math.sqrt(sum(a.map(v=>(v-m)**2))/(a.length-1));};
+const setEq=(id,v)=>{$(id).textContent=v;};
+const fmt=v=>Math.round(v).toLocaleString("en");
+const E=()=>STOPS[st.ei];
+const f4=()=>foody(P.E,st.rt,st.ro,st.ct,st.co);
+
+/* ---- the pizza, the taster, and their census ---- */
+function bake(){ P=bakeAnchovyPizza(st.seed,E(),st.ct,st.co); V=tasterSays(P,st.rt,st.ro,st.seed*7+1); census(); }
+/* 2x2 counts, rows map, columns the check; index 0 = anchovy, 1 = the rest (Foody's a b / c d) */
+function count(ids,lab){ const c=[[0,0],[0,0]]; for(const i of ids) c[1-P.map[i]][1-lab[i]]++; return c; }
+function stats(c){ const n=c[0][0]+c[0][1]+c[1][0]+c[1][1], col=[c[0][0]+c[1][0],c[0][1]+c[1][1]], row=[c[0][0]+c[0][1],c[1][0]+c[1][1]];
+  return {n, area:col[0]/n, map:row[0]/n, Pt:c[0][0]/col[0], Po:c[1][1]/col[1], Ut:c[0][0]/row[0], Uo:c[1][1]/row[1], O:(c[0][0]+c[1][1])/n, c, col, row}; }
+function census(){ cen={tr:stats(count(P.ids,P.truth)), ap:stats(count(P.ids,V))}; }
+
+/* ---- Step 1 ---- */
+function paintLab(cv,lab){ const pal=pizzaPalette();
+  paintPizza(cv,i=>P.crust[i]?pal.crust[P.tex[i]]:P.inside[i]?pal.top[lab[i]?3:0][P.tex[i]]:null); }
+function renderStep1(){
+  for(const k of ["rt","ro","ct","co"]) $(k+"-v").textContent=Math.round(100*st[k])+"%";
+  $("e-v").textContent=pc(E(),E()<.01||E()===.074?1:0);
+  paintLab($("cv-real"),P.truth); paintLab($("cv-map"),P.map); paintLab($("cv-taste"),V);
+  const f=f4(), a=cen.ap, t=cen.tr;
+  $("t-e").textContent=pc(t.area,t.area<.1?2:1); $("t-e-n").textContent=`${fmt(P.nA)} of ${fmt(P.T)} spots`;
+  $("t-ea").textContent=pc(a.area,a.area<.1?2:1); $("t-ea-n").textContent=`${fmt(a.col[0])} spots; Eq. 4: ${pc(f.EA,2)}`;
+  $("t-x").textContent=(a.area/t.area).toFixed(1)+"×"; $("t-map").textContent=pc(t.map);
+  const slipA=Math.round((1-st.rt)*P.nA), slipO=Math.round((1-st.ro)*P.nO);
+  $("s1-sum").innerHTML=`The taster misses ${fmt(slipA)} real anchovy spots and calls ${fmt(slipO)} other spots anchovy. `+
+    (slipO>slipA?`Because the rest of the pizza is ${Math.round(P.nO/P.nA)} times bigger than the anchovy, those few slips on the rest outnumber everything else, and the anchovy grows. `:`Here the misses outnumber the false anchovy, so the anchovy shrinks. `)+
+    `The taster's slips are scattered at random, independent of the map's, as Foody's equations assume. Real tasters may stumble at the same edges the map does.`;
+  document.querySelectorAll("#presets [data-p]").forEach(b=>b.setAttribute("aria-pressed",matches(PRESETS[b.dataset.p])?"true":"false"));
+}
+function matches(p){ return ["rt","ro","ct","co"].every(k=>p[k]===undefined||Math.round(100*st[k])===p[k])&&(p.e===undefined||p.e===st.ei); }
+
+/* ---- Step 2 ---- */
+function matrix(el,s,which){
+  const c=s.c, n=s.n, v=x=>(100*x/n).toFixed(2), cls=which==="tr"?"c-true":"c-app", chk=which==="tr"?"Real":"Taster";
+  const h=`<thead><tr><th class="corner">Map ↓<br>${chk} →</th><th>Anchovy</th><th>The rest</th><th>Map total</th><th>User's</th></tr></thead><tbody>`+
+    `<tr><th class="rowh">Anchovy</th><td class="diag">${v(c[0][0])}</td><td>${v(c[0][1])}</td><td>${v(s.row[0])}</td><td class="acc ${cls}">${pc(s.Ut)}</td></tr>`+
+    `<tr><th class="rowh">The rest</th><td>${v(c[1][0])}</td><td class="diag">${v(c[1][1])}</td><td>${v(s.row[1])}</td><td class="acc ${cls}">${pc(s.Uo)}</td></tr>`+
+    `<tr><th class="rowh">${chk} total (area)</th><td class="acc ${cls}">${v(s.col[0])}</td><td>${v(s.col[1])}</td><td>100</td><td></td></tr>`+
+    `<tr><th class="rowh">Producer's</th><td class="acc ${cls}">${pc(s.Pt)}</td><td class="acc ${cls}">${pc(s.Po)}</td><td class="acc ${cls}" title="overall accuracy">${pc(s.O)}</td><td></td></tr></tbody>`;
+  el.innerHTML=h;
+}
+function renderStep2(){
+  const t=cen.tr, a=cen.ap, f=f4();
+  matrix($("mx-true"),t,"tr"); matrix($("mx-app"),a,"ap");
+  const row=(name,tv,av,fv,ftv)=>`<tr><th class="rowh">${name}</th><td class="c-true">${tv}</td><td class="c-app acc">${av}</td><td>${fv}</td><td class="dim">${ftv}</td></tr>`;
+  $("cmp").innerHTML=`<thead><tr><th class="rowh">Number</th><th class="c-true">True<br>(census)</th><th class="c-app">Apparent<br>(census)</th><th>Foody's eqs<br>apparent</th><th>Foody's eqs<br>true</th></tr></thead><tbody>`+
+    row("Area of anchovy",pc(t.area,2),pc(a.area,2),pc(f.EA,2)+" (Eq. 4)",pc(P.E,2))+
+    row("Producer's, anchovy",pc(t.Pt),pc(a.Pt),pc(f.Pt)+" (Eq. 1)",pc(f.truth.Pt))+
+    row("Producer's, the rest",pc(t.Po),pc(a.Po),pc(f.Po)+" (Eq. 2)",pc(f.truth.Po))+
+    row("User's, anchovy",pc(t.Ut),pc(a.Ut),pc(f.Ut)+" (Eq. 3)",pc(f.truth.Ut))+
+    row("Overall accuracy",pc(t.O),pc(a.O),pc(f.O)+" (Eqs. 5, 8)",pc(f.truth.O))+"</tbody>";
+  $("cmp-sum").innerHTML=`Against the taster, the map looks ${a.Pt<t.Pt?"much worse at finding anchovy":"different"} (producer's ${pc(a.Pt)} instead of ${pc(t.Pt)}), `+
+    `${a.Ut>t.Ut?"better":"worse"} when it says anchovy (user's ${pc(a.Ut)} instead of ${pc(t.Ut)}), and ${a.O<t.O?"worse":"better"} overall (${pc(a.O)} instead of ${pc(t.O)}). `+
+    `The anchovy area goes from ${pc(t.area,2)} to ${pc(a.area,2)}. The census numbers differ from Foody's equations only by rounding to whole spots.`;
+  setEq("q4-e",P.E.toFixed(3)); setEq("q4-rt",st.rt.toFixed(2)); setEq("q4-ro",st.ro.toFixed(2)); setEq("q4-ro2",st.ro.toFixed(2)); setEq("q4-v",f.EA.toFixed(3));
+  setEq("q4-a",(P.E*st.rt).toFixed(4)); setEq("q4-b",((1-P.E)*(1-st.ro)).toFixed(4));
+  setEq("qr-ea",(100*f.EA).toFixed(2)); setEq("qr-e",(100*P.E).toFixed(2)); setEq("qr-v",(f.EA/P.E).toFixed(1));
+  const r=f.EA/P.E;
+  $("qr-cap").textContent=r>1.1?`Outside Foody's 0.9 to 1.1 band: the taster makes the anchovy ${r.toFixed(1)} times too big.`
+    :r<.9?`Outside Foody's 0.9 to 1.1 band: the taster makes the anchovy too small. Common anchovy gets shrunk, because the taster's misses now outnumber its false alarms.`
+    :`Inside Foody's 0.9 to 1.1 band: good enough by his rule of thumb.`;
+  setEq("q1-v",(100*f.Pt).toFixed(1)); setEq("q1-t",(100*st.ct).toFixed(1));
+  const ua=f.EA*f.Pt, ub=(1-f.Po)*(1-f.EA);
+  setEq("q3-a",ua.toFixed(4)); setEq("q3-a2",ua.toFixed(4)); setEq("q3-b",ub.toFixed(4)); setEq("q3-v",(100*f.Ut).toFixed(1)); setEq("q3-t",(100*f.truth.Ut).toFixed(1));
+}
+
+/* ---- Step 3: Foody's curves ---- */
+function prep(cv,h){ const w=cv.clientWidth||600, px=window.devicePixelRatio||1; cv.style.height=h+"px"; cv.width=Math.round(w*px); cv.height=Math.round(h*px);
+  const ctx=cv.getContext("2d"); ctx.setTransform(px,0,0,px,0,0); ctx.clearRect(0,0,w,h); ctx.font=`12px ${cssVar("--f-body")}`; ctx.textBaseline="middle"; return {ctx,w,h}; }
+const CURVE={
+  ratio:{app:f=>f.EA/f.E, tru:()=>1, y:"estimated ÷ real area", ratio:true},
+  area:{app:f=>f.EA, tru:f=>f.E, y:"estimated area"},
+  pt:{app:f=>f.Pt, tru:f=>f.truth.Pt, y:"producer's, anchovy"},
+  po:{app:f=>f.Po, tru:f=>f.truth.Po, y:"producer's, the rest"},
+  ut:{app:f=>f.Ut, tru:f=>f.truth.Ut, y:"user's, anchovy"},
+  oa:{app:f=>f.O, tru:f=>f.truth.O, y:"overall accuracy"},
+};
+function band(rt,ro){ /* the real shares where Eq. 4 lands within 0.9-1.1 of the truth: E^A/E = (rt+ro-1) + (1-ro)/E */
+  const s=rt+ro-1, q=1-ro, lo=q===0?0:(1.1-s>0?q/(1.1-s):Infinity), hi=q===0?(s>=.9&&s<=1.1?1:-1):(.9-s>0?q/(.9-s):Infinity);
+  return [lo,Math.min(1,hi)]; }
+function drawCurve(){
+  const cv=$("curve"), {ctx,w,h}=prep(cv,(cv.clientWidth||600)<520?280:330), ink=cssVar("--ink"), muted=cssVar("--muted"), cA=cssVar("--taster"), tom=cssVar("--tomato");
+  const m=CURVE[st.metric], xmax=st.zoom==="low"?.1:1, L=50, R=16, T=16, B=44;
+  const xs=[]; for(let k=0;k<=400;k++){ const e=.005+(xmax-.005)*k/400; xs.push(Math.min(e,.995)); }
+  const F=e=>{const f=foody(e,st.rt,st.ro,st.ct,st.co); f.E=e; return f;};
+  const app=xs.map(e=>m.app(F(e))), tru=xs.map(e=>m.tru(F(e)));
+  let top=1; if(m.ratio){ top=Math.max(2,Math.ceil(Math.max(...app.filter(isFinite))*1.05)); }
+  const X=v=>L+v/xmax*(w-L-R), Y=v=>T+(1-v/top)*(h-T-B);
+  if(m.ratio){ ctx.fillStyle=cssVar("--tint-g"); ctx.fillRect(L,Y(1.1),w-L-R,Y(.9)-Y(1.1)); }
+  ctx.fillStyle=muted; ctx.textAlign="right";
+  const ystep=m.ratio?(top>20?10:top>8?2:top>4?1:.5):.2;
+  for(let v=0;v<=top+1e-9;v+=ystep){ ctx.globalAlpha=.25; ctx.fillRect(L,Math.round(Y(v)),w-L-R,1); ctx.globalAlpha=1; ctx.fillText(m.ratio?(+v.toFixed(1))+"×":Math.round(100*v)+"%",L-6,Y(v)); }
+  ctx.textAlign="center"; const xstep=xmax<1?.02:(w<520?.2:.1);
+  for(let v=0;v<=xmax+1e-9;v+=xstep) ctx.fillText(Math.round(100*v)+"%",X(v),h-B+16);
+  ctx.fillText("real share of anchovy →",L+(w-L-R)/2,h-8);
+  const line=(vals,col,dash)=>{ ctx.strokeStyle=col; ctx.lineWidth=3; ctx.setLineDash(dash); ctx.beginPath(); let on=false;
+    vals.forEach((v,k)=>{ if(!isFinite(v)){on=false; return;} const y=Y(Math.min(v,top*1.02)); on?ctx.lineTo(X(xs[k]),y):ctx.moveTo(X(xs[k]),y); on=true; }); ctx.stroke(); ctx.setLineDash([]); };
+  ctx.save(); ctx.beginPath(); ctx.rect(L,T-2,w-L-R,h-T-B+4); ctx.clip();
+  line(tru,ink,[6,5]); line(app,cA,[]); ctx.restore();
+  /* your pizza */
+  if(P.E<=xmax){ const f=F(P.E), va=m.app(f), vt=m.tru(f), x=X(P.E);
+    ctx.strokeStyle=tom; ctx.lineWidth=2; ctx.setLineDash([3,3]); ctx.beginPath(); ctx.moveTo(x,T); ctx.lineTo(x,h-B); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle=tom; ctx.fillRect(x-5,Y(Math.min(va,top))-5,10,10); ctx.strokeStyle=ink; ctx.lineWidth=2; ctx.strokeRect(x-5,Y(Math.min(va,top))-5,10,10);
+    ctx.fillStyle=ink; ctx.textAlign=x>w-140?"right":"left"; ctx.fillText(m.ratio?va.toFixed(1)+"×":pc(va),x+(x>w-140?-10:10),Y(Math.min(va,top))-12); }
+  ctx.strokeStyle=ink; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(L,T); ctx.lineTo(L,h-B); ctx.lineTo(w-R,h-B); ctx.stroke();
+  $("curve-legend").innerHTML=`<span><i class="sw line"></i>Apparent, against this taster</span><span><i class="sw dash"></i>${m.ratio?"Exactly right":m===CURVE.area?"Real area (1:1)":"True, against the real pizza"}</span>`+
+    (m.ratio?`<span><i class="sw band"></i>Within 10% (Foody)</span>`:"")+`<span><i class="sw miss"></i>Your pizza</span>`;
+  const [lo,hi]=band(st.rt,st.ro);
+  let s=lo>=1||hi<lo?`With this taster, the area is never within 10% of the truth at any share. `
+    :`With this taster, the area lands within 10% of the truth only when real anchovy is between ${pc(lo,0)} and ${hi>=1?"100%":pc(hi,0)} of the pizza. Rarer than that, it comes out too big. `+(hi<1?`More common than that, it comes out too small. `:"");
+  s+=`Change the map sliders: the area curve doesn't move. The accuracy curves do. `;
+  if(st.metric==="pt") s+=`Apparent producer's accuracy for anchovy collapses when anchovy is rare (Foody, p. 787): the taster's false anchovy count as anchovy the map missed. `;
+  if(st.metric==="ut") s+=`When anchovy is rare, apparent user's accuracy comes out too high (Foody, p. 787). `;
+  if(st.metric==="oa") s+=`Overall accuracy comes out too low at every share: every taster slip on a spot the map got right counts as a map mistake. `;
+  $("curve-sum").innerHTML=s;
+}
+
+/* ---- Step 4: 1,000 stratified samples ---- */
+function strata(){ const s=[[],[]]; for(const i of P.ids) s[P.map[i]?0:1].push(i); return s; }  /* stratum 0 = map anchovy */
+function areaFrom(ids,lab,W){ const c=[[0,0],[0,0]]; for(const i of ids) c[P.map[i]?0:1][lab[i]?0:1]++; const e=stratEstimate(c,W); return [e.area[0],e.se.area[0]]; }
+function runReps(){
+  const s=strata(), W=s.map(a=>a.length/P.T), k=st.rt+st.ro-1, o={perfect:[],taster:[],fix:[],seP:[],seT:[],seF:[]};
+  for(let r=0;r<REPS;r++){ const ids=s.flatMap(a=>pickFrom(a,st.n,Math.random));
+    const [p,sp]=areaFrom(ids,P.truth,W), [t,stt]=areaFrom(ids,V,W);
+    o.perfect.push(100*p); o.taster.push(100*t); o.seP.push(100*sp); o.seT.push(100*stt);
+    if(k>0){ o.fix.push(100*(t-(1-st.ro))/k); o.seF.push(100*stt/k); } }
+  reps=o;
+}
+function histCanvas(cv,rows,truth,bin){
+  const w=cv.clientWidth||900, px=window.devicePixelRatio||1, narrow=w<560, rowH=narrow?52:60, h=rows.length*rowH+56;
+  cv.style.width="100%"; cv.style.height=h+"px"; cv.width=Math.round(w*px); cv.height=Math.round(h*px);
+  return drawRepeats(cv,rows,truth,{px,left:narrow?104:150,bin});
+}
+function renderHist(){
+  const f=f4(), real=100*P.E, k=st.rt+st.ro-1;
+  const rows=[{name:"Perfect taster",vals:reps.perfect,col:cssVar("--perfect")},{name:"This taster",vals:reps.taster,col:cssVar("--taster")}];
+  if(k>0) rows.push({name:"Corrected",vals:reps.fix,col:cssVar("--fix")});
+  const s=histCanvas($("hist"),rows,real,.5);
+  const tr=(name,cls,j,target,se)=>`<tr><th class="rowh"><i class="sw ${cls}"></i>${name}</th><td class="acc">${s[j].mean.toFixed(2)}%</td><td>${target}</td><td class="truth">${real.toFixed(2)}%</td><td>${s[j].sd.toFixed(2)}</td><td>${mean(se).toFixed(2)}</td></tr>`;
+  $("rep-tab").innerHTML=`<thead><tr><th class="rowh">Taster</th><th>Average</th><th>Expected</th><th class="truth">Real</th><th>Spread</th><th>Formula SE<br>(Eq. 20)</th></tr></thead><tbody>`+
+    tr("Perfect taster","perfect",0,`${real.toFixed(2)}%`,reps.seP)+tr("This taster","taster",1,`${(100*f.EA).toFixed(2)}% (Eq. 4)`,reps.seT)+
+    (k>0?tr("Corrected (ours)","fix",2,`${real.toFixed(2)}%`,reps.seF):"")+"</tbody>";
+  const off=s[1].mean-real;
+  $("hsum").innerHTML=`At ${st.n} tastes per map class, the <span class="k-true">perfect taster</span> averages ${s[0].mean.toFixed(2)}% against a real ${real.toFixed(2)}%. <span class="k-app">This taster</span> averages ${s[1].mean.toFixed(2)}%, close to Eq. 4's ${(100*f.EA).toFixed(2)}%${Math.abs(off)<.05?", right on the truth":`, and ${Math.abs(off).toFixed(2)} points ${off>0?"too high":"too low"}`}. `+
+    `Its formula SE, ${mean(reps.seT).toFixed(2)}, describes only the sampling spread, so a 95% interval would sit around the wrong number. More tastes shrink the spread, never the bias. `+
+    (k>0?`<span class="k-fix">Corrected</span> undoes Eq. 4 with the taster's known accuracy, (estimate − ${(1-st.ro).toFixed(2)}) ÷ ${k.toFixed(2)}. It centres on the truth, but it spreads ${(s[2].sd/s[0].sd).toFixed(1)} times wider than the perfect taster's answers, because every false anchovy still adds noise. It also needs to know how good the taster really is (Sec. 6.1). This estimator is ours.`
+      :`With a taster this poor (accuracies adding to 100% or less) Eq. 4 can't be undone.`);
+}
+
+/* ---- Step 5: a panel of tasters ---- */
+const OFFS=[-1,-5/7,-3/7,-1/7,1/7,3/7,5/7,1], PERM=[5,2,7,0,3,6,1,4];
+function buildPanel(){
+  const clip=v=>Math.max(.5,Math.min(1,v));
+  pan=OFFS.map((u,j)=>{ const rt=clip(st.rt+st.dif*u), ro=clip(st.ro-st.dif*OFFS[PERM[j]]*.5), v=tasterSays(P,rt,ro,st.seed*7+11+j);
+    let says=0; for(const i of P.ids) says+=v[i]; return {rt,ro,v,area:says/P.T}; });
+}
+function runPanel(){
+  const s=strata(), W=s.map(a=>a.length/P.T), one={v:[],se:[]}, many={v:[],se:[]};
+  for(let r=0;r<REPS;r++){
+    let ids=s.flatMap(a=>pickFrom(a,st.n,Math.random)), [a,se]=areaFrom(ids,V,W); one.v.push(100*a); one.se.push(100*se);
+    ids=s.flatMap(a=>pickFrom(a,st.n,Math.random)); const t=pan[Math.floor(Math.random()*PANEL)]; [a,se]=areaFrom(ids,t.v,W); many.v.push(100*a); many.se.push(100*se); }
+  pan.reps={one,many};
+}
+function renderPanel(){
+  $("dif-v").textContent="± "+Math.round(100*st.dif)+" points";
+  $("panel").innerHTML=`<thead><tr><th class="rowh">Taster</th><th>Right on<br>anchovy</th><th>Right on<br>the rest</th><th>Says anchovy<br>(census)</th></tr></thead><tbody>`+
+    pan.map((t,j)=>`<tr><th class="rowh">${j+1}</th><td>${pc(t.rt,0)}</td><td>${pc(t.ro,1)}</td><td class="acc">${pc(t.area,2)}</td></tr>`).join("")+
+    `<tr><th class="rowh">Real</th><td class="truth" colspan="2"></td><td class="truth">${pc(P.E,2)}</td></tr></tbody>`;
+  const R=pan.reps, s=histCanvas($("hist5"),[{name:"Same taster",vals:R.one.v,col:cssVar("--taster")},{name:"Panel",vals:R.many.v,col:cssVar("--fix")}],100*P.E,.5);
+  const row=(name,cls,j,se)=>`<tr><th class="rowh"><i class="sw ${cls}"></i>${name}</th><td>${s[j].mean.toFixed(2)}%</td><td class="acc">${s[j].sd.toFixed(2)}</td><td>${mean(se).toFixed(2)}</td><td>${(s[j].sd/mean(se)).toFixed(2)}</td></tr>`;
+  $("pan-tab").innerHTML=`<thead><tr><th class="rowh">Who tastes</th><th>Average</th><th>Spread</th><th>Formula SE<br>(Eq. 20)</th><th>Spread ÷ SE</th></tr></thead><tbody>`+
+    row("Same taster","taster",0,R.one.se)+row("From the panel","fix",1,R.many.se)+"</tbody>";
+  const between=sdev(pan.map(t=>100*t.area));
+  $("psum").innerHTML=st.dif===0?`With every taster the same, hiring a different one changes nothing, and the formula SE matches the spread. Turn the dial up.`
+    :`The tasters' own areas differ by ${between.toFixed(2)} points (standard deviation). With the same taster every time, the spread is ${s[0].sd.toFixed(2)} points and the formula SE says ${mean(R.one.se).toFixed(2)}. Hiring from the panel widens the spread to ${s[1].sd.toFixed(2)}, but each sample's formula SE still says about ${mean(R.many.se).toFixed(2)}: it can't see the other tasters. `+
+      `Section 6.3: interpreter variability may need to be added to the standard error for a valid assessment of reliability. The bias from Step 4 is still there on top.`;
+}
+
+/* ---- Step 6: primary and alternate labels on the paper pizza ---- */
+function computeAlt(){
+  const w=st.w, a=new Int8Array(N*N).fill(-1);
+  for(const i of paper.ids){ const t=paper.truth[i]; let best=-1, bd=99; for(let k=0;k<4;k++) if(k!==t&&paper.dist[k][i]<bd){bd=paper.dist[k][i]; best=k;} if(bd<=w) a[i]=best; }
+  alt=a;
+}
+function renderAlt(){
+  const pal=pizzaPalette(), tom=hexRGB(cssVar("--tomato")), P0=paper, a=alt;
+  paintPizza($("cv-alt"),i=>{ if(P0.crust[i]) return pal.crust[P0.tex[i]]; if(!P0.inside[i]) return null;
+    if(a[i]>=0&&P0.map[i]!==P0.truth[i]&&P0.map[i]===a[i]) return [tom[0],tom[1],tom[2],255];
+    const c=pal.top[P0.truth[i]][P0.tex[i]]; return [c[0],c[1],c[2],a[i]>=0?255:60]; });
+  const n=P0.T, mixed=[0,0,0,0], rows=[0,0,0,0], hitP=[0,0,0,0], hitE=[0,0,0,0]; let amb=0, okP=0, okE=0, wrong=0, saved=0;
+  for(const i of P0.ids){ const m=P0.map[i], t=P0.truth[i], e=m===t||m===a[i]; rows[m]++; if(a[i]>=0){amb++; mixed[m]++;}
+    if(m===t){okP++; hitP[m]++;} if(e){okE++; hitE[m]++;} if(m!==t){wrong++; if(e) saved++;} }
+  $("alt-tab").innerHTML=`<thead><tr><th class="rowh">Map says</th><th>Mixed spots</th><th>User's<br>primary only</th><th>User's<br>primary or alternate</th></tr></thead><tbody>`+
+    [0,1,2,3].map(k=>`<tr><th class="rowh"><i class="sw" style="background:var(${VAR[k][0]})"></i>${TITLE[k]} (${PAPER_CLASS[k]})</th><td>${pc(mixed[k]/rows[k],0)}</td><td>${pc(hitP[k]/rows[k])}</td><td class="acc">${pc(hitE[k]/rows[k])}</td></tr>`).join("")+
+    `<tr><th class="rowh">Overall</th><td>${pc(amb/n,0)}</td><td>${pc(okP/n)}</td><td class="acc">${pc(okE/n)}</td></tr></tbody>`;
+  $("alt-sum").innerHTML=`${pc(amb/n,0)} of the spots are mixed at this width. Matching the primary label gives the paper's ${pc(okP/n)}. Allowing the alternate gives ${pc(okE/n)}: ${fmt(saved)} of the map's ${fmt(wrong)} mistakes sit on a mixed spot and match its alternate. `+
+    `The map's mistakes sit at topping edges, so alternates forgive many of them. Report both numbers and the share of mixed spots (Sec. 6.2). These figures are ours; the paper gives none.`;
+}
+
+/* ---- check against the papers ---- */
+function renderCheck(){
+  const sc=[["I",.01,.95,.95,.9,.9],["II",.01,.8,.8,.7,.7],["II",.005,.8,.8,.7,.7],["III",.01,.8,.9,.7,.8],["IIIb",.01,.85,.95,.7,.8],["near",.01,.99,.99,.7,.8]];
+  const census=sc.map(([,e,rt,ro,ct,co],j)=>{ const Q=bakeAnchovyPizza(SEED+j,e,ct,co), v=tasterSays(Q,rt,ro,SEED+j); let s=0; for(const i of Q.ids) s+=v[i]; return s/Q.T; });
+  const F=sc.map(([,e,rt,ro,ct,co])=>foody(e,rt,ro,ct,co)), x=j=>(F[j].EA/sc[j][1]).toFixed(1)+"×";
+  const III=F[3], Q=bakeAnchovyPizza(SEED,.01,.7,.8), v=tasterSays(Q,.8,.9,SEED), cq=[[0,0],[0,0]];
+  for(const i of Q.ids) cq[1-Q.map[i]][1-v[i]]++; const cs=cq.map(r=>r.map(c=>(c/Q.T).toFixed(4)).join(" / ")).join(" ; ");
+  const pz=foody(.074,.95,.95,.432,.98);
+  const rows=[
+    ["Scenario I at 1% (p. 790–791)","5.9×",`${x(0)}; pizza ${pc(census[0],2)}`],
+    ["Scenario II at 1% (p. 791)","20.6×",`${x(1)}; pizza ${pc(census[1],2)}`],
+    ["Scenario II at 0.5% (p. 791)","20.3%, 40.6×",`${pc(F[2].EA)}, ${x(2)}; pizza ${pc(census[2],2)}`],
+    ["Scenario III at 1%, Fig. 1(c) area (p. 784)","10.70%",`${pc(F[3].EA,2)}; pizza ${pc(census[3],2)}`],
+    ["Fig. 1(c) cells a / b ; c / d","0.025 / 0.179 ; 0.082 / 0.713",`${III.cells.a.toFixed(4)} / ${III.cells.b.toFixed(4)} ; ${III.cells.c.toFixed(4)} / ${III.cells.d.toFixed(4)} (Foody prints b as 0.179); pizza ${cs}`],
+    ["Fig. 1(c) apparent producer's t, user's t, producer's o","23.73%, 12.39%, 79.88%",`${(100*III.Pt).toFixed(3)}%, ${(100*III.Ut).toFixed(2)}%, ${(100*III.Po).toFixed(3)}% (Foody truncates)`],
+    ["Fig. 1(b) true user's t","3.41%",`${(100*III.truth.Ut).toFixed(2)}%`],
+    ["Scenario III: producer's t down, user's t up (p. 791)","∼3× and ∼3.6×",`${(.7/III.Pt).toFixed(2)}× and ${(III.Ut/III.truth.Ut).toFixed(2)}×`],
+    ["Scenario III, taster 85 / 95 (p. 791)","5.8%",`${pc(F[4].EA,2)}; pizza ${pc(census[4],2)}`],
+    ["Taster 99 / 99 (p. 791)","1.89% (text)",`${pc(F[5].EA,2)} from Eq. 4; pizza ${pc(census[5],2)}`],
+    ["Within 10% of the truth (pp. 790–791)","I: not below 25%; II: not below 40%; III: only 25–50%",(()=>{const b=[band(.95,.95),band(.8,.8),band(.8,.9)]; return `I: from ${pc(b[0][0],0)}; II: from ${pc(b[1][0],0)}; III: ${pc(b[2][0],0)}–${pc(b[2][1],0)}`;})()],
+    ["S&F Sec. 6.1 (p. 16): \"nearly a factor of 6\" and \"nearly 40\"","Foody's I and II",`${x(0)} and ${x(2)}`],
+    ["Paper pizza's anchovy with a 95 / 95 taster <i>ours</i>","not printed",`7.4% → ${pc(pz.EA)}, ${(pz.EA/.074).toFixed(1)}×`],
+    ["Map accuracy changes the apparent area <i>ours</i>","no (Eq. 4)",`Scenario III with a perfect map: ${pc(foody(.01,.8,.9,1,1).EA,2)}`],
+  ];
+  $("chk").innerHTML=`<thead><tr><th class="rowh">Figure</th><th>Paper</th><th>This page</th></tr></thead><tbody>`+rows.map(r=>`<tr><th class="rowh">${r[0]}</th><td>${r[1]}</td><td>${r[2]}</td></tr>`).join("")+"</tbody>";
+}
+
+/* ---- wiring ---- */
+function light(){ renderStep1(); renderStep2(); drawCurve(); }
+function heavy(){ runReps(); renderHist(); buildPanel(); runPanel(); renderPanel(); }
+let heavyT=0, frame=0, pending=false;
+function changed(rebake){
+  pending=pending||rebake;
+  if(!frame) frame=requestAnimationFrame(()=>{frame=0; if(pending){bake(); pending=false;} light();});
+  clearTimeout(heavyT); heavyT=setTimeout(heavy,250);
+}
+for(const k of ["rt","ro","ct","co"]) $(k).addEventListener("input",e=>{ st[k]=e.target.value/100; $(k+"-v").textContent=e.target.value+"%"; $("preset-hint").textContent=""; changed(true); });
+$("e").addEventListener("input",e=>{ st.ei=+e.target.value; $("preset-hint").textContent=""; changed(true); });
+document.querySelectorAll("#presets [data-p]").forEach(b=>b.addEventListener("click",()=>{ const p=PRESETS[b.dataset.p];
+  for(const k of ["rt","ro","ct","co"]) if(p[k]!==undefined){ st[k]=p[k]/100; $(k).value=p[k]; }
+  if(p.e!==undefined){ st.ei=p.e; $("e").value=p.e; } $("preset-hint").textContent=p.say; changed(true); }));
+$("newpie").addEventListener("click",()=>{ st.seed=(Math.random()*1e9)|0; changed(true); });
+$("metric").addEventListener("change",e=>{ st.metric=e.target.value; drawCurve(); });
+$("zoom").addEventListener("change",e=>{ st.zoom=e.target.value; drawCurve(); });
+$("sizes").addEventListener("change",e=>{ st.n=+e.target.value; heavy(); });
+$("rerun").addEventListener("click",()=>{ runReps(); renderHist(); });
+$("dif").addEventListener("input",e=>{ st.dif=e.target.value/100; $("dif-v").textContent="± "+e.target.value+" points"; clearTimeout(heavyT); heavyT=setTimeout(()=>{buildPanel(); runPanel(); renderPanel();},200); });
+$("wsel").addEventListener("change",e=>{ st.w=+e.target.value; computeAlt(); renderAlt(); });
+const repaint=()=>{ light(); renderHist(); renderPanel(); renderAlt(); };
+const mq=window.matchMedia("(prefers-color-scheme: dark)"); if(mq.addEventListener) mq.addEventListener("change",repaint);
+new MutationObserver(repaint).observe(document.documentElement,{attributes:true,attributeFilter:["data-theme"]});
+if(document.fonts&&document.fonts.ready) document.fonts.ready.then(()=>{ drawCurve(); renderHist(); renderPanel(); });
+let lastW=0; if(window.ResizeObserver) new ResizeObserver(()=>{const w=$("hist").clientWidth; if(w&&w!==lastW){lastW=w; drawCurve(); renderHist(); renderPanel();}}).observe(document.body);
+
+paper=bakePaperPizza(SEED); computeAlt();
+$("preset-hint").textContent=PRESETS.I.say;
+bake(); light(); heavy(); renderAlt(); renderCheck();
+})();
+</script>
+</body>
+</html>

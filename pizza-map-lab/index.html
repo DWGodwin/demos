@@ -97,8 +97,8 @@ footer{font-size:13px; color:var(--muted)}
   <section class="stage">
     <h2>Stage 3 · Area and an imperfect taster</h2>
     <div class="cards">
-      <div class="card soon"><span class="num">06</span><div><b>How Much Anchovy Is There?</b><span>The map says anchovy is 5% of the pizza. The sample says 7.4% ± 3.7%. Who is right?</span></div><span class="status">Coming</span></div>
-      <div class="card soon"><span class="num">07</span><div><b>The Taster Is Wrong Too</b><span>Foody's example: a 95%-accurate taster can make a rare topping look several times bigger than it is.</span></div><span class="status">Coming</span></div>
+      <a class="card" href="06-how-much-anchovy.html"><span class="num">06</span><div><b>How Much Anchovy Is There?</b><span>The map says anchovy is 5% of the pizza. The sample says 7.4% ± 3.6%. Who is right?</span></div><span class="status">Open</span></a>
+      <a class="card" href="07-the-taster-is-wrong-too.html"><span class="num">07</span><div><b>The Taster Is Wrong Too</b><span>Foody's example: a 95%-accurate taster can make a rare topping look several times bigger than it is.</span></div><span class="status">Open</span></a>
     </div>
   </section>
 
@@ -339,6 +339,61 @@ function drawRepeats(cv,rows,truth,opt={}){
   ctx.textAlign="center"; ctx.fillStyle=muted; const step=Wd<520?20:10;
   for(let v=lo;v<=hi;v+=step){ ctx.fillRect(X(v)-1,Hd-B+6,2,5); ctx.fillText(v+"%",X(v),Hd-B+20); }
   return out;
+}
+/* ---- the anchovy-or-not pizza (07): two classes, for Foody (2013). truth and map are 1 = anchovy, 0 = the rest ----
+   E is the real anchovy share (0-1). The map calls exactly round(mapPt*nA) real anchovy spots anchovy (its misses sit at
+   fillet edges) and exactly round((1-mapPo)*nO) other spots anchovy (false alarms nearest the fillets). Same crust and
+   squares as the paper pizza. The paper pizza itself is untouched. */
+function bakeAnchovyPizza(seed,E,mapPt,mapPo){
+  const r=rng(seed*13+5), NN=N*N, inside=new Uint8Array(NN), crust=new Uint8Array(NN), piece=new Int16Array(NN).fill(-1), ids=[], END=EDGE+CUTS*CHIP;
+  for(let y=0;y<N;y++)for(let x=0;x<N;x++){const i=y*N+x;
+    if(x>=EDGE&&x<END&&y>=EDGE&&y<END){inside[i]=1; ids.push(i); piece[i]=Math.floor((y-EDGE)/CHIP)*CUTS+Math.floor((x-EDGE)/CHIP);}
+    else crust[i]=1;}
+  const T=ids.length, nA=Math.max(1,Math.min(T-1,Math.round(E*T))), truth=new Int8Array(NN).fill(-1); for(const i of ids) truth[i]=0;
+  let cnt=0; const S=CUTS*CHIP;
+  /* anchovy fillets, as on the paper pizza, until nearly enough */
+  for(let t=0;t<20000&&cnt<nA-30;t++){ const ax=EDGE+10+r()*(S-20), ay=EDGE+10+r()*(S-20), th=r()*Math.PI, L=16+r()*10, ux=Math.cos(th), uy=Math.sin(th), cells=[];
+    for(let y=Math.floor(ay-L/2-2);y<=ay+L/2+2;y++) for(let x=Math.floor(ax-L/2-2);x<=ax+L/2+2;x++){
+      const vx=x+.5-ax, vy=y+.5-ay, s=vx*ux+vy*uy, q=Math.abs(-vx*uy+vy*ux); if(Math.abs(s)<=L/2&&q<=1.4) cells.push(y*N+x); }
+    const free=cells.filter(i=>inside[i]&&truth[i]===0); if(!cells.length||free.length/cells.length<.9||cnt+free.length>nA) continue;
+    for(const i of free) truth[i]=1; cnt+=free.length; }
+  /* nudge fillet edges until the share is exact */
+  for(let pass=0;pass<600&&cnt!==nA;pass++){ const need=nA-cnt;
+    let cand=ids.filter(i=>need>0?(truth[i]===0&&nb4(i).some(j=>truth[j]===1)):(truth[i]===1&&nb4(i).some(j=>truth[j]===0)));
+    if(!cand.length) cand=ids.filter(i=>truth[i]===(need>0?0:1));
+    for(let a=cand.length-1;a>0;a--){const b=Math.floor(r()*(a+1)); const t=cand[a]; cand[a]=cand[b]; cand[b]=t;}
+    const m=Math.min(Math.abs(need),Math.max(1,Math.ceil(cand.length/3)),cand.length);
+    for(let q=0;q<m;q++) truth[cand[q]]=need>0?1:0; cnt+=need>0?m:-m; }
+  const bfs=k=>{const d=new Int16Array(NN).fill(9999), q=[]; for(const i of ids) if(truth[i]===k){d[i]=0; q.push(i);}
+    for(let h=0;h<q.length;h++){const i=q[h]; for(const j of nb4(i)) if(inside[j]&&d[j]>d[i]+1){d[j]=d[i]+1; q.push(j);}} return d;};
+  const dA=bfs(1), dO=bfs(0), rp=rng(seed*31+7), jit=new Float64Array(NN), tex=new Uint8Array(NN);
+  for(let i=0;i<NN;i++){jit[i]=rp(); tex[i]=rp()<.3?1:0;}
+  const nO=T-nA, hitA=Math.round(Math.max(0,Math.min(1,mapPt))*nA), fa=Math.round((1-Math.max(0,Math.min(1,mapPo)))*nO);
+  const map=Int8Array.from(truth);
+  const A=ids.filter(i=>truth[i]===1).sort((a,b)=>(dO[a]+4*jit[a])-(dO[b]+4*jit[b])), O=ids.filter(i=>truth[i]===0).sort((a,b)=>(dA[a]+4*jit[a])-(dA[b]+4*jit[b]));
+  for(const i of A.slice(0,nA-hitA)) map[i]=0;
+  for(const i of O.slice(0,fa)) map[i]=1;
+  const cell=[[nO-fa,nA-hitA],[fa,hitA]]; /* rows map (0 rest, 1 anchovy), columns real */
+  return {inside,crust,piece,ids,T,truth,map,jit,tex,nA,nO,E:nA/T,cell};
+}
+/* the taster's fixed verdict at every spot (1 = says anchovy). In each (real, map) group exactly round(pt*n) real anchovy
+   spots or round((1-po)*n) other spots are called anchovy, picked at random, so the taster's slips are independent of
+   the map's, as Foody's (2013) equations assume */
+function tasterSays(P,pt,po,seed){
+  const r=rng(seed), v=new Int8Array(N*N).fill(-1), g=[[[],[]],[[],[]]];
+  for(const i of P.ids){ v[i]=0; g[P.truth[i]][P.map[i]].push(i); }
+  for(let t=0;t<2;t++) for(let m=0;m<2;m++){ const a=g[t][m], k=Math.round((t?pt:1-po)*a.length);
+    for(let q=0;q<k;q++){const j=q+Math.floor(r()*(a.length-q)); const x=a[q]; a[q]=a[j]; a[j]=x; v[a[q]]=1;} }
+  return v;
+}
+/* Foody (2013) Eqs. 1-4: apparent accuracies and area when the map (C) is checked against an imperfect reference (R)
+   instead of the truth (T). E is the real share; rt, ro the taster's accuracy on anchovy and the rest; ct, co the map's */
+function foody(E,rt,ro,ct,co){
+  const Pt=((1-ro)*(1-co)+E*(rt*ct-(1-ro)*(1-co)))/((1-ro)+E*(rt+ro-1));
+  const Po=(ro*co+E*((1-rt)*(1-ct)-ro*co))/(ro-E*(rt+ro-1));
+  const EA=E*(rt+ro-1)-ro+1, U=(e,pt,po)=>e*pt/(e*pt+(1-po)*(1-e));
+  const a=E*rt*ct+(1-ro)*(1-co)*(1-E), b=E*ct*(1-rt)+ro*(1-co)*(1-E), c=E*rt*(1-ct)+co*(1-ro)*(1-E), d=E*(1-rt)*(1-ct)+ro*co*(1-E);
+  return {EA, Pt, Po, Ut:U(EA,Pt,Po), O:a+d, cells:{a,b,c,d}, truth:{Pt:ct, Po:co, Ut:U(E,ct,co), O:E*ct+(1-E)*co}};
 }
 /* ---- end shared kit ---- */
 const P=bakePaperPizza(SEED);

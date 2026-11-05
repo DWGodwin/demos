@@ -98,6 +98,7 @@ Every commit made from a Claude Code session carries that session's transcript. 
 - **Live numbers:** wrap a number in `\id{q-some-name}{64.0}`. The page sets it with `setEq("q-some-name", value)`. Keep `\%` and other symbols outside the `\id{}` so the id lands on the number itself. The value written in the LaTeX is only a placeholder until the script runs.
 - `tests/check.js` fails if any `<tex>` is left over, or if a `setEq("id")` has no matching slot. For loops, `setEq("q-x"+(k+1), …)` needs `q-x1` to `q-x4`.
 - Never write a literal `<tex>` inside a comment in `src/`; the build will try to convert it.
+- Keep `\id{}` placeholders unsigned, such as `\id{q-x}{2.4}`. A placeholder like `{-2.4}` becomes an `<mrow>`, and text set on an mrow doesn't show. `setEq` can still write "−2.4" into the slot. `tests/check.js` catches this.
 - Split a long worked line into two `.eq-m` rows, starting the second with `\phantom{O} = …` so it lines up. Check phone width: a line may scroll inside its box, but the page itself must not.
 - Pages number classes 1–4 like the paper's Table 3 (A–D in Table 5), so say which topping a subscript means.
 
@@ -126,6 +127,9 @@ The host does no building. The built pages are committed, so the demos repo's ru
 | `clusterEstimate(P, groups)` | One-stage cluster estimator for equal-size blocks (block means, ratio estimators, SEs from the spread between blocks). Also the usual estimator for two-stage samples with equal bites per square |
 | `strataEstimate(P, groups)` | Plain-share estimator for equal-size strata with equal bites in each (05's squares as strata), SEs from the spread within each stratum. One group gives the simple random estimator. For overall accuracy it is Eq. 16 with `W_h = 1/H`. NaN SEs with one bite per stratum |
 | `drawRepeats(canvas, rows, truth, opt)` | The shared repeats histogram: one row per method on a fixed 0–100% axis, dashed truth line, triangle at each average |
+| `bakeAnchovyPizza(seed, E, mapPt, mapPo)` | 07's anchovy-or-not pizza, 4–37 ms. `truth` and `map` are 1 for anchovy, 0 for the rest. Real anchovy is exactly round(E·T) spots. The map calls exactly round(mapPt·nA) of them anchovy, with its misses at fillet edges, and exactly round((1 − mapPo)·nO) other spots, nearest the fillets. Returns `{inside, crust, piece, ids, T, truth, map, jit, tex, nA, nO, E, cell}`; `cell` is rows = map [rest, anchovy], columns = real |
+| `tasterSays(P, pt, po, seed)` | The taster's fixed verdict at every spot (1 = says anchovy), exact within each (real, map) group, so the taster's slips are independent of the map's, as Foody's equations assume |
+| `foody(E, rt, ro, ct, co)` | Foody (2013) Eqs. 1–8: `{EA, Pt, Po, Ut, O, cells:{a,b,c,d}, truth:{Pt, Po, Ut, O}}` for the map checked against the taster |
 
 `bakePaperPizza(seed)` returns:
 
@@ -274,7 +278,7 @@ Each plan opens with **Based on**: the parts of the papers it draws from, with p
   - Sec. 4.3.1 (pp. 12–13): the map's role is to shrink standard errors; Eq. 21 (mapped area − commission + omission); Eq. 22 and why "bias-adjusted" is a misleading name; Eq. 22 equals Eq. 19 only under stratified random sampling.
   - Sec. 4.3.2 (p. 13): Eq. 23, MSE = variance + bias², for pixel counting vs the sample estimate.
   - Sec. 4.4 and Table 5 (pp. 13–14): the 7.4% (SE 1.9) estimate and reporting area with standard errors.
-- **Headline:** the map says D is 5% of the pizza (pixel counting). From the sample, Table 5 estimates 7.4% with SE 1.9, a 95% CI of about ±3.7.
+- **Headline:** the map says D is 5% of the pizza (pixel counting). From the sample, Table 5 estimates 7.4% with SE 1.9, a 95% CI of ±3.6 (3.8–11.0%) from the unrounded SE of 1.85. The rounded 1.9 would give ±3.7.
 - **Eq. 21 as a picture:** 5.0 mapped, minus 1.8 of mistakes in the map's anchovy, plus 4.2 of anchovy the map missed, gives 7.4.
 - **Table 5 total-row SEs:** A 4.9, B 4.6, C 2.6, D 1.9.
 - **Map bias** is p_k+ − p_+k (Eq. 5): −2.4 points for D. The stratified area estimator is Eq. 19, and its variance is Eq. 20.
@@ -365,10 +369,28 @@ Each plan opens with **Based on**: the parts of the papers it draws from, with p
 | 03 | The Sampling Design Lab (`03-sampling-design-lab.html`) | Built on `lab-03`; page copy is a draft for the author to rewrite; not merged |
 | 04 | How Many Tastes? (`04-how-many-tastes.html`) | Built on `lab-04`; page copy is a draft for the author to rewrite; not merged |
 | 05 | Every Square Its Own Pizza (`05-every-square-its-own-pizza.html`) | Built on `pizza-map-lab`; page copy is a draft for the author to rewrite; not merged |
-| 06–10 | See plans above (checked against the papers) | Not started |
+| 06 | How Much Anchovy Is There? (`06-how-much-anchovy.html`) | Built on `pizza-map-lab`; page copy is a draft for the author to rewrite; not merged |
+| 07 | The Taster Is Wrong Too (`07-the-taster-is-wrong-too.html`) | Built on `pizza-map-lab`; page copy is a draft for the author to rewrite; not merged |
+| 08–10 | See plans above (checked against the papers) | Not started |
 | B1 | Round Pizza, Square Cuts | Later |
 
 ## Changelog
+
+- **2026-11-03** 06 and 07 session (on `pizza-map-lab`, no new branch). The author asked for both pages in one session, an exception to the one-explainer rule. 07 was built by a forked sub-agent while 06 was built in the main session; both were checked in a browser in both themes and at phone width.
+  - Kit: `bakeAnchovyPizza`, `tasterSays` and `foody` for 07. Nothing existing changed; the paper-pizza fingerprints still pass.
+  - `tests/check.js`: a new check that every live equation number is a MathML token (a signed placeholder had made Eq. 5's number vanish on 06).
+  - `tests/check.js`, 06: Eq. 21 adds up spot for spot on three bakes; Table 5's anchovy 5.0 − 1.8 + 4.2 = 7.4 and map bias −2.4; Table 4's anchovy interval 3.8–11.0% (half-width 3.63); Eq. 22 equals Eq. 19 on every stratified sample; with 100 simple random tastes, ignoring the map, Eq. 22 and Eq. 19 all centre on 7.4% and spread 2.63, 2.43 and 2.31; Eq. 23 crossing checks.
+  - `tests/check.js`, 07: Foody's 5.9×, 20.6×, 20.30% (40.6×), 10.70%, 5.8% and 1.98%; Fig. 1(c) cells from Eqs. 5–8; the map's accuracy doesn't enter Eq. 4; exact counts for the two-class pizza and the taster; the taster's census matches Eq. 4; seeded stratified samples average 0.98% (perfect taster) and 10.67% (Scenario III, Eq. 4 says 10.70%); a panel of tasters spreads 3.97 against a formula SE of 2.44.
+  - 06 page: Step 1 takes the map's count apart with Eq. 21 as a waterfall (map share − commission + omission = real share) beside the pizza, for any topping, with Eq. 5's map bias. Step 2 tastes n per topping (5–200, default 25) with Eq. 19, Eq. 20, the 95% interval and Eq. 22 (equal to Eq. 19 here). Step 3 reads one simple random sample (100/400/1,000) three ways (ignore the map, Eq. 22 with plain shares, Eq. 19 poststratified), with 1,000 repeats against pixel counting. Step 4 plots the square root of Eq. 23's MSE against tastes per topping, 500 repeats per point, with optional taster slips (0/2/5/10%). Check table and notes.
+  - Found: the anchovy interval is ±3.6, not ±3.7 (the index card said ±3.7; fixed). Same rounding effect as 04 found for overall accuracy.
+  - Found: Eq. 22 only differs from Eq. 19 when its bias term uses plain sample shares. If you poststratify the bracket, the estimated map share is W_k and Eq. 22 is Eq. 19 again. The page says so.
+  - Found (*ours*): pixel counting beats the stratified sample for anchovy below about 13–15 tastes per topping (Eq. 20 estimate: 14). For pepperoni the map is only 0.8 points off, so pixel counting wins until about 244 per topping by Eq. 20, and earlier in the simulation because of the small-pizza correction. With a taster who slips on 10% of spots, the sample's bias (about 2.4–2.6 points for anchovy) is as big as the map's.
+  - 07 page (built by the fork): Step 1 sets real anchovy (0.5–50%, with a 7.4% stop), taster and map accuracy, with presets for Foody's Scenarios I–III, III with a better taster, a 99/99 taster, a perfect map and the paper pizza's anchovy; three pizzas and readouts. Step 2 shows Foody's Fig. 1(b) and (c) from the census beside his Eqs. 1–4, with Eq. 4, Eq. 1 and Eq. 3 cards. Step 3 runs Eqs. 1–4 over every share (Figs. 2–4), with the 0.9–1.1 band. Step 4 tastes 1,000 stratified samples: perfect taster, this taster, and one corrected with Eq. 4 (*ours*). Step 5 hires from a panel of 8 tasters whose accuracies differ (*ours*). Step 6 puts primary and alternate labels on the paper pizza (*ours*). Check table and notes.
+  - Found: Foody prints 23.73% and 79.88%; his Eqs. 1–2 give 23.738% and 79.888%, so he truncated. He prints cell b as 0.179 where Eq. 6 gives 0.1796, while rounding c to 0.082. The 99/99 taster's 1.89% is a typo for 1.98%. The page says all three.
+  - Found (*ours*): on the paper pizza, a 95/95 taster turns 7.4% anchovy into 11.7% (1.6×). The Eq. 4 correction centres on the truth but spreads about 5 times wider than a perfect taster, and needs the taster's accuracy to be known (Sec. 6.1). With tasters differing by ±10 points, the spread roughly doubles while each sample's SE stays put. With mixed spots 1 spot wide, 34% of spots are mixed and accuracy goes from 79.6% to 91.0% when the alternate label counts.
+  - Honesty notes on 07: the taster's slips are scattered at random, as Foody's equations assume; real tasters may stumble at the same edges as the map. Census producer's accuracy reads 90.3% where Eq. 1 says 90% because 144 anchovy spots round to whole spots.
+  - Review fixes after the browser pass: topping picker 2×2 on 06; Eq. 23 squares the rounded numbers it shows; chart labels moved off the lines; two 07 tables narrowed so they don't scroll at desktop width.
+  - All page text is a draft in the guide's voice; the author writes the final copy (see README). README's page list is left for the author.
 
 - **2026-11-03** 05 session (on `pizza-map-lab`, no new branch).
   - Kit: `bakePaperPizza(seed, {clumpTop, clumpErr})`. Clumped toppings drop a share of each topping near its hot spots (kept apart, so one topping doesn't fill another's). Clumped mistakes add the distance to a glare spot to the edge-distance rule that places each Table 5 mistake, weighted (ce/(1 − ce))²/10, so the dial moves smoothly. Mistake counts per cell are fixed, so Table 5 stays exact at every setting. The dials at 0 take no random draws and run the old code, so 01–04 are unchanged.
