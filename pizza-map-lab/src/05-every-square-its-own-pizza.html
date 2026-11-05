@@ -21,18 +21,7 @@
   --crust-a:#c98a4b; --crust-b:#ad7036;
   --f-display:"Silkscreen","Courier New",ui-monospace,monospace;
   --f-body:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
-}
-@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
-  --panel:#2a1e18; --ink:#f3e7d3; --muted:#c3ae98;
-  --line:#f3e7d3; --shadow:#8a2a16; --tomato:#ff6a4d; --spread:#3ddc6e; --clus:#ff52c9;
-  --tint-g:rgba(61,220,110,.15); --tint-b:rgba(255,82,201,.15); --tint-d:rgba(243,231,211,.07);
-  color-scheme:dark;
-}}
-:root[data-theme="dark"]{
-  --panel:#2a1e18; --ink:#f3e7d3; --muted:#c3ae98;
-  --line:#f3e7d3; --shadow:#8a2a16; --tomato:#ff6a4d; --spread:#3ddc6e; --clus:#ff52c9;
-  --tint-g:rgba(61,220,110,.15); --tint-b:rgba(255,82,201,.15); --tint-d:rgba(243,231,211,.07);
-  color-scheme:dark;
+  color-scheme:light;
 }
 *{box-sizing:border-box}
 body{margin:0; background-color:var(--bg); color:var(--ink); font-family:var(--f-body); font-size:15px; line-height:1.55;
@@ -742,8 +731,6 @@ $("sweepk").addEventListener("change",e=>{st.sweep=e.target.value; startSweep();
 $("per").addEventListener("change",e=>{st.per=+e.target.value; tasteStep5();});
 $("draw5").addEventListener("click",tasteStep5);
 const repaint=()=>{renderStep1(); drawPizza2(); renderHist(); drawSweep(); drawStep5();};
-const mq=window.matchMedia("(prefers-color-scheme: dark)"); if(mq.addEventListener) mq.addEventListener("change",repaint);
-new MutationObserver(repaint).observe(document.documentElement,{attributes:true,attributeFilter:["data-theme"]});
 if(document.fonts&&document.fonts.ready) document.fonts.ready.then(()=>{renderHist(); drawSweep();});
 let lastW=0; if(window.ResizeObserver) new ResizeObserver(()=>{const w=$("hist").clientWidth; if(w&&w!==lastW){lastW=w; renderHist(); drawSweep();}}).observe(document.body);
 

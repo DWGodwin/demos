@@ -38,10 +38,10 @@ The look is a lab bench of square boxes on a gingham tablecloth, with pixel art,
 
 - **Shapes:** square everything. `border-radius: 0`, 2–3px solid borders, hard offset shadows (`box-shadow: 6px 6px 0 var(--shadow)`). Buttons press in (`translate(3px,3px)`, shadow 0).
 - **Type:** `Silkscreen` (pixel display face) for headings, labels, buttons and table headers. `IBM Plex Mono` for body text and numbers. Use `font-variant-numeric: tabular-nums` in tables.
-- **Colour tokens:** these live in each page's `:root`, with light and dark values in the three-block pattern (bare `:root`, `prefers-color-scheme: dark` guarded by `:not([data-theme="light"])`, and `[data-theme="dark"]`).
+- **Colour tokens:** these live in each page's bare `:root`. There is one theme, light, on every display; `:root` sets `color-scheme: light` so form controls don't follow the OS. Don't add `prefers-color-scheme` blocks, `data-theme` hooks or theme-change listeners (the author's decision, 2026-11-05).
   - Ground: `--bg` (kraft), `--check` (gingham), `--panel`, `--ink`, `--muted`, `--line`, `--shadow`, `--tomato` (accent).
-  - The tablecloth (`--bg`, `--check`) stays light kraft and red gingham in both themes; only the cards go dark. Text sitting straight on the cloth (the index's stage headings, the footer) keeps dark ink through `--cloth-ink`, `--cloth-muted` and `--cloth-accent`, which a rule near `footer` swaps in for `--ink`, `--muted` and `--tomato`. Cards cast a dark brown `--cloth-shadow` in both themes; buttons inside cards keep `--shadow` (the author's decision, 2026-11-05).
-  - Topping colours: `--cheese-a/b`, `--mush-a/b`, `--pep-a/b`, `--anch-a/b`, `--crust-a/b`. These are identical in both themes.
+  - The tablecloth (`--bg`, `--check`) is light kraft and red gingham. Text sitting straight on the cloth (the index's stage headings, the footer) uses `--cloth-ink`, `--cloth-muted` and `--cloth-accent`, which a rule near `footer` swaps in for `--ink`, `--muted` and `--tomato`; these are left over from the dark-mode era and now equal the card values. Cards cast a dark brown `--cloth-shadow`; buttons inside cards keep `--shadow`.
+  - Topping colours: `--cheese-a/b`, `--mush-a/b`, `--pep-a/b`, `--anch-a/b`, `--crust-a/b`.
   - Page-specific semantics:
     - 01: commission `--commit` (magenta), omission `--omit` (basil green).
     - 02: raw counts `--raw` (muted brown), weighted `--good` (basil green).
@@ -163,7 +163,7 @@ Pixel index is `y*N + x`. Changing the kit changes every page. Rebuild, rerun `t
 4. **Turn its card on** in `src/index.html`: change `<div class="card soon">` to `<a class="card" href="NN-name.html">` and the status to `Open`.
 5. **Link it.** Give the new page a crumb back to `index.html` and previous/next links in its footer, and update the previous page's "Next" link.
 6. **Write a small logic test** that runs the page's estimators in node against known answers (paper figures, or the census truth). Consider adding lasting checks to `tests/check.js`.
-7. **Build, check, look.** Run `python3 src/build.py` (after `npm install` once) and `node tests/check.js`, then look at the page in a browser (both themes, phone width).
+7. **Build, check, look.** Run `python3 src/build.py` (after `npm install` once) and `node tests/check.js`, then look at the page in a browser (phone width too).
 8. **Hand back for review.** Update **Status** and **Changelog** below and leave everything uncommitted on the current branch (no new branch per explainer). Tell the author what changed and how to look at it (see **Reviewing and committing**).
 9. **Commit after review.** When the author approves, commit in the same Claude Code session, so the hooks add the transcript (see **Session transcripts**). Merge to `main` and push when the author says it's ready; that's what deploys.
 
@@ -385,6 +385,7 @@ Each plan opens with **Based on**: the parts of the papers it draws from, with p
 
 ## Changelog
 
+- **2026-11-05** Light only (on `pizza-map-lab`, no new explainer). The author asked for the site to look the same on every display, so dark mode is gone. In every `src/*.html`: the two dark `:root` blocks are removed, `:root` gains `color-scheme: light`, and the `matchMedia` / `MutationObserver` repaint-on-theme-change listeners are dropped. The `--cloth-*` tokens stay (they now equal the card values). No kit or test change; `tests/check.js` passes.
 - **2026-11-05** 10 copy pass (on `pizza-map-lab`, no new explainer). The author felt it odd that photo blotches, rather than toppings sitting together, were cast as the cause of neighbours being alike. Measured (20 tastings at the page's defaults, 16 squares × 25 bites, k = 3): the blotch dial from 0 to 100% moves the by-spot gap 14.8 → 15.4 points with position and colour, 0.8 → 2.3 colour only, and not at all position only (21.3). 05's clumped-toppings dial at full *shrinks* the gap, 15.1 → 9.8, because the position classifier is right more often everywhere. So the leak runs on the toppings' patches plus the classifier knowing where it is, and the photo's shared tint is a minor second cause. Changes, all in `src/10-…html`, no kit change:
   - Step 1's intro names the two causes in that order. The "Blotches" slider is now "Uneven bake" (oven's hot side, charred patches), the kit option is still `blotch`. Glare is "the shiny patch".
   - New Step 1 readout, `neighbourAgreement()`: on the paper pizza 88% of neighbouring spots share a topping and 66% of spots match on all four sides, and the summary says neither number depends on the photo.

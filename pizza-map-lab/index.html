@@ -18,14 +18,7 @@
   --crust-a:#c98a4b; --crust-b:#ad7036;
   --f-display:"Silkscreen","Courier New",ui-monospace,monospace;
   --f-body:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
-}
-@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
-  --panel:#2a1e18; --ink:#f3e7d3; --muted:#c3ae98;
-  --line:#f3e7d3; --shadow:#8a2a16; --tomato:#ff6a4d; --tint-d:rgba(243,231,211,.07); color-scheme:dark;
-}}
-:root[data-theme="dark"]{
-  --panel:#2a1e18; --ink:#f3e7d3; --muted:#c3ae98;
-  --line:#f3e7d3; --shadow:#8a2a16; --tomato:#ff6a4d; --tint-d:rgba(243,231,211,.07); color-scheme:dark;
+  color-scheme:light;
 }
 *{box-sizing:border-box}
 body{margin:0; background-color:var(--bg); color:var(--ink); font-family:var(--f-body); font-size:15px; line-height:1.55;
@@ -447,7 +440,6 @@ const P=bakePaperPizza(SEED);
 function draw(){ const pal=pizzaPalette();
   paintPizza(document.getElementById("pie"),i=>P.crust[i]?pal.crust[P.tex[i]]:(P.inside[i]?pal.top[P.truth[i]][P.tex[i]]:null)); }
 draw();
-const mq=window.matchMedia("(prefers-color-scheme: dark)"); if(mq.addEventListener) mq.addEventListener("change",draw);
 })();
 </script>
 </body>

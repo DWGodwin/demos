@@ -20,18 +20,7 @@
   --crust-a:#c98a4b; --crust-b:#ad7036;
   --f-display:"Silkscreen","Courier New",ui-monospace,monospace;
   --f-body:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
-}
-@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
-  --panel:#2a1e18; --ink:#f3e7d3; --muted:#c3ae98;
-  --line:#f3e7d3; --shadow:#8a2a16; --tomato:#ff6a4d; --good:#3ddc6e; --raw:#b89c86;
-  --tint-g:rgba(61,220,110,.15); --tint-r:rgba(184,156,134,.16); --tint-d:rgba(243,231,211,.07);
-  color-scheme:dark;
-}}
-:root[data-theme="dark"]{
-  --panel:#2a1e18; --ink:#f3e7d3; --muted:#c3ae98;
-  --line:#f3e7d3; --shadow:#8a2a16; --tomato:#ff6a4d; --good:#3ddc6e; --raw:#b89c86;
-  --tint-g:rgba(61,220,110,.15); --tint-r:rgba(184,156,134,.16); --tint-d:rgba(243,231,211,.07);
-  color-scheme:dark;
+  color-scheme:light;
 }
 *{box-sizing:border-box}
 body{margin:0; background-color:var(--bg); color:var(--ink); font-family:var(--f-body); font-size:15px; line-height:1.55;
@@ -814,8 +803,6 @@ const pick=e=>{const r=cv.getBoundingClientRect(); const x=Math.floor((e.clientX
 cv.addEventListener("pointermove",pick); cv.addEventListener("pointerdown",pick);
 cv.addEventListener("pointerleave",e=>{if(e.pointerType==="mouse"){st.hover=-1; renderProbe(); drawPizza();}});
 const repaint=()=>{drawPizza(); drawHist();};
-const mq=window.matchMedia("(prefers-color-scheme: dark)"); if(mq.addEventListener) mq.addEventListener("change",repaint);
-new MutationObserver(repaint).observe(document.documentElement,{attributes:true,attributeFilter:["data-theme"]});
 if(document.fonts&&document.fonts.ready) document.fonts.ready.then(()=>drawHist());
 
 setup(); all();

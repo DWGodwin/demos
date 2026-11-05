@@ -21,20 +21,7 @@
   --crust-a:#c98a4b; --crust-b:#ad7036;
   --f-display:"Silkscreen","Courier New",ui-monospace,monospace;
   --f-body:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
-}
-@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
-  --panel:#2a1e18; --ink:#f3e7d3; --muted:#c3ae98;
-  --line:#f3e7d3; --shadow:#8a2a16; --tomato:#ff6a4d;
-  --commit:#ff52c9; --omit:#3ddc6e; --pix:#b89c86; --est:#ff9d4d; --adj:#a98bff;
-  --tint-e:rgba(255,157,77,.15); --tint-d:rgba(243,231,211,.07);
-  color-scheme:dark;
-}}
-:root[data-theme="dark"]{
-  --panel:#2a1e18; --ink:#f3e7d3; --muted:#c3ae98;
-  --line:#f3e7d3; --shadow:#8a2a16; --tomato:#ff6a4d;
-  --commit:#ff52c9; --omit:#3ddc6e; --pix:#b89c86; --est:#ff9d4d; --adj:#a98bff;
-  --tint-e:rgba(255,157,77,.15); --tint-d:rgba(243,231,211,.07);
-  color-scheme:dark;
+  color-scheme:light;
 }
 *{box-sizing:border-box}
 body{margin:0; background-color:var(--bg); color:var(--ink); font-family:var(--f-body); font-size:15px; line-height:1.55;
@@ -693,8 +680,6 @@ $("draw3").addEventListener("click",step3);
 $("rerun").addEventListener("click",repeats);
 $("slip").addEventListener("change",e=>{st.slip=+e.target.value; startMSE();});
 const repaint=()=>{drawPizza1(); drawPizza2(); renderHist(); if(mse) drawMSE();};
-const mq=window.matchMedia("(prefers-color-scheme: dark)"); if(mq.addEventListener) mq.addEventListener("change",repaint);
-new MutationObserver(repaint).observe(document.documentElement,{attributes:true,attributeFilter:["data-theme"]});
 if(document.fonts&&document.fonts.ready) document.fonts.ready.then(()=>{renderHist(); if(mse) drawMSE();});
 let lastW=0; if(window.ResizeObserver) new ResizeObserver(()=>{const w=$("hist").clientWidth; if(w&&w!==lastW){lastW=w; renderHist(); if(mse) drawMSE();}}).observe(document.body);
 
