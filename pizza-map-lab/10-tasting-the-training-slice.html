@@ -178,16 +178,16 @@ footer p{max-width:none}
   <section class="box lab" id="step-1" aria-label="The photo the classifier sees">
     <h2>Step 1 · A photo of the pizza</h2>
     <div class="controls">
-      <p>The classifier never sees the real pizza, only this photo. Each topping has its own colour, but grain blurs them and blotches tint whole patches, so a spot looks more like its neighbours than like its topping. Mushroom and anchovy look alike, as on every page.</p>
+      <p>The classifier never sees the real pizza, only this photo. Two things make a spot resemble its neighbours. The first is the pizza itself: toppings come in patches, so a spot's neighbours almost always have its topping. That is already true of the real pizza on the left, and it is what the leak on this page runs on. The second is the bake: an oven browns one side more than the other and chars a patch here and there, so neighbouring spots share a tint whatever their topping. Grain, speckle on each spot alone, works the other way and hides the toppings. Mushroom and anchovy look alike, as on every page.</p>
       <div class="ctl">
         <label class="lbl" for="grain"><span>Grain</span><output id="grain-v">50%</output></label>
         <input type="range" id="grain" min="0" max="100" step="5" value="50">
         <p class="hint">Speckle on every spot, each spot on its own.</p>
       </div>
       <div class="ctl">
-        <label class="lbl" for="blotch"><span>Blotches</span><output id="blotch-v">50%</output></label>
+        <label class="lbl" for="blotch"><span>Uneven bake</span><output id="blotch-v">50%</output></label>
         <input type="range" id="blotch" min="0" max="100" step="5" value="50">
-        <p class="hint">Patches of tint shared by neighbouring spots, like uneven lighting. This is what makes neighbours look alike.</p>
+        <p class="hint">Browning shared by neighbouring spots, the oven's hot side and a few charred patches. It makes neighbours alike in colour, on top of the toppings already making them alike in kind. It matters most to a classifier that goes by colour alone.</p>
       </div>
       <div class="btns"><button class="btn" type="button" id="newpie">Bake a new pizza</button></div>
       <p class="hint">The real pizza is the paper pizza from the other pages. The map on this page is not the Table 5 map; the classifier makes its own.</p>
@@ -200,7 +200,7 @@ footer p{max-width:none}
         </figure>
         <figure>
           <canvas class="pie" id="cv-photo" width="512" height="512" aria-label="The photo"></canvas>
-          <figcaption><b>The photo</b> What the classifier sees. The bright patch is glare.</figcaption>
+          <figcaption><b>The photo</b> What the classifier sees. The shiny patch is glare.</figcaption>
         </figure>
       </div>
       <div class="legend"><span><i class="sw" style="background:var(--cheese-a)"></i>Cheese (A)</span><span><i class="sw" style="background:var(--mush-a)"></i>Mushroom (B)</span><span><i class="sw" style="background:var(--pep-a)"></i>Pepperoni (C)</span><span><i class="sw" style="background:var(--anch-a)"></i>Anchovy (D)</span></div>
@@ -322,14 +322,14 @@ footer p{max-width:none}
   <div class="box notes" id="notes">
     <h2>What Section 2.7 says</h2>
     <h3>Don't grade on the training data</h3>
-    <p>Using the same data for training and validation gives an optimistically biased accuracy (Hammond and Verbyla 1996, cited on p. 7). Tasting the training slice is the extreme case: a nearest-neighbour classifier gets every training spot right, because its nearest neighbour is itself. Splitting by spot is the mild case of the same thing. The test spot is not in the training set, but its neighbours are, and on a pizza the neighbours have the same topping.</p>
+    <p>Using the same data for training and validation gives an optimistically biased accuracy (Hammond and Verbyla 1996, cited on p. 7). Tasting the training slice is the extreme case: a nearest-neighbour classifier gets every training spot right, because its nearest neighbour is itself. Splitting by spot is the mild case of the same thing. The test spot is not in the training set, but its neighbours are, and on a pizza the neighbours have the same topping. Picture the extreme, a pizza with one topping on each quarter: a classifier that only knows where it is passes any by-spot test with full marks while having learned nothing but the four quarters. The fix is the same one the paper gives, which is to hold out whole slices.</p>
     <span class="formula">a test spot next to a training spot is a training spot in disguise</span>
     <h3>Training and testing want different samples</h3>
     <p>Training can use purposive, convenient sites. Accuracy assessment needs a probability sample (p. 8). Independence is easiest with a separate probability sample drawn for the assessment, and drawing it after the map exists is fine: strata built from the map change precision, not bias (p. 8). Step 3's fresh sample does exactly that.</p>
     <h3>When one sample must serve both</h3>
     <p>If the reference data come from one probability sample and are then divided, divide at the cluster level. A cluster assigned to training takes all its spots with it (p. 8). Splitting the spots inside a cluster between training and testing violates independence, and several studies found optimistic accuracies from it (Friedl et al. 2000; Zhen et al. 2013; Lyons et al. 2018).</p>
     <h3>Honesty notes</h3>
-    <p>The split by square can read a little low. Its test squares are ones the classifier never learned from, while its real accuracy also counts the training squares, where it does best. The fresh sample has no such lean, which is the paper's point. With tasted spots in all 64 squares the by-spot inflation shrinks: the training spots then cover the whole pizza, so a test spot is no closer to them than any other spot is. The inflation is about clustered reference data, which is what Sec. 2.7 is about. This classifier is a toy, and the size of the gap depends on how much neighbours look alike (blotches) and how much it leans on position.</p>
+    <p>The split by square can read a little low. Its test squares are ones the classifier never learned from, while its real accuracy also counts the training squares, where it does best. The fresh sample has no such lean, which is the paper's point. With tasted spots in all 64 squares the by-spot inflation shrinks: the training spots then cover the whole pizza, so a test spot is no closer to them than any other spot is. The inflation is about clustered reference data, which is what Sec. 2.7 is about. This classifier is a toy, and the size of the gap depends mostly on how much it leans on position, because position is how it borrows a neighbour's topping. The uneven bake matters much less than Step 1 might suggest: at the defaults, taking it from 0 to 100% moves the by-spot gap by about half a point (14.8 to 15.4 over 20 tastings, <em>ours</em>). It only does the leaking on its own for the colour-only classifier, where the gap goes from about 1 point to 2 as the bake gets more uneven, and it never reaches what position does. Tidier toppings don't make the leak worse either: with the patches from 05's clumping dial at full, the position-and-colour map is right more often everywhere and the gap shrinks to about 10 points. The leak is largest when the toppings are messy at the scale between a neighbour and a square, which is the scale the paper pizza is messy at.</p>
   </div>
 
   <footer>
@@ -708,11 +708,19 @@ function paintMap(cv,R){ const pal=pizzaPalette(), tom=hexRGB(cssVar("--tomato")
   dot(R.train,ink,panel); dot(R.test,panel,tomato);
 }
 
+/* how alike neighbours already are on the real pizza: the share of neighbouring pairs with the same topping, and the share of
+   spots whose four neighbours all match. Crust and off-pizza spots don't count */
+function neighbourAgreement(){ let pairs=0, same=0, spots=0, all=0;
+  for(const i of P.ids){ let ok=true, any=false; for(const j of nb4(i)){ if(!P.inside[j]) continue; any=true; if(j>i){ pairs++; if(P.truth[j]===P.truth[i]) same++; } if(P.truth[j]!==P.truth[i]) ok=false; }
+    if(any){ spots++; if(ok) all++; } }
+  return {pair:same/pairs, all:all/spots}; }
+
 /* ---- Step 1 ---- */
 function renderStep1(){
   $("grain-v").textContent=Math.round(100*st.grain)+"%"; $("blotch-v").textContent=Math.round(100*st.blotch)+"%";
   paintReal(); paintPhoto();
-  $("s1-sum").innerHTML=`The real pizza is the paper pizza (Table 5's reference shares: 55.4% cheese, 26.4% mushroom, 10.8% pepperoni, 7.4% anchovy). Turn the blotches to 0 and only grain is left, so a spot's colour says nothing about its neighbours; turn the grain to 0 and the only noise is shared between neighbours.`;
+  const nbr=neighbourAgreement();
+  $("s1-sum").innerHTML=`The real pizza is the paper pizza (Table 5's reference shares: 55.4% cheese, 26.4% mushroom, 10.8% pepperoni, 7.4% anchovy). On it, <b>${pc(nbr.pair,0)}</b> of neighbouring spots share a topping, and ${pc(nbr.all,0)} of spots have the same topping on all four sides. Neither number has anything to do with the photo. A classifier that simply copied the topping of the nearest tasted spot would be right ${pc(nbr.pair,0)} of the time when that spot is next door, which is what a hold-out spot next to a training spot amounts to. The bake and grain sliders only change what the camera sees; turn the bake to 0 and a spot's colour says nothing about its neighbours' colour, yet its topping still says almost everything about theirs.`;
 }
 
 /* ---- Step 2 ---- */

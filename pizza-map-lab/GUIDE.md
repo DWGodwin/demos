@@ -134,7 +134,7 @@ The host does no building. The built pages are committed, so the demos repo's ru
 | `tasterSays(P, pt, po, seed)` | The taster's fixed verdict at every spot (1 = says anchovy), exact within each (real, map) group, so the taster's slips are independent of the map's, as Foody's equations assume |
 | `foody(E, rt, ro, ct, co)` | Foody (2013) Eqs. 1–8: `{EA, Pt, Po, Ut, O, cells:{a,b,c,d}, truth:{Pt, Po, Ut, O}}` for the map checked against the taster |
 | `PHOTO_BASE` | 10's base photo colour per topping (3 bands, 0–1); mushroom and anchovy are close |
-| `bakePhoto(P, seed, {grain, blotch})` | 10's noisy photo of pizza `P`: base colour, blotches shared by neighbours at 16- and 4-spot scales (`blotch` 0–1, default .5), shine at `P.glare`, and per-spot grain (`grain` 0–1, default .5). Returns `{band: Float32Array(3·N·N), grain, blotch}`; crust is −1. About 5–7 ms |
+| `bakePhoto(P, seed, {grain, blotch})` | 10's noisy photo of pizza `P`: base colour, browning shared by neighbours at 16- and 4-spot scales (`blotch` 0–1, default .5; the page calls it "Uneven bake"), shine at `P.glare`, and per-spot grain (`grain` 0–1, default .5). Returns `{band: Float32Array(3·N·N), grain, blotch}`; crust is −1. About 5–7 ms |
 | `knnClassify(P, ph, train, k, lam)` | k-nearest-neighbour classifier on position and colour: distance² = spots apart² + (lam · colour difference)², so `lam` = 0 is position only and about 1000 is colour only. `train` is pixel ids labelled with `P.truth`. Exact search over 8×8 buckets (checked against brute force). Returns `Int8Array(N·N)`, −1 off the pizza. 5–15 ms with 200 training spots; up to about 135 ms colour-only with 3,200 |
 | `splitHalf(groups, bySquare, r)` | Splits reference spots (one list per square) into equal training and test halves, by whole square or by spot. Returns `{train, test}` |
 
@@ -380,10 +380,16 @@ Each plan opens with **Based on**: the parts of the papers it draws from, with p
 | 07 | The Taster Is Wrong Too (`07-the-taster-is-wrong-too.html`) | Built on `pizza-map-lab`; live on `main` since 2026-11-05; page copy is a draft for the author to rewrite |
 | 08 | Normalizing and Kappa (`08-normalizing-and-kappa.html`) | Built on `pizza-map-lab`; live on `main` since 2026-11-05; page copy is a draft for the author to rewrite |
 | 09 | Wrong Amount, Wrong Place (`09-wrong-amount-wrong-place.html`) | Built on `pizza-map-lab`; live on `main` since 2026-11-05; page copy is a draft for the author to rewrite |
-| 10 | Tasting the Training Slice (`10-tasting-the-training-slice.html`) | Built on `pizza-map-lab`; live on `main` since 2026-11-05; page copy is a draft for the author to rewrite |
+| 10 | Tasting the Training Slice (`10-tasting-the-training-slice.html`) | Built on `pizza-map-lab`; live on `main` since 2026-11-05; copy pass of 2026-11-05 (leak reattributed to topping patches, "Uneven bake") uncommitted on `pizza-map-lab`; page copy is a draft for the author to rewrite |
 | B1 | Round Pizza, Square Cuts | Later |
 
 ## Changelog
+
+- **2026-11-05** 10 copy pass (on `pizza-map-lab`, no new explainer). The author felt it odd that photo blotches, rather than toppings sitting together, were cast as the cause of neighbours being alike. Measured (20 tastings at the page's defaults, 16 squares × 25 bites, k = 3): the blotch dial from 0 to 100% moves the by-spot gap 14.8 → 15.4 points with position and colour, 0.8 → 2.3 colour only, and not at all position only (21.3). 05's clumped-toppings dial at full *shrinks* the gap, 15.1 → 9.8, because the position classifier is right more often everywhere. So the leak runs on the toppings' patches plus the classifier knowing where it is, and the photo's shared tint is a minor second cause. Changes, all in `src/10-…html`, no kit change:
+  - Step 1's intro names the two causes in that order. The "Blotches" slider is now "Uneven bake" (oven's hot side, charred patches), the kit option is still `blotch`. Glare is "the shiny patch".
+  - New Step 1 readout, `neighbourAgreement()`: on the paper pizza 88% of neighbouring spots share a topping and 66% of spots match on all four sides, and the summary says neither number depends on the photo.
+  - Notes: the extreme case is "a pizza with one topping on each quarter" (not named quattro stagioni, at the author's request). The honesty paragraph now carries the measured dial effects and the clumping result, marked *ours*.
+  - Checked in headless Chrome: readout renders, console clean. `tests/check.js` passes unchanged.
 
 - **2026-11-05** Launch. The author merged `pizza-map-lab` into `main` (fast-forward to `ca8d4e4`) and pushed, so 01–10, the index and `transcripts/` are live. The lab was already in the demos root Tools list. README now says this version is a preliminary test of the concept and that the final page text will be the author's own.
 - **2026-11-05** Style session (on `pizza-map-lab`, no new explainer).
