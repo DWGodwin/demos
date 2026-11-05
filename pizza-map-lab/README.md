@@ -1,5 +1,7 @@
 # Pizza Map Lab
 
+**This version is a preliminary test of the concept.** The words on the pages are placeholder drafts for now. In the finished site, all the words will be my own.
+
 I was having some trouble understanding the very dense Stehman & Foody (2019), *Key issues in rigorous accuracy assessment of land cover products* (Remote Sensing of Environment 231, 111199) but it seemed extremely important to my PhD work. I decided that the easiest way for me to fully understand this paper was to create a toy example for each of the cases that they go through.
 
 Even though this work is fundamentally about land cover classification and map quality assessment, I wanted it to be applicable beyond domain expertise and use something that was familiar to anybody who might want to understand more about why careful study design is important in my field. I chose pizza as the example. Just like types of land cover, certain types of toppings are more or less common and maybe more or less important to know the location of when you take a bite. 

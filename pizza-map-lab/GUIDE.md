@@ -204,7 +204,7 @@ The demos repo deploys to Cloudflare Pages from `main`. Anything on another bran
 
 Done in the 03 session, except step 1 (waiting on the author) and optional step 4 (skipped: 02 keeps its inline `estimate()`).
 
-1. **Finish the launch.** Merge `pizza-map-lab` into `main`, then branch `lab-03` from `main`.
+1. **Finish the launch.** Merge `pizza-map-lab` into `main`, then branch `lab-03` from `main`. (Done 2026-11-05, when 01–10 were merged together.)
 2. **Add shared estimators to `src/kit.js`.** Pages 03–06 need the same maths, and 02 currently keeps its own inline `estimate()`. Add:
    - samplers: simple random, systematic grid (random start), stratified with any allocation, and cluster;
    - the stratified and poststratified estimator, Eqs. 12–20, with standard errors (Eqs. 16–18 and 20, using n − 1);
@@ -373,18 +373,19 @@ Each plan opens with **Based on**: the parts of the papers it draws from, with p
 | 01 | The Anchovy Problem (`01-anchovy-problem.html`) | Done |
 | 02 | Twenty-Five of Each (`02-twenty-five-of-each.html`) | Done |
 | — | Paper equations (live MathML) on 01 and 02 | Done |
-| 03 | The Sampling Design Lab (`03-sampling-design-lab.html`) | Built on `lab-03`; page copy is a draft for the author to rewrite; not merged |
-| 04 | How Many Tastes? (`04-how-many-tastes.html`) | Built on `lab-04`; page copy is a draft for the author to rewrite; not merged |
-| 05 | Every Square Its Own Pizza (`05-every-square-its-own-pizza.html`) | Built on `pizza-map-lab`; page copy is a draft for the author to rewrite; not merged |
-| 06 | How Much Anchovy Is There? (`06-how-much-anchovy.html`) | Built on `pizza-map-lab`; page copy is a draft for the author to rewrite; not merged |
-| 07 | The Taster Is Wrong Too (`07-the-taster-is-wrong-too.html`) | Built on `pizza-map-lab`; page copy is a draft for the author to rewrite; not merged |
-| 08 | Normalizing and Kappa (`08-normalizing-and-kappa.html`) | Built on `pizza-map-lab`; page copy is a draft for the author to rewrite; not merged |
-| 09 | Wrong Amount, Wrong Place (`09-wrong-amount-wrong-place.html`) | Built on `pizza-map-lab`; page copy is a draft for the author to rewrite; not merged |
-| 10 | Tasting the Training Slice (`10-tasting-the-training-slice.html`) | Built on `pizza-map-lab`; page copy is a draft for the author to rewrite; not merged |
+| 03 | The Sampling Design Lab (`03-sampling-design-lab.html`) | Built on `lab-03`; live on `main` since 2026-11-05; page copy is a draft for the author to rewrite |
+| 04 | How Many Tastes? (`04-how-many-tastes.html`) | Built on `lab-04`; live on `main` since 2026-11-05; page copy is a draft for the author to rewrite |
+| 05 | Every Square Its Own Pizza (`05-every-square-its-own-pizza.html`) | Built on `pizza-map-lab`; live on `main` since 2026-11-05; page copy is a draft for the author to rewrite |
+| 06 | How Much Anchovy Is There? (`06-how-much-anchovy.html`) | Built on `pizza-map-lab`; live on `main` since 2026-11-05; page copy is a draft for the author to rewrite |
+| 07 | The Taster Is Wrong Too (`07-the-taster-is-wrong-too.html`) | Built on `pizza-map-lab`; live on `main` since 2026-11-05; page copy is a draft for the author to rewrite |
+| 08 | Normalizing and Kappa (`08-normalizing-and-kappa.html`) | Built on `pizza-map-lab`; live on `main` since 2026-11-05; page copy is a draft for the author to rewrite |
+| 09 | Wrong Amount, Wrong Place (`09-wrong-amount-wrong-place.html`) | Built on `pizza-map-lab`; live on `main` since 2026-11-05; page copy is a draft for the author to rewrite |
+| 10 | Tasting the Training Slice (`10-tasting-the-training-slice.html`) | Built on `pizza-map-lab`; live on `main` since 2026-11-05; page copy is a draft for the author to rewrite |
 | B1 | Round Pizza, Square Cuts | Later |
 
 ## Changelog
 
+- **2026-11-05** Launch. The author merged `pizza-map-lab` into `main` (fast-forward to `ca8d4e4`) and pushed, so 01–10, the index and `transcripts/` are live. The lab was already in the demos root Tools list. README now says this version is a preliminary test of the concept and that the final page text will be the author's own.
 - **2026-11-05** Style session (on `pizza-map-lab`, no new explainer).
   - Cards no longer sit two to a row. Every page's `<section class="lower">` (the paper check beside the notes; 01's error matrix beside its notes; 02's Step 1 and Step 2) is unwrapped, so each card runs full width. 01's error matrix no longer scrolls sideways at desktop width. 07 and 08 keep `.lower` inside cards for their matrix pairs.
   - Dark mode keeps the light tablecloth. The dark `--bg` and `--check` overrides are gone, and new `--cloth-*` tokens keep the index stage headings and footer readable on it. Cards cast a dark brown shadow in both themes (`--cloth-shadow`), so they match light mode.
