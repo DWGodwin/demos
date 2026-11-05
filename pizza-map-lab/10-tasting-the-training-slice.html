@@ -1,0 +1,811 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Tasting the Training Slice</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&family=IBM+Plex+Mono:ital,wght@0,400;0,600;1,400&display=swap">
+<style>
+/* Layout: same lab bench as 01-09. A noisy photo of the paper pizza, a toy classifier trained on reference spots, the
+   same spots split two ways (by spot and by square), the claimed accuracy against the real one, repeats, the paper's
+   Eq. 13 on an independent sample, the paper check and the notes. */
+:root{
+  --bg:#efe2c8; --check:rgba(196,52,32,.085); --panel:#fffaf0; --ink:#2b1b12; --muted:#6e584a;
+  --line:#2b1b12; --shadow:#2b1b12; --tomato:#c4341f;
+  --leak:#e0189e; --good:#118a36; --ind:#8a6f5c;
+  --tint-g:rgba(17,138,54,.12); --tint-m:rgba(224,24,158,.12); --tint-d:rgba(43,27,18,.06);
+  --cheese-a:#f2c23c; --cheese-b:#f7d567; --mush-a:#cbb59a; --mush-b:#a68c70;
+  --pep-a:#b3261e; --pep-b:#8c1a14; --anch-a:#8ea3ba; --anch-b:#647891;
+  --crust-a:#c98a4b; --crust-b:#ad7036;
+  --f-display:"Silkscreen","Courier New",ui-monospace,monospace;
+  --f-body:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#1b1310; --check:rgba(196,52,32,.13); --panel:#2a1e18; --ink:#f3e7d3; --muted:#c3ae98;
+  --line:#f3e7d3; --shadow:#8a2a16; --tomato:#ff6a4d; --leak:#ff52c9; --good:#3ddc6e; --ind:#b89c86;
+  --tint-g:rgba(61,220,110,.15); --tint-m:rgba(255,82,201,.15); --tint-d:rgba(243,231,211,.07);
+  color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --bg:#1b1310; --check:rgba(196,52,32,.13); --panel:#2a1e18; --ink:#f3e7d3; --muted:#c3ae98;
+  --line:#f3e7d3; --shadow:#8a2a16; --tomato:#ff6a4d; --leak:#ff52c9; --good:#3ddc6e; --ind:#b89c86;
+  --tint-g:rgba(61,220,110,.15); --tint-m:rgba(255,82,201,.15); --tint-d:rgba(243,231,211,.07);
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{margin:0; background-color:var(--bg); color:var(--ink); font-family:var(--f-body); font-size:15px; line-height:1.55;
+  background-image:linear-gradient(90deg,var(--check) 50%,transparent 50%),linear-gradient(var(--check) 50%,transparent 50%);
+  background-size:56px 56px}
+.wrap{max-width:1120px; margin:0 auto; padding-block:28px 56px;
+  padding-left:max(16px,env(safe-area-inset-left,0px)); padding-right:max(16px,env(safe-area-inset-right,0px));
+  display:grid; gap:22px}
+h1,h2,h3,.eyebrow,.lbl,.btn,.seg label,th,.crumb,.big,.tile b{font-family:var(--f-display); font-weight:400; letter-spacing:.02em}
+h1{font-size:clamp(28px,5.4vw,52px); line-height:1.05; margin:0; text-wrap:balance}
+h2{font-size:20px; margin:0 0 10px; text-wrap:balance}
+h3{font-size:15px; margin:18px 0 6px}
+p{margin:0 0 10px; max-width:66ch}
+a{color:var(--tomato)}
+.box{background:var(--panel); border:3px solid var(--line); box-shadow:6px 6px 0 var(--shadow); padding:18px; min-width:0}
+.mast{display:grid; gap:12px}
+.crumb{font-size:12px; color:var(--ink); justify-self:start}
+.eyebrow{font-size:13px; display:inline-block; background:var(--tomato); color:#fffaf0; padding:4px 8px; justify-self:start}
+.mast p{font-size:16px}
+.lab{display:grid; grid-template-columns:minmax(0,300px) minmax(0,1fr); gap:22px}
+@media (max-width:820px){.lab{grid-template-columns:minmax(0,1fr)}}
+.lab > h2{grid-column:1/-1; margin:0}
+.controls{display:grid; gap:14px; align-content:start}
+.ctl{display:grid; gap:6px}
+.lbl{font-size:13px; display:flex; justify-content:space-between; gap:8px}
+.lbl output{font-family:var(--f-body); font-weight:600; font-size:14px}
+.hint{font-size:12.5px; color:var(--muted); margin:0}
+.grp{border:2px dashed var(--line); padding:10px; display:grid; gap:10px; margin:0; min-width:0}
+.grp legend{font-family:var(--f-display); font-size:12px; padding:0 4px}
+input[type=range]{-webkit-appearance:none; appearance:none; width:100%; height:24px; background:transparent; margin:0}
+input[type=range]::-webkit-slider-runnable-track{height:10px; background:var(--tint-d); border:2px solid var(--line)}
+input[type=range]::-moz-range-track{height:6px; background:var(--tint-d); border:2px solid var(--line)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none; width:20px; height:20px; margin-top:-7px; background:var(--tomato); border:2px solid var(--line); border-radius:0}
+input[type=range]::-moz-range-thumb{width:16px; height:16px; background:var(--tomato); border:2px solid var(--line); border-radius:0}
+input[type=range]:focus-visible{outline:3px dashed var(--tomato); outline-offset:3px}
+.seg{display:grid; grid-template-columns:minmax(0,1fr); gap:6px; border:0; padding:0; margin:0; min-width:0}
+.seg.two{grid-template-columns:repeat(2,minmax(0,1fr))}
+.seg.three{grid-template-columns:repeat(3,minmax(0,1fr))}
+.seg.four{grid-template-columns:repeat(4,minmax(0,1fr))}
+.seg legend{padding:0; margin-bottom:6px}
+.seg input{position:absolute; opacity:0; pointer-events:none}
+.seg label{border:2px solid var(--line); padding:7px 8px; font-size:12px; cursor:pointer; display:flex; align-items:center; justify-content:center; text-align:center; gap:7px; background:var(--panel)}
+.seg label:hover{background:var(--tint-d)}
+.seg input:checked + label{background:var(--ink); color:var(--panel)}
+.seg input:focus-visible + label{outline:3px dashed var(--tomato); outline-offset:2px}
+.btns{display:flex; flex-wrap:wrap; gap:8px}
+.btn{font-size:12px; border:2px solid var(--line); background:var(--panel); color:var(--ink); padding:7px 9px; cursor:pointer; box-shadow:3px 3px 0 var(--shadow); border-radius:0}
+.btn:hover{background:var(--tint-d)}
+.btn:active{transform:translate(3px,3px); box-shadow:0 0 0 var(--shadow)}
+.btn:focus-visible{outline:3px dashed var(--tomato); outline-offset:2px}
+.btn[aria-pressed="true"]{background:var(--ink); color:var(--panel)}
+.views{display:grid; gap:12px; align-content:start; min-width:0}
+.pies{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px}
+@media (max-width:560px){.pies{grid-template-columns:minmax(0,1fr)}}
+.tiles{display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; width:100%}
+.tile{border:2px solid var(--line); padding:8px 10px; display:grid; gap:2px; align-content:start; min-width:0}
+.tile b{font-size:11px}
+.tile .big{font-size:clamp(20px,3vw,28px); line-height:1.1}
+.tile small{font-size:11.5px; color:var(--muted)}
+.tile.leak .big{color:var(--leak)} .tile.good .big{color:var(--good)} .tile.ind .big{color:var(--ind)}
+.big{color:var(--tomato)}
+figure{margin:0; display:grid; gap:6px; min-width:0; justify-items:start; align-content:start}
+figcaption{font-size:12.5px; color:var(--muted)}
+figcaption b{font-family:var(--f-display); font-weight:400; font-size:13px; color:var(--ink)}
+canvas{display:block; border:2px solid var(--line); background:var(--tint-d)}
+.pie{width:100%; max-width:440px; aspect-ratio:1; image-rendering:pixelated; image-rendering:crisp-edges}
+.chart{width:100%}
+.legend{display:flex; flex-wrap:wrap; gap:6px 14px; font-size:12.5px}
+.legend span{display:inline-flex; align-items:center; gap:6px}
+.sw{width:12px; height:12px; border:2px solid var(--line); flex:none; display:inline-block}
+.sw.leak{background:var(--leak)} .sw.good{background:var(--good)} .sw.ind{background:var(--ind)} .sw.miss{background:var(--tomato)}
+.sw.train{background:var(--ink); border-color:var(--panel); outline:1px solid var(--ink)} .sw.test{background:var(--panel); border-color:var(--tomato); outline:1px solid var(--tomato)}
+.sw.faded{background:var(--tint-d)}
+.sw.dash{height:0; width:22px; border:0; border-top:3px dashed var(--ink)}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse; font-variant-numeric:tabular-nums; width:100%}
+th,td{border:2px solid var(--line); padding:7px 6px; text-align:center; font-size:13.5px}
+th{font-size:11.5px; background:var(--tint-d)}
+th.rowh{text-align:left}
+th .sw{vertical-align:-1px; margin-right:5px}
+td.acc{font-weight:600}
+td.dim{color:var(--muted)}
+.c-leak{background:var(--tint-m)} .c-good{background:var(--tint-g)}
+#cmp{min-width:640px} #top-tab{min-width:520px} #rep-tab{min-width:520px} #chk{min-width:520px}
+.lower{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:22px; align-items:start}
+@media (max-width:980px){.lower{grid-template-columns:minmax(0,1fr)}}
+.histctl{display:flex; flex-wrap:wrap; gap:10px 16px; align-items:center; margin-bottom:12px}
+.histctl .seg{min-width:min(100%,300px)}
+.sum{font-size:14px; margin-top:10px}
+.k-leak{color:var(--leak); font-weight:600} .k-good{color:var(--good); font-weight:600} .k-ind{color:var(--ind); font-weight:600}
+.notes p{font-size:14px}
+.formula{display:inline-block; border:2px solid var(--line); padding:4px 8px; margin:2px 0 8px; font-weight:600; background:var(--tint-d)}
+/* Paper equations: MathML that build.py makes from tex tags. Live numbers are tagged \id{...} and set with setEq. */
+math{font-family:"STIX Two Math","Cambria Math","Latin Modern Math",math; font-size:1.15em; font-style:normal; font-weight:normal; line-height:normal; letter-spacing:normal; text-transform:none; direction:ltr; font-feature-settings:"dtls" off}
+mfrac > :nth-child(2), msqrt, mover > :first-child{math-shift:compact}
+.eqs{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px}
+@media (max-width:820px){.eqs{grid-template-columns:minmax(0,1fr)}}
+.eq{border:2px solid var(--line); background:var(--tint-d); padding:10px 12px; display:grid; gap:6px; align-content:start; min-width:0}
+.eq-tag{font-family:var(--f-display); font-size:11.5px; letter-spacing:.02em; display:flex; justify-content:space-between; gap:4px 10px; flex-wrap:wrap}
+.eq-tag i{font-style:normal; color:var(--muted)}
+.eq-m{overflow-x:auto; overflow-y:hidden; padding:3px 0}
+@media (max-width:480px){.eq-m math{font-size:1em}}
+.eq-cap{font-size:12.5px; color:var(--muted); margin:0}
+footer{font-size:13px; color:var(--muted)}
+footer p{max-width:none}
+@media (prefers-reduced-motion:reduce){.btn:active{transform:none}}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <header class="mast">
+    <a class="crumb" href="index.html">← Pizza Map Lab</a>
+    <span class="eyebrow">Pizza Map Lab · Explainer 10</span>
+    <h1>Tasting the Training Slice</h1>
+    <p>Every page so far was handed a finished map. This one makes the map. A classifier looks at a noisy photo of the pizza and learns from spots a taster has already checked. The question is how to grade it. Hold back some of the tasted spots and test on those, the usual move, and you can grade yourself far too kindly: if the hold-outs sit right next to spots the classifier learned from, it is tasting its own training slice. Section 2.7 of the paper says training and test data must be independent, and that when reference data come in clusters, whole clusters must go one way or the other. Here the 64 squares are the clusters.</p>
+  </header>
+
+  <section class="box lab" aria-label="The photo the classifier sees">
+    <h2>Step 1 · A photo of the pizza</h2>
+    <div class="controls">
+      <p>The classifier never sees the real pizza, only this photo. Each topping has its own colour, but grain blurs them and blotches tint whole patches, so a spot looks more like its neighbours than like its topping. Mushroom and anchovy look alike, as on every page.</p>
+      <div class="ctl">
+        <label class="lbl" for="grain"><span>Grain</span><output id="grain-v">50%</output></label>
+        <input type="range" id="grain" min="0" max="100" step="5" value="50">
+        <p class="hint">Speckle on every spot, each spot on its own.</p>
+      </div>
+      <div class="ctl">
+        <label class="lbl" for="blotch"><span>Blotches</span><output id="blotch-v">50%</output></label>
+        <input type="range" id="blotch" min="0" max="100" step="5" value="50">
+        <p class="hint">Patches of tint shared by neighbouring spots, like uneven lighting. This is what makes neighbours look alike.</p>
+      </div>
+      <div class="btns"><button class="btn" type="button" id="newpie">Bake a new pizza</button></div>
+      <p class="hint">The real pizza is the paper pizza from the other pages. The map on this page is not the Table 5 map; the classifier makes its own.</p>
+    </div>
+    <div class="views">
+      <div class="pies">
+        <figure>
+          <canvas class="pie" id="cv-real" width="512" height="512" aria-label="The real pizza"></canvas>
+          <figcaption><b>The real pizza</b> What the taster finds at any spot.</figcaption>
+        </figure>
+        <figure>
+          <canvas class="pie" id="cv-photo" width="512" height="512" aria-label="The photo"></canvas>
+          <figcaption><b>The photo</b> What the classifier sees. The bright patch is glare.</figcaption>
+        </figure>
+      </div>
+      <div class="legend"><span><i class="sw" style="background:var(--cheese-a)"></i>Cheese (A)</span><span><i class="sw" style="background:var(--mush-a)"></i>Mushroom (B)</span><span><i class="sw" style="background:var(--pep-a)"></i>Pepperoni (C)</span><span><i class="sw" style="background:var(--anch-a)"></i>Anchovy (D)</span></div>
+      <p class="sum" id="s1-sum"></p>
+    </div>
+  </section>
+
+  <section class="box lab" aria-label="Taste reference spots, split them, train and grade">
+    <h2>Step 2 · Split the tasted spots two ways</h2>
+    <div class="controls">
+      <p>The taster checks some squares, a few bites in each: a two-stage sample, like real reference data that come in image chips. Half the tasted spots train the classifier and the other half grade it. The split is made two ways, from the same spots.</p>
+      <fieldset class="seg four" id="msel">
+        <legend class="lbl">Squares tasted</legend>
+        <input type="radio" name="m" id="m-8" value="8"><label for="m-8">8</label>
+        <input type="radio" name="m" id="m-16" value="16" checked><label for="m-16">16</label>
+        <input type="radio" name="m" id="m-32" value="32"><label for="m-32">32</label>
+        <input type="radio" name="m" id="m-64" value="64"><label for="m-64">64</label>
+      </fieldset>
+      <fieldset class="seg four" id="bsel">
+        <legend class="lbl">Bites per square</legend>
+        <input type="radio" name="b" id="b-10" value="10"><label for="b-10">10</label>
+        <input type="radio" name="b" id="b-25" value="25" checked><label for="b-25">25</label>
+        <input type="radio" name="b" id="b-50" value="50"><label for="b-50">50</label>
+        <input type="radio" name="b" id="b-100" value="100"><label for="b-100">100</label>
+      </fieldset>
+      <fieldset class="grp">
+        <legend>The classifier</legend>
+        <fieldset class="seg two" id="lsel">
+          <legend class="lbl">Looks at</legend>
+          <input type="radio" name="lam" id="l-0" value="0"><label for="l-0">Position only</label>
+          <input type="radio" name="lam" id="l-15" value="15"><label for="l-15">Mostly position</label>
+          <input type="radio" name="lam" id="l-40" value="40" checked><label for="l-40">Position and colour</label>
+          <input type="radio" name="lam" id="l-1000" value="1000"><label for="l-1000">Colour only</label>
+        </fieldset>
+        <fieldset class="seg three" id="ksel">
+          <legend class="lbl">Nearest neighbours</legend>
+          <input type="radio" name="k" id="k-1" value="1"><label for="k-1">1</label>
+          <input type="radio" name="k" id="k-3" value="3" checked><label for="k-3">3</label>
+          <input type="radio" name="k" id="k-7" value="7"><label for="k-7">7</label>
+        </fieldset>
+        <p class="hint">A nearest-neighbour classifier: each spot gets the topping most of its nearest training spots have, where "nearest" mixes distance on the pizza with distance in colour. It is a toy, but it leaks the way real classifiers do.</p>
+      </fieldset>
+      <fieldset class="seg two" id="showsel">
+        <legend class="lbl">Show</legend>
+        <input type="radio" name="show" id="sh-spots" value="spots" checked><label for="sh-spots">Tasted spots</label>
+        <input type="radio" name="show" id="sh-miss" value="miss"><label for="sh-miss">Map mistakes</label>
+      </fieldset>
+      <div class="btns"><button class="btn" type="button" id="resample">Taste again</button></div>
+    </div>
+    <div class="views">
+      <div class="pies">
+        <figure>
+          <canvas class="pie" id="cv-spot" width="512" height="512" aria-label="The map from the split by spot, with training and test spots"></canvas>
+          <figcaption><b><span class="k-leak">Split by spot</span></b> Each tasted spot flips a coin. Test spots sit among the training spots.</figcaption>
+          <div class="tiles">
+            <div class="tile leak"><b>Claimed</b><span class="big" id="t-spot-c">–</span><small>test half</small></div>
+            <div class="tile"><b>Real</b><span class="big" id="t-spot-r">–</span><small>whole pizza</small></div>
+            <div class="tile ind"><b>Fresh sample</b><span class="big" id="t-spot-i">–</span><small>independent</small></div>
+          </div>
+        </figure>
+        <figure>
+          <canvas class="pie" id="cv-sq" width="512" height="512" aria-label="The map from the split by square, with training and test squares"></canvas>
+          <figcaption><b><span class="k-good">Split by square</span></b> Each tasted square flips a coin. Test squares are whole.</figcaption>
+          <div class="tiles">
+            <div class="tile good"><b>Claimed</b><span class="big" id="t-sq-c">–</span><small>test half</small></div>
+            <div class="tile"><b>Real</b><span class="big" id="t-sq-r">–</span><small>whole pizza</small></div>
+            <div class="tile ind"><b>Fresh sample</b><span class="big" id="t-sq-i">–</span><small>independent</small></div>
+          </div>
+        </figure>
+      </div>
+      <div class="legend" id="pie-legend"></div>
+      <p class="sum" id="s2-sum"></p>
+      <h3>Three ways to grade each map</h3>
+      <div class="scroll"><table id="cmp"></table></div>
+      <p class="sum" id="cmp-sum"></p>
+      <h3>By topping, user's accuracy</h3>
+      <div class="scroll"><table id="top-tab"></table></div>
+      <p class="sum" id="top-sum"></p>
+    </div>
+  </section>
+
+  <section class="box">
+    <h2>Step 3 · Taste again, 30 times</h2>
+    <p>One split could be lucky. Here the taster goes back 30 times: new squares, new bites, a new coin for the split, a new map each time, graded against its own real accuracy over the whole pizza. The chart shows the gap, claimed minus real, so an honest grade sits on the zero line. A <span class="k-ind">fresh sample</span> is an independent probability sample of 25 spots per map class, read with the paper's Eq. 13.</p>
+    <div class="histctl">
+      <button class="btn" type="button" id="rerun">30 more</button>
+      <span class="hint" id="rep-status"></span>
+    </div>
+    <canvas id="hist" aria-label="Histograms of the gap between claimed and real accuracy over repeated splits"></canvas>
+    <div class="legend" style="margin-top:8px"><span><i class="sw leak"></i>Split by spot</span><span><i class="sw good"></i>Split by square</span><span><i class="sw ind"></i>Fresh sample, stratified by the map</span><span><i class="sw dash"></i>No gap</span></div>
+    <div class="scroll" style="margin-top:12px"><table id="rep-tab"></table></div>
+    <p class="sum" id="hsum"></p>
+  </section>
+
+  <section class="box">
+    <h2>Step 4 · The paper's formula, and the one it doesn't give</h2>
+    <p>The paper has no equation for a hold-out score, because it is not an estimator of anything about the whole map. The claimed number is just the share of test spots the map gets right. The fresh sample uses the paper's stratified estimator, Eq. 13 (p. 11), with the strata built from the classifier's own map. Sec. 2.7 (p. 8) says building strata from the map does not break independence. Both cards follow the <span class="k-leak">split by spot</span> map.</p>
+    <div class="eqs">
+      <div class="eq">
+        <div class="eq-tag"><span>Claimed accuracy · hold-out</span><i>not in the paper</i></div>
+        <div class="eq-m"><math><mstyle scriptlevel="0" displaystyle="true"><mtext>claimed</mtext><mo>=</mo><mfrac><mtext>test spots the map gets right</mtext><mtext>test spots</mtext></mfrac><mo>=</mo><mfrac><mn id="qc-h">169</mn><mn id="qc-n">200</mn></mfrac><mo>=</mo><mn id="qc-v">84.5</mn><mi>%</mi></mstyle></math></div>
+        <p class="eq-cap" id="qc-cap"></p>
+      </div>
+      <div class="eq">
+        <div class="eq-tag"><span>Eq. 13 · overall accuracy, stratified by the map</span><i>fresh sample, 25 per map class</i></div>
+        <div class="eq-m"><math><mstyle scriptlevel="0" displaystyle="true"><mover><mi>O</mi><mo stretchy="false" class="chr-med wbk-med-acc" style="math-depth:0;">ˆ</mo></mover><mo>=</mo><mrow><munderover><mo movablelimits="false">∑</mo><mrow><mi>i</mi><mo>=</mo><mn>1</mn></mrow><mi>c</mi></munderover></mrow><msub><mi>W</mi><mi>i</mi></msub><mfrac><msub><mi>n</mi><mrow><mi>i</mi><mi>i</mi></mrow></msub><msub><mi>n</mi><mrow><mi>i</mi><mo lspace="0em" rspace="0em">+</mo></mrow></msub></mfrac></mstyle></math></div>
+        <div class="eq-m"><math><mstyle scriptlevel="0" displaystyle="true"><mover><mi>O</mi><mo stretchy="false" class="chr-med wbk-med-acc" style="math-depth:0;">ˆ</mo></mover><mo>=</mo><mn id="q13-w1">0.60</mn><mo>⋅</mo><mfrac><mn id="q13-h1">21</mn><mn id="q13-n1">25</mn></mfrac><mo>+</mo><mn id="q13-w2">0.25</mn><mo>⋅</mo><mfrac><mn id="q13-h2">18</mn><mn id="q13-n2">25</mn></mfrac><mo>+</mo><mn id="q13-w3">0.10</mn><mo>⋅</mo><mfrac><mn id="q13-h3">20</mn><mn id="q13-n3">25</mn></mfrac><mo>+</mo><mn id="q13-w4">0.05</mn><mo>⋅</mo><mfrac><mn id="q13-h4">16</mn><mn id="q13-n4">25</mn></mfrac></mstyle></math></div>
+        <div class="eq-m"><math><mstyle scriptlevel="0" displaystyle="true"><mphantom><mover><mi>O</mi><mo stretchy="false" class="chr-med wbk-med-acc" style="math-depth:0;">ˆ</mo></mover></mphantom><mo>=</mo><mn id="q13-o">79.6</mn><mi>%</mi><mo separator="true">,</mo><mspace width="1em"></mspace><mtext>SE </mtext><mn id="q13-se">5.1</mn><mtext> (Eq. 16)</mtext></mstyle></math></div>
+        <p class="eq-cap" id="q13-cap"></p>
+      </div>
+    </div>
+  </section>
+
+  <section class="lower">
+    <div class="box">
+      <h2>Check against the paper</h2>
+      <p>Section 2.7's claims (pp. 7–8), each against what this page's simulation does at the current settings. The paper gives no numbers for this; every figure here is <i>ours</i>.</p>
+      <div class="scroll"><table id="chk"></table></div>
+    </div>
+    <div class="box notes">
+      <h2>What Section 2.7 says</h2>
+      <h3>Don't grade on the training data</h3>
+      <p>Using the same data for training and validation gives an optimistically biased accuracy (Hammond and Verbyla 1996, cited on p. 7). Tasting the training slice is the extreme case: a nearest-neighbour classifier gets every training spot right, because its nearest neighbour is itself. Splitting by spot is the mild case of the same thing. The test spot is not in the training set, but its neighbours are, and on a pizza the neighbours have the same topping.</p>
+      <span class="formula">a test spot next to a training spot is a training spot in disguise</span>
+      <h3>Training and testing want different samples</h3>
+      <p>Training can use purposive, convenient sites. Accuracy assessment needs a probability sample (p. 8). Independence is easiest with a separate probability sample drawn for the assessment, and drawing it after the map exists is fine: strata built from the map change precision, not bias (p. 8). Step 3's fresh sample does exactly that.</p>
+      <h3>When one sample must serve both</h3>
+      <p>If the reference data come from one probability sample and are then divided, divide at the cluster level. A cluster assigned to training takes all its spots with it (p. 8). Splitting the spots inside a cluster between training and testing violates independence, and several studies found optimistic accuracies from it (Friedl et al. 2000; Zhen et al. 2013; Lyons et al. 2018).</p>
+      <h3>Honesty notes</h3>
+      <p>The split by square can read a little low. Its test squares are ones the classifier never learned from, while its real accuracy also counts the training squares, where it does best. The fresh sample has no such lean, which is the paper's point. With tasted spots in all 64 squares the by-spot inflation shrinks: the training spots then cover the whole pizza, so a test spot is no closer to them than any other spot is. The inflation is about clustered reference data, which is what Sec. 2.7 is about. This classifier is a toy, and the size of the gap depends on how much neighbours look alike (blotches) and how much it leans on position.</p>
+    </div>
+  </section>
+
+  <footer>
+    <p>Based on Stehman, S.V. &amp; Foody, G.M. (2019). Key issues in rigorous accuracy assessment of land cover products. <i>Remote Sensing of Environment</i> 231, 111199, Section 2.7 (pp. 7–8), with Eqs. 13 and 16 (p. 11). <a href="https://doi.org/10.1016/j.rse.2019.05.018">doi:10.1016/j.rse.2019.05.018</a></p>
+    <p>Previous: <a href="09-wrong-amount-wrong-place.html">09 · Wrong Amount, Wrong Place</a>. Next up: B1 · Round Pizza, Square Cuts (not built yet). Back to the <a href="index.html">lab index</a>.</p>
+  </footer>
+</main>
+
+<script>
+(function(){
+"use strict";
+/* ---- Pizza Map Lab shared kit (src/kit.js), pasted identically into every page ----
+   The "paper pizza": a square sheet pizza, 120x120 spots inside a crust border and cut into
+   an 8x8 grid of 15x15 squares (think image chips), whose true error matrix is exactly
+   Table 5 of Stehman & Foody (2019). Classes A-D are cheese, mushroom, pepperoni, anchovy.
+   Map shares are 60/25/10/5 and reference shares are 55.4/26.4/10.8/7.4. */
+const N=128, EDGE=4, CUTS=8, CHIP=15, SEED=20190518; /* study area is x,y in [EDGE, EDGE+CUTS*CHIP) */
+const NAMES=["cheese","mushroom","pepperoni","anchovy"];
+const TITLE=["Cheese","Mushroom","Pepperoni","Anchovy"];
+const PAPER_CLASS=["A","B","C","D"];
+const VAR=[["--cheese-a","--cheese-b"],["--mush-a","--mush-b"],["--pep-a","--pep-b"],["--anch-a","--anch-b"]];
+const TABLE5=[[50.4,7.2,2.4,0],[4.0,18.0,0,3.0],[0,0.8,8.0,1.2],[1.0,0.4,0.4,3.2]]; /* % of area; rows map, columns reference */
+const MAP_SHARE=[60,25,10,5];
+function rng(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+function nb4(i){const x=i%N,y=(i/N)|0,o=[]; if(x>0)o.push(i-1); if(x<N-1)o.push(i+1); if(y>0)o.push(i-N); if(y<N-1)o.push(i+N); return o;}
+/* opt.clumpTop (0-1) piles each topping around its hot spots; opt.clumpErr (0-1) pulls the map's mistakes toward a
+   camera glare spot. Both leave Table 5 exact. At 0 they take no random draws and change nothing, so the default
+   pizza is the same spot for spot. The hot spots and glare come from their own seeded stream. */
+function bakePaperPizza(seed,opt){
+  const ct=Math.max(0,Math.min(1,(opt&&opt.clumpTop)||0)), ce=Math.max(0,Math.min(1,(opt&&opt.clumpErr)||0));
+  const rc=rng(seed*17+3), S=CUTS*CHIP, spot=m=>[EDGE+m+rc()*(S-2*m), EDGE+m+rc()*(S-2*m)];
+  /* hot spots: two for mushroom, two for pepperoni, one for anchovy, kept apart so one topping doesn't fill another's */
+  const hot=[[],[],[],[]], HOT_R=16;
+  for(const k of [1,1,2,2,3]){ let best=null, far=-1;
+    for(let t=0;t<30;t++){ const p=spot(16), d=Math.min(99,...hot.flat().map(h=>Math.hypot(h[0]-p[0],h[1]-p[1]))); if(d>far){far=d; best=p;} if(d>=44) break; }
+    hot[k].push(best); }
+  const glare=spot(24);
+  /* with chance clumpTop, a topping is dropped near one of its hot spots instead of anywhere */
+  const place=(k,pt,m)=>{ if(!ct||rc()>=ct) return pt; const h=hot[k][Math.floor(rc()*hot[k].length)], a=2*Math.PI*rc(), d=HOT_R*Math.sqrt(-2*Math.log(1-rc()));
+    return [Math.max(EDGE+m,Math.min(EDGE+S-m,h[0]+d*Math.cos(a))), Math.max(EDGE+m,Math.min(EDGE+S-m,h[1]+d*Math.sin(a)))]; };
+  const tries=n=>ct?Math.round(n*(1+2*ct)):n;
+  const r=rng(seed), NN=N*N, inside=new Uint8Array(NN), crust=new Uint8Array(NN), piece=new Int16Array(NN).fill(-1), ids=[], END=EDGE+CUTS*CHIP;
+  for(let y=0;y<N;y++)for(let x=0;x<N;x++){const i=y*N+x;
+    if(x>=EDGE&&x<END&&y>=EDGE&&y<END){inside[i]=1; ids.push(i); piece[i]=Math.floor((y-EDGE)/CHIP)*CUTS+Math.floor((x-EDGE)/CHIP);}
+    else crust[i]=1;}
+  const T=ids.length;
+  /* target cell counts: Table 5 scaled to this pizza, map row totals exactly 60/25/10/5 */
+  const rowT=MAP_SHARE.map(w=>Math.round(w*T/100)); rowT[0]=T-rowT[1]-rowT[2]-rowT[3];
+  const cell=TABLE5.map((row,i)=>row.map((v,j)=>i===j?0:Math.round(v*T/100)));
+  for(let i=0;i<4;i++){let off=0; for(let j=0;j<4;j++) if(j!==i) off+=cell[i][j]; cell[i][i]=rowT[i]-off;}
+  const colT=[0,1,2,3].map(j=>cell[0][j]+cell[1][j]+cell[2][j]+cell[3][j]);
+  /* the real pizza */
+  const truth=new Int8Array(NN).fill(-1); for(const i of ids) truth[i]=0;
+  const count=[T,0,0,0], put=(i,k)=>{count[truth[i]]--; truth[i]=k; count[k]++;};
+  const stamp=(cells,k,minFrac)=>{let ok=0; const keep=[];
+    for(const [x,y] of cells){ if(x<0||y<0||x>=N||y>=N) continue; const i=y*N+x; if(inside[i]&&truth[i]===0){ok++; keep.push(i);} }
+    if(cells.length&&ok/cells.length>=minFrac){keep.forEach(i=>put(i,k)); return true;} return false;};
+  const randPt=m=>[EDGE+m+r()*(CUTS*CHIP-2*m), EDGE+m+r()*(CUTS*CHIP-2*m)];
+  const peps=[];
+  for(let t=0;t<tries(5000)&&count[2]<colT[2]-80;t++){ const [px,py]=place(2,randPt(8),8);
+    if(!peps.every(p=>Math.hypot(p[0]-px,p[1]-py)>14.5)) continue;
+    const cells=[]; for(let y=Math.floor(py-7);y<=py+7;y++) for(let x=Math.floor(px-7);x<=px+7;x++) if(Math.hypot(x+.5-px,y+.5-py)<6.3) cells.push([x,y]);
+    if(stamp(cells,2,1)) peps.push([px,py]); }
+  const cap=[]; for(let dy=-5;dy<=0;dy++) for(let dx=-7;dx<=7;dx++) if((dx/7.5)**2+(dy/5.5)**2<=1) cap.push([dx,dy]);
+  for(let dy=1;dy<=5;dy++) for(let dx=-2;dx<=1;dx++) cap.push([dx,dy]);
+  const rots=[cap, cap.map(([a,b])=>[-b,a]), cap.map(([a,b])=>[-a,-b]), cap.map(([a,b])=>[b,-a])];
+  for(let t=0;t<tries(9000)&&count[1]<colT[1]-60;t++){ const [mx,my]=place(1,randPt(7),7), o=rots[Math.floor(r()*4)];
+    stamp(o.map(([a,b])=>[Math.round(mx)+a,Math.round(my)+b]),1,.85); }
+  for(let t=0;t<tries(9000)&&count[3]<colT[3]-40;t++){ const [ax,ay]=place(3,randPt(10),10), th=r()*Math.PI, L=16+r()*10, ux=Math.cos(th), uy=Math.sin(th), cells=[];
+    for(let y=Math.floor(ay-L/2-2);y<=ay+L/2+2;y++) for(let x=Math.floor(ax-L/2-2);x<=ax+L/2+2;x++){
+      const vx=x+.5-ax, vy=y+.5-ay, s=vx*ux+vy*uy, q=Math.abs(-vx*uy+vy*ux); if(Math.abs(s)<=L/2&&q<=1.4) cells.push([x,y]); }
+    stamp(cells,3,.9); }
+  /* nudge each topping's edges until the reference shares are exact */
+  for(const k of [2,1,3]) for(let pass=0;pass<400&&count[k]!==colT[k];pass++){
+    const need=colT[k]-count[k];
+    const cand=ids.filter(i=>need>0?(truth[i]===0&&nb4(i).some(j=>truth[j]===k)):(truth[i]===k&&nb4(i).some(j=>truth[j]===0)));
+    for(let a=cand.length-1;a>0;a--){const b=Math.floor(r()*(a+1)); const t=cand[a]; cand[a]=cand[b]; cand[b]=t;}
+    const m=Math.min(Math.abs(need),Math.max(1,Math.ceil(cand.length/3)),cand.length);
+    for(let q=0;q<m;q++) put(cand[q],need>0?k:0); }
+  /* distance from every pixel to the nearest pixel of each real topping */
+  const dist=[0,1,2,3].map(k=>{const d=new Int16Array(NN).fill(9999), q=[]; for(const i of ids) if(truth[i]===k){d[i]=0; q.push(i);}
+    for(let h=0;h<q.length;h++){const i=q[h]; for(const j of nb4(i)) if(d[j]>d[i]+1){d[j]=d[i]+1; q.push(j);}} return d;});
+  const rp=rng(seed*31+7), jit=new Float64Array(NN), tex=new Uint8Array(NN);
+  for(let i=0;i<NN;i++){jit[i]=rp(); tex[i]=rp()<.3?1:0;}
+  /* the classifier's map: each Table 5 mistake is placed where that topping's edge is closest,
+     or, as clumpErr grows, closer to the glare */
+  const map=Int8Array.from(truth), gd=new Float64Array(NN);
+  if(ce) for(const i of ids) gd[i]=Math.hypot(i%N+.5-glare[0],((i/N)|0)+.5-glare[1]);
+  for(let j=0;j<4;j++){ let pool=ids.filter(i=>truth[i]===j);
+    const order=[0,1,2,3].filter(i=>i!==j&&cell[i][j]>0).sort((a,b)=>cell[b][j]-cell[a][j]);
+    for(const i of order){
+      if(!ce) pool.sort((a,b)=>(dist[i][a]+4*jit[a])-(dist[i][b]+4*jit[b]));
+      else { const g=ce<1?(ce/(1-ce))**2/10:1e6, key=a=>dist[i][a]+4*jit[a]+g*gd[a]; pool.sort((a,b)=>key(a)-key(b)); }
+      for(const p of pool.slice(0,cell[i][j])) map[p]=i; pool=pool.slice(cell[i][j]); } }
+  return {inside,crust,piece,ids,T,truth,map,dist,jit,tex,cell,rowT,colT,hot,glare,clumpTop:ct,clumpErr:ce};
+}
+function hexRGB(h){h=String(h).trim().replace("#",""); if(h.length===3) h=h.split("").map(c=>c+c).join(""); const n=parseInt(h,16); return [n>>16&255,n>>8&255,n&255];}
+function cssVar(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim();}
+function pizzaPalette(){return {top:VAR.map(v=>[hexRGB(cssVar(v[0])),hexRGB(cssVar(v[1]))]), crust:[hexRGB(cssVar("--crust-a")),hexRGB(cssVar("--crust-b"))]};}
+/* paint one colour per pizza pixel (colorAt returns [r,g,b,alpha] or null), scaled up with crisp edges */
+function paintPizza(cv,colorAt){
+  if(!cv._off){cv._off=document.createElement("canvas"); cv._off.width=N; cv._off.height=N;}
+  const octx=cv._off.getContext("2d"), img=octx.createImageData(N,N), d=img.data;
+  for(let i=0;i<N*N;i++){const c=colorAt(i); if(!c) continue; d[4*i]=c[0]; d[4*i+1]=c[1]; d[4*i+2]=c[2]; d[4*i+3]=c.length>3?c[3]:255;}
+  octx.putImageData(img,0,0);
+  const ctx=cv.getContext("2d"); ctx.imageSmoothingEnabled=false; ctx.clearRect(0,0,cv.width,cv.height); ctx.drawImage(cv._off,0,0,cv.width,cv.height);
+  /* faint knife cuts between the 8x8 squares */
+  const s=cv.width/N; ctx.save(); ctx.globalAlpha=.22; ctx.fillStyle="#2b1b12";
+  for(let k=1;k<CUTS;k++){const p=Math.round((EDGE+k*CHIP)*s)-1; ctx.fillRect(p,EDGE*s,2,CUTS*CHIP*s); ctx.fillRect(EDGE*s,p,CUTS*CHIP*s,2);}
+  ctx.restore();
+  return ctx;
+}
+/* ---- sampling designs (Sec. 2). Each returns pixel indices; r is a PRNG such as rng(seed) or Math.random ---- */
+const SIDE=CUTS*CHIP; /* the study area is SIDE x SIDE spots */
+const mapStrata=P=>{const s=[[],[],[],[]]; for(const i of P.ids) s[P.map[i]].push(i); return s;};
+/* n distinct picks from a list, every member equally likely */
+function pickFrom(list,n,r){ n=Math.min(n,list.length); const got=new Set();
+  if(n>list.length/2){const a=list.slice(); for(let k=0;k<n;k++){const j=k+Math.floor(r()*(a.length-k)); const t=a[k]; a[k]=a[j]; a[j]=t;} return a.slice(0,n);}
+  while(got.size<n) got.add(list[Math.floor(r()*list.length)]); return [...got]; }
+const sampleSRS=(P,n,r)=>pickFrom(P.ids,n,r);
+/* one random start, then every s-th spot across and down; n must be a square whose root divides SIDE */
+function sampleSystematic(P,n,r){ const s=SIDE/Math.sqrt(n); if(s%1) throw new Error("systematic: "+n+" spots don't make a grid");
+  const x0=Math.floor(r()*s), y0=Math.floor(r()*s), out=[];
+  for(let gy=y0;gy<SIDE;gy+=s) for(let gx=x0;gx<SIDE;gx+=s) out.push((EDGE+gy)*N+EDGE+gx); return out; }
+/* split n by shares, rounding so the parts still add to n (largest remainder) */
+function allocate(n,shares){ const t=shares.reduce((a,b)=>a+b,0), raw=shares.map(v=>n*v/t), out=raw.map(Math.floor);
+  const order=raw.map((v,k)=>[v-out[k],k]).sort((a,b)=>b[0]-a[0]); for(let q=0;q<n-out.reduce((a,b)=>a+b,0);q++) out[order[q][1]]++; return out; }
+/* simple random within each stratum: alloc[h] picks from strata[h] */
+const sampleStratified=(strata,alloc,r)=>strata.flatMap((s,h)=>pickFrom(s,alloc[h],r));
+/* one-stage cluster: the study area is tiled by b x b blocks; m blocks are picked at random and every spot in them is tasted */
+function sampleClusters(m,b,r){ const per=SIDE/b; if(per%1) throw new Error("clusters: "+b+" doesn't tile the pizza");
+  const blocks=pickFrom([...Array(per*per).keys()],m,r);
+  return blocks.map(q=>{const bx=(q%per)*b, by=Math.floor(q/per)*b, g=[];
+    for(let y=0;y<b;y++) for(let x=0;x<b;x++) g.push((EDGE+by+y)*N+EDGE+bx+x); return g;}); }
+/* the spots of one square (0-63), and k distinct random spots from it */
+const squareSpots=q=>{const bx=EDGE+(q%CUTS)*CHIP, by=EDGE+Math.floor(q/CUTS)*CHIP, g=[]; for(let y=0;y<CHIP;y++) for(let x=0;x<CHIP;x++) g.push((by+y)*N+bx+x); return g;};
+const SQUARE_SPOTS=[...Array(CUTS*CUTS).keys()].map(squareSpots);
+/* spatial strata (Sec. 2.4): every square is a stratum, b random bites in each. Returns one list per square */
+const sampleBySquare=(b,r)=>SQUARE_SPOTS.map(g=>pickFrom(g,b,r));
+/* two-stage cluster: m random squares, then k random bites in each. Returns one list per picked square */
+const sampleTwoStage=(m,k,r)=>pickFrom([...Array(CUTS*CUTS).keys()],m,r).map(q=>pickFrom(SQUARE_SPOTS[q],k,r));
+/* spots in the outer ring of squares, the pieces with crust: where a convenience taster would grab from */
+const edgePieceSpots=P=>P.ids.filter(i=>{const q=P.piece[i], qx=q%CUTS, qy=Math.floor(q/CUTS); return qx===0||qy===0||qx===CUTS-1||qy===CUTS-1;});
+/* ---- estimators (Sec. 4.2). Rows are the map (strata), columns the reference ---- */
+function countMatrix(P,ids){ const c=[[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]]; for(const i of ids) c[P.map[i]][P.truth[i]]++; return c; }
+/* Stratified estimator, Eqs. 12-20, as proportions (0-1). W = each map class's share of the map.
+   Used for stratified samples and, as poststratification, for simple random and systematic ones.
+   Variances use n_i+ - 1 throughout, which reproduces every Table 5 standard error from Table 4.
+   A row with no tastes can't be estimated (ok=false); a row with one taste gives estimates but no variance.
+   Optional Nh (spots in each stratum) applies the finite population correction, 1 - n_i+/N_i+, to each stratum's
+   variance term. The paper's formulas leave it out (real maps have millions of pixels); 04 uses it to show the gap. */
+function stratEstimate(c,W,Nh){
+  const K=c.length, nr=c.map(row=>row.reduce((a,b)=>a+b,0)), p=c.map((row,i)=>row.map(v=>nr[i]?W[i]*v/nr[i]:0));
+  const q=nr.map((n,i)=>(Nh?1-n/Nh[i]:1)/(n-1)); /* each stratum's variance divisor, with the correction if asked */
+  const col=[...Array(K).keys()].map(j=>p.reduce((a,row)=>a+row[j],0));
+  const U=nr.map((n,i)=>n?c[i][i]/n:NaN), Pa=col.map((v,j)=>v?p[j][j]/v:NaN);
+  let O=0, vO=0; for(let i=0;i<K;i++){O+=p[i][i]; vO+=W[i]**2*U[i]*(1-U[i])*q[i];}
+  const vU=U.map((u,i)=>u*(1-u)*q[i]);
+  const vP=Pa.map((Pj,j)=>{ let s=0; for(let i=0;i<K;i++) if(i!==j&&nr[i]){const f=c[i][j]/nr[i]; s+=W[i]**2*f*(1-f)*q[i];}
+    return (W[j]**2*(1-Pj)**2*U[j]*(1-U[j])*q[j]+Pj**2*s)/col[j]**2; });
+  const vA=col.map((_,k)=>{let s=0; for(let i=0;i<K;i++) if(nr[i]){const f=c[i][k]/nr[i]; s+=W[i]**2*f*(1-f)*q[i];} return s;});
+  const se=v=>v>=0&&isFinite(v)?Math.sqrt(v):NaN;
+  return {ok:nr.every(n=>n>0), nr, p, O, U, P:Pa, area:col, se:{O:se(vO), U:vU.map(se), P:vP.map(se), area:vA.map(se)}};
+}
+/* One-stage cluster estimator for m equal-size blocks picked by simple random sampling (Stehman 1997b):
+   proportions are block averages, accuracies are ratios, and standard errors come from the spread between blocks.
+   Without the finite population correction, like the paper's stratified formulas. */
+function clusterEstimate(P,groups){
+  const m=groups.length, K=4, z=()=>new Float64Array(m), ok=z(), tr=[...Array(K)].map(z), mp=[...Array(K)].map(z), hit=[...Array(K)].map(z);
+  groups.forEach((g,c)=>{ for(const i of g){const a=P.map[i], b=P.truth[i]; tr[b][c]++; mp[a][c]++; if(a===b){ok[c]++; hit[a][c]++;}}
+    const L=g.length; ok[c]/=L; for(let k=0;k<K;k++){tr[k][c]/=L; mp[k][c]/=L; hit[k][c]/=L;} });
+  const mean=a=>a.reduce((s,v)=>s+v,0)/m;
+  const seMean=a=>{const u=mean(a); return Math.sqrt(a.reduce((s,v)=>s+(v-u)**2,0)/(m-1)/m);};
+  const ratio=(y,x)=>{const R=mean(y)/mean(x), xb=mean(x); let s=0; for(let c=0;c<m;c++) s+=(y[c]-R*x[c])**2;
+    return [R, xb?Math.sqrt(s/(m-1)/m)/xb:NaN];};
+  const P_=[], U=[], seP=[], seU=[];
+  for(let k=0;k<K;k++){ [P_[k],seP[k]]=ratio(hit[k],tr[k]); [U[k],seU[k]]=ratio(hit[k],mp[k]); }
+  const O=mean(ok), area=tr.map(mean);
+  return {ok:true, m, O, U, P:P_, area, se:{O:seMean(ok), U:seU, P:seP, area:tr.map(seMean)}};
+}
+/* Stratified estimator for equal-size strata with the same number of bites in each, such as one stratum per square
+   (Sec. 2.4's spatial strata). With a single stratum it is the simple random sample estimator. Every spot has the same
+   chance, so estimates are plain shares of the bites (ratios for user's and producer's). Standard errors come from
+   the spread within each stratum, so with one bite per stratum there are none (NaN): design criterion 6 in Sec. 2.2.
+   For overall accuracy this is Eq. 16 with the squares as strata, W_h = 1/H. No finite population correction. */
+function strataEstimate(P,groups){
+  const H=groups.length, K=4, Z=()=>[0,0,0,0];
+  const cnt=groups.map(g=>{const c={b:g.length,ok:0,tr:Z(),mp:Z(),hit:Z()};
+    for(const i of g){const a=P.map[i], t=P.truth[i]; c.tr[t]++; c.mp[a]++; if(a===t){c.ok++; c.hit[a]++;}} return c;});
+  const tot=f=>cnt.reduce((s,c)=>s+f(c),0), n=tot(c=>c.b);
+  /* variance of R = sum(y)/sum(x), where a bite with y = 1 always has x = 1: per stratum, the residuals d = y - R x
+     have sum of squares Sy(1 - 2R) + R^2 Sx and mean (Sy - R Sx)/b */
+  const vr=(Y,X,R)=>{ if(!isFinite(R)) return NaN; let s=0;
+    for(const c of cnt){ const b=c.b; if(b<2) return NaN; const y=Y(c), x=X(c), dm=(y-R*x)/b; s+=(y*(1-2*R)+R*R*x-b*dm*dm)/(b-1)/b; }
+    const xb=tot(X)/n; return xb?s/H/H/xb/xb:NaN; };
+  const se=v=>isFinite(v)&&v>=0?Math.sqrt(v):NaN, all=c=>c.b, O=tot(c=>c.ok)/n, U=[], Pa=[], area=[], sU=[], sP=[], sA=[];
+  for(let k=0;k<K;k++){ const hit=c=>c.hit[k], mp=c=>c.mp[k], tr=c=>c.tr[k], h=tot(hit), m=tot(mp), t=tot(tr);
+    U[k]=m?h/m:NaN; Pa[k]=t?h/t:NaN; area[k]=t/n;
+    sU[k]=se(vr(hit,mp,U[k])); sP[k]=se(vr(hit,tr,Pa[k])); sA[k]=se(vr(tr,all,area[k])); }
+  return {ok:true, H, n, O, U, P:Pa, area, se:{O:se(vr(c=>c.ok,all,O)), U:sU, P:sP, area:sA}};
+}
+/* ---- repeats histogram on a fixed 0-100% axis: one row of columns per method, a dashed truth line, a triangle at each row's average.
+   rows = [{name, vals (in %), col (CSS colour), dim}]; opt = {bin, left (label width), px (device pixel ratio)}.
+   Returns [{mean, sd, n}] per row ---- */
+function drawRepeats(cv,rows,truth,opt={}){
+  const px=opt.px||1, ctx=cv.getContext("2d"), Wd=cv.width/px, Hd=cv.height/px, ink=cssVar("--ink"), muted=cssVar("--muted"), font=cssVar("--f-body");
+  ctx.setTransform(px,0,0,px,0,0); ctx.clearRect(0,0,Wd,Hd);
+  const bin=opt.bin||1, lo=0, hi=100; /* always the full 0-100% scale, so every metric and design reads on the same axis */
+  const L=opt.left||150, Rm=24, T=22, B=34, gap=10, ph=(Hd-T-B-gap*(rows.length-1))/rows.length, X=v=>L+(v-lo)/(hi-lo)*(Wd-L-Rm);
+  const nb=Math.ceil((hi-lo)/bin), bw=(Wd-L-Rm)/nb;
+  ctx.font=`12px ${font}`; ctx.textBaseline="middle";
+  const out=rows.map((row,ri)=>{
+    const top=T+ri*(ph+gap), bins=new Array(nb).fill(0); row.vals.forEach(v=>bins[Math.max(0,Math.min(nb-1,Math.floor((v-lo)/bin)))]++);
+    const mx=Math.max(1,...bins); ctx.globalAlpha=row.dim?.35:1; ctx.fillStyle=row.col;
+    bins.forEach((c,b)=>{ if(!c) return; const h=Math.max(2,(ph-6)*c/mx); ctx.fillRect(Math.round(X(lo+b*bin))+1, Math.round(top+ph-h), Math.max(1,Math.round(bw)-1), Math.round(h)); });
+    ctx.strokeStyle=ink; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(L,top+ph+.5); ctx.lineTo(Wd-Rm,top+ph+.5); ctx.stroke();
+    const n=row.vals.length, mean=n?row.vals.reduce((a,b)=>a+b,0)/n:NaN, sd=n>1?Math.sqrt(row.vals.reduce((a,v)=>a+(v-mean)**2,0)/(n-1)):NaN;
+    if(n){ ctx.fillStyle=row.col; ctx.beginPath(); ctx.moveTo(X(mean),top+ph+2); ctx.lineTo(X(mean)-6,top+ph+10); ctx.lineTo(X(mean)+6,top+ph+10); ctx.closePath(); ctx.fill(); }
+    ctx.textAlign="left"; ctx.fillStyle=ink; ctx.fillText(row.name,6,top+ph/2-8);
+    ctx.fillStyle=muted; ctx.fillText(n?"avg "+mean.toFixed(1)+"%":"no estimate",6,top+ph/2+9);
+    ctx.globalAlpha=1; return {mean,sd,n}; });
+  ctx.strokeStyle=ink; ctx.lineWidth=2; ctx.setLineDash([5,4]); ctx.beginPath(); ctx.moveTo(X(truth),T-6); ctx.lineTo(X(truth),Hd-B+4); ctx.stroke(); ctx.setLineDash([]);
+  const rt=X(truth)>Wd-90; ctx.fillStyle=ink; ctx.textAlign=rt?"right":"left"; ctx.fillText("truth "+truth.toFixed(1)+"%",X(truth)+(rt?-6:6),T-10);
+  ctx.textAlign="center"; ctx.fillStyle=muted; const step=Wd<520?20:10;
+  for(let v=lo;v<=hi;v+=step){ ctx.fillRect(X(v)-1,Hd-B+6,2,5); ctx.fillText(v+"%",X(v),Hd-B+20); }
+  return out;
+}
+/* ---- the anchovy-or-not pizza (07): two classes, for Foody (2013). truth and map are 1 = anchovy, 0 = the rest ----
+   E is the real anchovy share (0-1). The map calls exactly round(mapPt*nA) real anchovy spots anchovy (its misses sit at
+   fillet edges) and exactly round((1-mapPo)*nO) other spots anchovy (false alarms nearest the fillets). Same crust and
+   squares as the paper pizza. The paper pizza itself is untouched. */
+function bakeAnchovyPizza(seed,E,mapPt,mapPo){
+  const r=rng(seed*13+5), NN=N*N, inside=new Uint8Array(NN), crust=new Uint8Array(NN), piece=new Int16Array(NN).fill(-1), ids=[], END=EDGE+CUTS*CHIP;
+  for(let y=0;y<N;y++)for(let x=0;x<N;x++){const i=y*N+x;
+    if(x>=EDGE&&x<END&&y>=EDGE&&y<END){inside[i]=1; ids.push(i); piece[i]=Math.floor((y-EDGE)/CHIP)*CUTS+Math.floor((x-EDGE)/CHIP);}
+    else crust[i]=1;}
+  const T=ids.length, nA=Math.max(1,Math.min(T-1,Math.round(E*T))), truth=new Int8Array(NN).fill(-1); for(const i of ids) truth[i]=0;
+  let cnt=0; const S=CUTS*CHIP;
+  /* anchovy fillets, as on the paper pizza, until nearly enough */
+  for(let t=0;t<20000&&cnt<nA-30;t++){ const ax=EDGE+10+r()*(S-20), ay=EDGE+10+r()*(S-20), th=r()*Math.PI, L=16+r()*10, ux=Math.cos(th), uy=Math.sin(th), cells=[];
+    for(let y=Math.floor(ay-L/2-2);y<=ay+L/2+2;y++) for(let x=Math.floor(ax-L/2-2);x<=ax+L/2+2;x++){
+      const vx=x+.5-ax, vy=y+.5-ay, s=vx*ux+vy*uy, q=Math.abs(-vx*uy+vy*ux); if(Math.abs(s)<=L/2&&q<=1.4) cells.push(y*N+x); }
+    const free=cells.filter(i=>inside[i]&&truth[i]===0); if(!cells.length||free.length/cells.length<.9||cnt+free.length>nA) continue;
+    for(const i of free) truth[i]=1; cnt+=free.length; }
+  /* nudge fillet edges until the share is exact */
+  for(let pass=0;pass<600&&cnt!==nA;pass++){ const need=nA-cnt;
+    let cand=ids.filter(i=>need>0?(truth[i]===0&&nb4(i).some(j=>truth[j]===1)):(truth[i]===1&&nb4(i).some(j=>truth[j]===0)));
+    if(!cand.length) cand=ids.filter(i=>truth[i]===(need>0?0:1));
+    for(let a=cand.length-1;a>0;a--){const b=Math.floor(r()*(a+1)); const t=cand[a]; cand[a]=cand[b]; cand[b]=t;}
+    const m=Math.min(Math.abs(need),Math.max(1,Math.ceil(cand.length/3)),cand.length);
+    for(let q=0;q<m;q++) truth[cand[q]]=need>0?1:0; cnt+=need>0?m:-m; }
+  const bfs=k=>{const d=new Int16Array(NN).fill(9999), q=[]; for(const i of ids) if(truth[i]===k){d[i]=0; q.push(i);}
+    for(let h=0;h<q.length;h++){const i=q[h]; for(const j of nb4(i)) if(inside[j]&&d[j]>d[i]+1){d[j]=d[i]+1; q.push(j);}} return d;};
+  const dA=bfs(1), dO=bfs(0), rp=rng(seed*31+7), jit=new Float64Array(NN), tex=new Uint8Array(NN);
+  for(let i=0;i<NN;i++){jit[i]=rp(); tex[i]=rp()<.3?1:0;}
+  const nO=T-nA, hitA=Math.round(Math.max(0,Math.min(1,mapPt))*nA), fa=Math.round((1-Math.max(0,Math.min(1,mapPo)))*nO);
+  const map=Int8Array.from(truth);
+  const A=ids.filter(i=>truth[i]===1).sort((a,b)=>(dO[a]+4*jit[a])-(dO[b]+4*jit[b])), O=ids.filter(i=>truth[i]===0).sort((a,b)=>(dA[a]+4*jit[a])-(dA[b]+4*jit[b]));
+  for(const i of A.slice(0,nA-hitA)) map[i]=0;
+  for(const i of O.slice(0,fa)) map[i]=1;
+  const cell=[[nO-fa,nA-hitA],[fa,hitA]]; /* rows map (0 rest, 1 anchovy), columns real */
+  return {inside,crust,piece,ids,T,truth,map,jit,tex,nA,nO,E:nA/T,cell};
+}
+/* the taster's fixed verdict at every spot (1 = says anchovy). In each (real, map) group exactly round(pt*n) real anchovy
+   spots or round((1-po)*n) other spots are called anchovy, picked at random, so the taster's slips are independent of
+   the map's, as Foody's (2013) equations assume */
+function tasterSays(P,pt,po,seed){
+  const r=rng(seed), v=new Int8Array(N*N).fill(-1), g=[[[],[]],[[],[]]];
+  for(const i of P.ids){ v[i]=0; g[P.truth[i]][P.map[i]].push(i); }
+  for(let t=0;t<2;t++) for(let m=0;m<2;m++){ const a=g[t][m], k=Math.round((t?pt:1-po)*a.length);
+    for(let q=0;q<k;q++){const j=q+Math.floor(r()*(a.length-q)); const x=a[q]; a[q]=a[j]; a[j]=x; v[a[q]]=1;} }
+  return v;
+}
+/* Foody (2013) Eqs. 1-4: apparent accuracies and area when the map (C) is checked against an imperfect reference (R)
+   instead of the truth (T). E is the real share; rt, ro the taster's accuracy on anchovy and the rest; ct, co the map's */
+function foody(E,rt,ro,ct,co){
+  const Pt=((1-ro)*(1-co)+E*(rt*ct-(1-ro)*(1-co)))/((1-ro)+E*(rt+ro-1));
+  const Po=(ro*co+E*((1-rt)*(1-ct)-ro*co))/(ro-E*(rt+ro-1));
+  const EA=E*(rt+ro-1)-ro+1, U=(e,pt,po)=>e*pt/(e*pt+(1-po)*(1-e));
+  const a=E*rt*ct+(1-ro)*(1-co)*(1-E), b=E*ct*(1-rt)+ro*(1-co)*(1-E), c=E*rt*(1-ct)+co*(1-ro)*(1-E), d=E*(1-rt)*(1-ct)+ro*co*(1-E);
+  return {EA, Pt, Po, Ut:U(EA,Pt,Po), O:a+d, cells:{a,b,c,d}, truth:{Pt:ct, Po:co, Ut:U(E,ct,co), O:E*ct+(1-E)*co}};
+}
+/* ---- a noisy photo of the pizza and a toy classifier (10). The paper pizza itself is untouched ----
+   bakePhoto(P, seed, {grain, blotch}): three bands (0-1) per spot, from each topping's base colour (mushroom and anchovy
+   close), blotches that make neighbouring spots look alike at two scales (opt.blotch, 0-1, default .5), a shine at P.glare,
+   and per-spot grain (opt.grain, 0-1, default .5). Returns {band: Float32Array(3*N*N), grain, blotch}; crust spots are -1 */
+const PHOTO_BASE=[[.86,.70,.26],[.58,.50,.40],[.62,.17,.12],[.52,.55,.60]];
+function bakePhoto(P,seed,opt){
+  const grain=opt&&opt.grain!=null?opt.grain:.5, blotch=opt&&opt.blotch!=null?opt.blotch:.5, r=rng(seed*7+11), band=new Float32Array(3*N*N).fill(-1);
+  const gauss=()=>Math.sqrt(-2*Math.log(1-r()))*Math.cos(2*Math.PI*r());
+  const oct=[16,4].map(C=>{const G=N/C+1, c=new Float32Array(3*G*G); for(let q=0;q<c.length;q++) c[q]=gauss(); return {C,G,c};});
+  const gl=P.glare||[N/2,N/2];
+  for(const i of P.ids){ const x=i%N, y=(i/N)|0, b=PHOTO_BASE[P.truth[i]], shine=.35*Math.exp(-((x+.5-gl[0])**2+(y+.5-gl[1])**2)/(2*14*14));
+    for(let c=0;c<3;c++){ let a=0;
+      for(const o of oct){ const fx=x/o.C, fy=y/o.C, x0=Math.floor(fx), y0=Math.floor(fy), tx=fx-x0, ty=fy-y0, q=k=>o.c[3*k+c];
+        a+=(o.C>8?.7:.5)*(q(y0*o.G+x0)*(1-tx)*(1-ty)+q(y0*o.G+x0+1)*tx*(1-ty)+q((y0+1)*o.G+x0)*(1-tx)*ty+q((y0+1)*o.G+x0+1)*tx*ty); }
+      band[3*i+c]=Math.max(0,Math.min(1,b[c]+.2*blotch*a+shine*(1-b[c])+.25*grain*gauss())); } }
+  return {band,grain,blotch};
+}
+/* k-nearest-neighbour classifier on position and colour: distance^2 = spots apart^2 + (lam * colour difference)^2, so lam is
+   how many spots one unit of colour difference is worth (0 = position only; 1000 is as good as colour only). Training spots
+   are pixel ids labelled with P.truth. Exact search over 8x8 buckets; 5-40 ms for a few hundred training spots, ~100 ms
+   colour-only with thousands. Returns Int8Array(N*N), -1 off the pizza */
+function knnClassify(P,ph,train,k,lam){
+  const CELL=8, GC=N/CELL, cells=[...Array(GC*GC)].map(()=>[]), band=ph.band, l2=lam*lam;
+  for(const i of train) cells[(((i/N)|0)>>3)*GC+((i%N)>>3)].push(i);
+  const out=new Int8Array(N*N).fill(-1), bd=new Float64Array(k), bi=new Int32Array(k);
+  for(const i of P.ids){ const x=i%N, y=(i/N)|0, cx=x>>3, cy=y>>3; let got=0; bd.fill(Infinity);
+    for(let ring=0;ring<GC;ring++){ if(got===k&&ring>0){ const m=(ring-1)*CELL+1; if(m*m>bd[k-1]) break; }
+      const x0=cx-ring, x1=cx+ring, y0=cy-ring, y1=cy+ring;
+      for(let gy=Math.max(0,y0);gy<=Math.min(GC-1,y1);gy++){ const step=(gy===y0||gy===y1||!ring)?1:x1-x0;
+        for(let gx=x0;gx<=x1;gx+=step){ if(gx<0||gx>=GC) continue;
+          for(const j of cells[gy*GC+gx]){ const dx=j%N-x, dy=((j/N)|0)-y, d0=band[3*i]-band[3*j], d1=band[3*i+1]-band[3*j+1], d2=band[3*i+2]-band[3*j+2];
+            const d=dx*dx+dy*dy+l2*(d0*d0+d1*d1+d2*d2); if(d>=bd[k-1]) continue;
+            let p=got<k?got:k-1; if(got<k) got++; while(p>0&&bd[p-1]>d){bd[p]=bd[p-1]; bi[p]=bi[p-1]; p--;} bd[p]=d; bi[p]=j; } } } }
+    const v=[0,0,0,0]; for(let p=0;p<got;p++) v[P.truth[bi[p]]]++;
+    let best=got?P.truth[bi[0]]:0; for(let c=0;c<4;c++) if(v[c]>v[best]) best=c; out[i]=best; }
+  return out;
+}
+/* split reference spots (one list per square) into training and test halves: by square (whole squares go one way, Sec. 2.7)
+   or by spot (each spot on its own). Returns {train, test} as pixel id lists */
+function splitHalf(groups,bySquare,r){
+  const sh=a=>{a=a.slice(); for(let q=a.length-1;q>0;q--){const j=Math.floor(r()*(q+1)); const t=a[q]; a[q]=a[j]; a[j]=t;} return a;};
+  const a=sh(bySquare?groups:groups.flat()), h=Math.ceil(a.length/2), f=x=>bySquare?x.flat():x;
+  return {train:f(a.slice(0,h)), test:f(a.slice(h))};
+}
+/* ---- end shared kit ---- */
+const REPS=30, NIND=25;
+const st={seed:SEED, grain:.5, blotch:.5, m:16, b:25, lam:40, k:3, show:"spots", tasting:1};
+let P, ph, ref, S={}, reps={spot:[],sq:[],ind:[]}, repRun=0;
+
+const $=id=>document.getElementById(id);
+const pc=(v,d=1)=>isFinite(v)?(100*v).toFixed(d)+"%":"–";
+const pt=(v,d=1)=>isFinite(v)?(v>0?"+":"")+v.toFixed(d):"–";
+const sum=a=>a.reduce((x,y)=>x+y,0);
+const mean=a=>a.length?sum(a)/a.length:NaN;
+const sdev=a=>{if(a.length<2) return NaN; const m=mean(a); return Math.sqrt(sum(a.map(v=>(v-m)**2))/(a.length-1));};
+const setEq=(id,v)=>{$(id).textContent=v;};
+const fmt=v=>Math.round(v).toLocaleString("en");
+
+/* ---- the pizza and its photo ---- */
+function bake(){ P=bakePaperPizza(st.seed); ph=bakePhoto(P,st.seed,{grain:st.grain,blotch:st.blotch}); }
+const acc=(map,ids)=>{ let ok=0; for(const i of ids) ok+=map[i]===P.truth[i]; return ids.length?ok/ids.length:NaN; };
+/* user's accuracy per topping from a list of spots */
+function users(map,ids){ const n=[0,0,0,0], h=[0,0,0,0]; for(const i of ids){ n[map[i]]++; if(map[i]===P.truth[i]) h[map[i]]++; } return n.map((v,k)=>v?h[k]/v:NaN); }
+/* an independent probability sample: NIND spots from each map class (all of them if a class is smaller), Eqs. 12-16 */
+function freshSample(map,r){ const Q={ids:P.ids,map,truth:P.truth}, strata=mapStrata(Q), W=strata.map(s=>s.length/P.T);
+  const ids=strata.flatMap(s=>pickFrom(s,Math.min(NIND,s.length),r)), c=countMatrix(Q,ids), e=stratEstimate(c,W);
+  return {O:e.O, se:e.se.O, c, W, nr:e.nr, n:ids.length, ids}; }
+/* how close the test spots sit to the training spots */
+function leak(train,test){ const d=[], T=train.map(i=>[i%N,(i/N)|0]); let same=0;
+  for(const i of test){ const x=i%N, y=(i/N)|0; let m=1e9, mj=-1; for(let q=0;q<T.length;q++){ const dd=(T[q][0]-x)**2+(T[q][1]-y)**2; if(dd<m){m=dd; mj=train[q];} }
+    d.push(Math.sqrt(m)); if(P.piece[mj]===P.piece[i]) same++; }
+  d.sort((a,b)=>a-b); return {median:d.length?d[d.length>>1]:NaN, same:test.length?same/test.length:NaN}; }
+/* one tasting: a two-stage reference sample, split both ways, a map from each, graded three ways */
+function oneTasting(r){ const g=sampleTwoStage(st.m,st.b,r), out={ref:g};
+  for(const key of ["spot","sq"]){ const s=splitHalf(g,key==="sq",r), map=knnClassify(P,ph,s.train,st.k,st.lam);
+    out[key]={...s, map, claimed:acc(map,s.test), real:acc(map,P.ids), resub:acc(map,s.train), fresh:freshSample(map,r), leak:leak(s.train,s.test), uC:users(map,s.test), uR:users(map,P.ids)}; }
+  return out; }
+function taste(){ S=oneTasting(rng(st.seed*3+st.tasting*7919)); }
+
+/* ---- painting ---- */
+function paintReal(){ const pal=pizzaPalette(); paintPizza($("cv-real"),i=>P.crust[i]?pal.crust[P.tex[i]]:P.inside[i]?pal.top[P.truth[i]][P.tex[i]]:null); }
+function paintPhoto(){ const pal=pizzaPalette(), b=ph.band; paintPizza($("cv-photo"),i=>P.crust[i]?pal.crust[P.tex[i]]:P.inside[i]?[255*b[3*i],255*b[3*i+1],255*b[3*i+2]]:null); }
+function paintMap(cv,R){ const pal=pizzaPalette(), tom=hexRGB(cssVar("--tomato")), miss=st.show==="miss";
+  const ctx=paintPizza(cv,i=>{ if(P.crust[i]) return pal.crust[P.tex[i]]; if(!P.inside[i]) return null; const c=pal.top[R.map[i]][P.tex[i]];
+    if(!miss) return c; return R.map[i]===P.truth[i]?[c[0],c[1],c[2],70]:[tom[0],tom[1],tom[2],255]; });
+  const s=cv.width/N, ink=cssVar("--ink"), panel=cssVar("--panel"), tomato=cssVar("--tomato");
+  /* the tasted squares */
+  ctx.save(); ctx.lineWidth=2; ctx.strokeStyle=ink; ctx.setLineDash([4,3]);
+  for(const g of S.ref){ const q=P.piece[g[0]], bx=EDGE+(q%CUTS)*CHIP, by=EDGE+Math.floor(q/CUTS)*CHIP; ctx.strokeRect(bx*s+1,by*s+1,CHIP*s-2,CHIP*s-2); }
+  ctx.restore();
+  if(miss) return;
+  const dot=(ids,fill,edge)=>{ ctx.fillStyle=fill; ctx.strokeStyle=edge; ctx.lineWidth=1.5;
+    for(const i of ids){ const x=(i%N+.5)*s, y=(((i/N)|0)+.5)*s; ctx.fillRect(x-3.5,y-3.5,7,7); ctx.strokeRect(x-3,y-3,6,6); } };
+  dot(R.train,ink,panel); dot(R.test,panel,tomato);
+}
+
+/* ---- Step 1 ---- */
+function renderStep1(){
+  $("grain-v").textContent=Math.round(100*st.grain)+"%"; $("blotch-v").textContent=Math.round(100*st.blotch)+"%";
+  paintReal(); paintPhoto();
+  $("s1-sum").innerHTML=`The real pizza is the paper pizza (Table 5's reference shares: 55.4% cheese, 26.4% mushroom, 10.8% pepperoni, 7.4% anchovy). Turn the blotches to 0 and only grain is left, so a spot's colour says nothing about its neighbours; turn the grain to 0 and the only noise is shared between neighbours.`;
+}
+
+/* ---- Step 2 ---- */
+function renderStep2(){
+  const A=S.spot, B=S.sq;
+  paintMap($("cv-spot"),A); paintMap($("cv-sq"),B);
+  $("pie-legend").innerHTML=st.show==="spots"?`<span><i class="sw train"></i>Training spot</span><span><i class="sw test"></i>Test spot</span><span><i class="sw dash"></i>Tasted square</span>`
+    :`<span><i class="sw miss"></i>Map mistake</span><span><i class="sw faded"></i>Map right (faded)</span><span><i class="sw dash"></i>Tasted square</span>`;
+  for(const [key,R] of [["spot",A],["sq",B]]){ $("t-"+key+"-c").textContent=pc(R.claimed); $("t-"+key+"-r").textContent=pc(R.real); $("t-"+key+"-i").textContent=pc(R.fresh.O); }
+  const gapA=100*(A.claimed-A.real), gapB=100*(B.claimed-B.real);
+  $("s2-sum").innerHTML=`${fmt(A.train.length+A.test.length)} tasted spots in ${st.m} squares, ${fmt(A.train.length)} for training and ${fmt(A.test.length)} for testing either way. `+
+    `<span class="k-leak">Split by spot</span>, the map claims ${pc(A.claimed)} and is really ${pc(A.real)} right over the whole pizza: ${pt(gapA)} points. `+
+    `<span class="k-good">Split by square</span>, it claims ${pc(B.claimed)} and is really ${pc(B.real)}: ${pt(gapB)} points. `+
+    (gapA>gapB+2?`The by-spot grade is the kinder one, and it is the one that is wrong.`:gapA>gapB?`The by-spot grade is a little kinder. Try fewer squares, more bites per square, or a classifier that leans on position.`:`This time the by-spot grade isn't the kinder one. Taste again, or see Step 3.`);
+  const row=(name,cls,R)=>`<tr><th class="rowh"><i class="sw ${cls}"></i>${name}</th><td class="acc c-${cls}">${pc(R.claimed)}</td><td>${pc(R.real)}</td><td class="acc">${pt(100*(R.claimed-R.real))}</td><td>${pc(R.fresh.O)} ± ${isFinite(R.fresh.se)?(100*R.fresh.se).toFixed(1):"–"}</td><td class="dim">${pc(R.resub)}</td><td>${R.leak.median.toFixed(1)}</td><td>${pc(R.leak.same,0)}</td></tr>`;
+  $("cmp").innerHTML=`<thead><tr><th class="rowh">Split</th><th>Claimed<br>(test half)</th><th>Real<br>(whole pizza)</th><th>Gap</th><th>Fresh sample<br>(Eq. 13 ± SE)</th><th>Tasting the<br>training slice</th><th>Test spot to nearest<br>training spot (median)</th><th>Test spots with a training<br>spot in their square</th></tr></thead><tbody>`+
+    row("By spot","leak",A)+row("By square","good",B)+"</tbody>";
+  $("cmp-sum").innerHTML=`"Tasting the training slice" grades each map on the very spots it learned from: Hammond and Verbyla's (1996) case. With 1 neighbour it is always 100%, because every training spot is its own nearest neighbour; with ${st.k} it is ${pc(A.resub)} here. `+
+    `The two distance columns are the leak. Split by spot, a test spot's nearest training spot is a median ${A.leak.median.toFixed(1)} spots away and ${pc(A.leak.same,0)} of test spots share a square with a training spot. Split by square, ${B.leak.median.toFixed(1)} spots and ${pc(B.leak.same,0)}. `+
+    `The fresh sample is a new stratified sample of ${fmt(A.fresh.n)} spots the classifier never saw, read with Eqs. 12–16; its interval covers the real number about 95% of the time.`;
+  const tr=k=>`<tr><th class="rowh"><i class="sw" style="background:var(${VAR[k][0]})"></i>${TITLE[k]} (${PAPER_CLASS[k]})</th><td class="c-leak">${pc(A.uC[k])}</td><td>${pc(A.uR[k])}</td><td class="c-good">${pc(B.uC[k])}</td><td>${pc(B.uR[k])}</td></tr>`;
+  $("top-tab").innerHTML=`<thead><tr><th class="rowh">Map says</th><th>By spot<br>claimed</th><th>By spot<br>real</th><th>By square<br>claimed</th><th>By square<br>real</th></tr></thead><tbody>${[0,1,2,3].map(tr).join("")}</tbody>`;
+  const worst=[0,1,2,3].filter(k=>isFinite(A.uC[k])&&isFinite(A.uR[k])).sort((a,b)=>(A.uC[b]-A.uR[b])-(A.uC[a]-A.uR[a]))[0];
+  $("top-sum").innerHTML=worst===undefined?`A dash means the map never says that topping among the spots counted.`
+    :`The leak flatters every topping, not just the total. Split by spot, ${NAMES[worst]} looks ${pt(100*(A.uC[worst]-A.uR[worst]))} points better than it is. A dash means the map never says that topping among the spots counted; a small map class also makes the fresh sample's SE rough.`;
+  /* equation cards follow the by-spot map */
+  const hits=A.test.filter(i=>A.map[i]===P.truth[i]).length;
+  setEq("qc-h",fmt(hits)); setEq("qc-n",fmt(A.test.length)); setEq("qc-v",(100*A.claimed).toFixed(1));
+  $("qc-cap").textContent=`The ${fmt(A.test.length)} test spots are the half of the tasted spots the coin sent to testing. Nothing in the fraction says how far they sit from the training spots, which is why it can't tell when it is fooling you. Real accuracy over the whole pizza: ${pc(A.real)}.`;
+  const F=A.fresh;
+  for(let k=0;k<4;k++){ setEq("q13-w"+(k+1),F.W[k].toFixed(2)); setEq("q13-h"+(k+1),F.c[k][k]); setEq("q13-n"+(k+1),F.nr[k]); }
+  setEq("q13-o",(100*F.O).toFixed(1)); setEq("q13-se",isFinite(F.se)?(100*F.se).toFixed(1):"–");
+  $("q13-cap").textContent=`W_i is each class's share of this map (not Table 5's 60/25/10/5: the classifier drew its own). Subscripts 1–4 are cheese, mushroom, pepperoni, anchovy. The sample is drawn after the map exists and stratified by it, and still centres on the real ${pc(A.real)}.`+(F.nr.some(n=>n<NIND)?` A map class with fewer than ${NIND} spots is tasted whole.`:"");
+}
+
+/* ---- Step 3: repeats ---- */
+function runReps(more){
+  if(!more) reps={spot:[],sq:[],ind:[]};
+  const run=++repRun, r=rng(st.seed*5+reps.spot.length*31+st.tasting), total=reps.spot.length+REPS;
+  const step=()=>{ if(run!==repRun) return;
+    const t0=performance.now();
+    while(reps.spot.length<total&&performance.now()-t0<40){ const o=oneTasting(r);
+      reps.spot.push(100*(o.spot.claimed-o.spot.real)); reps.sq.push(100*(o.sq.claimed-o.sq.real)); reps.ind.push(100*(o.spot.fresh.O-o.spot.real)); }
+    renderHist(); renderCheck(); if(reps.spot.length<total){ $("rep-status").textContent=`${reps.spot.length} of ${total}…`; setTimeout(step,0); } else $("rep-status").textContent=`${total} tastings.`; };
+  step();
+}
+/* histogram of gaps on a fixed -30..+30 axis, one row per method, like the kit's drawRepeats */
+function drawGaps(cv,rows){
+  const w=cv.clientWidth||900, px=window.devicePixelRatio||1, narrow=w<560, rowH=narrow?52:60, h=rows.length*rowH+56, L=narrow?104:150, Rm=24, T=22, B=34, gap=10;
+  cv.style.width="100%"; cv.style.height=h+"px"; cv.width=Math.round(w*px); cv.height=Math.round(h*px);
+  const ctx=cv.getContext("2d"), ink=cssVar("--ink"), muted=cssVar("--muted"), lo=-30, hi=30, bin=1, nb=(hi-lo)/bin;
+  ctx.setTransform(px,0,0,px,0,0); ctx.clearRect(0,0,w,h); ctx.font=`12px ${cssVar("--f-body")}`; ctx.textBaseline="middle";
+  const ph_=(h-T-B-gap*(rows.length-1))/rows.length, X=v=>L+(v-lo)/(hi-lo)*(w-L-Rm), bw=(w-L-Rm)/nb;
+  const out=rows.map((row,ri)=>{ const top=T+ri*(ph_+gap), bins=new Array(nb).fill(0);
+    row.vals.forEach(v=>bins[Math.max(0,Math.min(nb-1,Math.floor((v-lo)/bin)))]++);
+    const mx=Math.max(1,...bins); ctx.fillStyle=row.col;
+    bins.forEach((c,b)=>{ if(!c) return; const hh=Math.max(2,(ph_-6)*c/mx); ctx.fillRect(Math.round(X(lo+b*bin))+1,Math.round(top+ph_-hh),Math.max(1,Math.round(bw)-1),Math.round(hh)); });
+    ctx.strokeStyle=ink; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(L,top+ph_+.5); ctx.lineTo(w-Rm,top+ph_+.5); ctx.stroke();
+    const n=row.vals.length, m=mean(row.vals), sd=sdev(row.vals);
+    if(n){ const xm=X(Math.max(lo,Math.min(hi,m))); ctx.fillStyle=row.col; ctx.beginPath(); ctx.moveTo(xm,top+ph_+2); ctx.lineTo(xm-6,top+ph_+10); ctx.lineTo(xm+6,top+ph_+10); ctx.closePath(); ctx.fill(); }
+    ctx.textAlign="left"; ctx.fillStyle=ink; ctx.fillText(row.name,6,top+ph_/2-8); ctx.fillStyle=muted; ctx.fillText(n?"avg "+pt(m):"…",6,top+ph_/2+9);
+    return {mean:m,sd,n}; });
+  ctx.strokeStyle=ink; ctx.lineWidth=2; ctx.setLineDash([5,4]); ctx.beginPath(); ctx.moveTo(X(0),T-6); ctx.lineTo(X(0),h-B+4); ctx.stroke(); ctx.setLineDash([]);
+  ctx.fillStyle=ink; ctx.textAlign="left"; ctx.fillText("no gap",X(0)+6,T-10);
+  ctx.textAlign="center"; ctx.fillStyle=muted; for(let v=lo;v<=hi;v+=narrow?10:5){ ctx.fillRect(X(v)-1,h-B+6,2,5); ctx.fillText(pt(v,0),X(v),h-B+20); }
+  return out;
+}
+function renderHist(){
+  const s=drawGaps($("hist"),[{name:"By spot",vals:reps.spot,col:cssVar("--leak")},{name:"By square",vals:reps.sq,col:cssVar("--good")},{name:"Fresh sample",vals:reps.ind,col:cssVar("--ind")}]);
+  s[0].vals=reps.spot; s[1].vals=reps.sq; s[2].vals=reps.ind;
+  const row=(name,cls,j)=>`<tr><th class="rowh"><i class="sw ${cls}"></i>${name}</th><td class="acc">${pt(s[j].mean)}</td><td>${isFinite(s[j].sd)?s[j].sd.toFixed(1):"–"}</td><td>${s[j].n?pc(s[j].vals.filter(v=>v>0).length/s[j].n,0):"–"}</td></tr>`;
+  $("rep-tab").innerHTML=`<thead><tr><th class="rowh">Grade</th><th>Average gap<br>(claimed − real)</th><th>Spread</th><th>Graded too kindly</th></tr></thead><tbody>${row("By spot","leak",0)+row("By square","good",1)+row("Fresh sample","ind",2)}</tbody>`;
+  if(!s[0].n){ $("hsum").textContent=""; return; }
+  const a=s[0].mean, b=s[1].mean, c=s[2].mean;
+  $("hsum").innerHTML=`Over ${s[0].n} tastings, <span class="k-leak">splitting by spot</span> grades the map ${pt(a)} points on average${a>1?`, kinder than the truth ${pc(s[0].vals.filter(v=>v>0).length/s[0].n,0)} of the time. That is not luck, it is the leak.`:`. The leak is small at these settings; try fewer squares or more bites per square.`} `+
+    `<span class="k-good">Splitting by square</span> averages ${pt(b)}${b<-1?`, a little harsh: its test squares are ones the map never learned from (see the notes)`:""}. `+
+    `The <span class="k-ind">fresh sample</span> averages ${pt(c)}, with the strata built from the map, as Sec. 2.7 allows. Its spread, ${isFinite(s[2].sd)?s[2].sd.toFixed(1):"–"} points, is sampling error, which Eq. 16 can put a number on; the leak's ${pt(a)} is bias, which no standard error can see.`;
+}
+
+/* ---- check against the paper ---- */
+function renderCheck(){
+  const A=S.spot, B=S.sq, R=reps, g=a=>a.length?pt(mean(a)):"…";
+  const rows=[
+    ["Same data for training and validation gives an optimistic accuracy (Hammond and Verbyla 1996; p. 7)","yes",`tasting the training slice: ${pc(A.resub)} claimed, ${pc(A.real)} real`],
+    ["Pixels rather than clusters split to training and validation give optimistic accuracies (Friedl et al. 2000; Zhen et al. 2013; Lyons et al. 2018; p. 8)","yes",`by spot: gap ${g(R.spot)} points over ${R.spot.length} tastings; this tasting ${pt(100*(A.claimed-A.real))}`],
+    ["With cluster sampling, assign whole clusters to training or testing (p. 8)","the fix",`by square: gap ${g(R.sq)} points; this tasting ${pt(100*(B.claimed-B.real))}`],
+    ["A separate probability sample assures independence (p. 8)","yes",`fresh sample: gap ${g(R.ind)} points; this tasting ${pt(100*(A.fresh.O-A.real))} ± ${isFinite(A.fresh.se)?(100*A.fresh.se).toFixed(1):"–"}`],
+    ["Strata built from the map don't break independence (p. 8)","yes",`the fresh sample is stratified by the classifier's map and centres on the real accuracy (gap ${g(R.ind)})`],
+    ["Training may be purposive; assessment needs a probability sample (p. 8)","yes",`the tasted spots are a two-stage probability sample (${st.m} squares, ${st.b} bites each), so both halves could serve either job`],
+    ["The paper assumes assessment is independent of training (Sec. 1, p. 3)","assumed",`every other page in this lab is handed a map and a fresh sample`],
+  ];
+  $("chk").innerHTML=`<thead><tr><th class="rowh">Claim</th><th>Paper</th><th>This page (ours)</th></tr></thead><tbody>`+rows.map(r=>`<tr><th class="rowh">${r[0]}</th><td>${r[1]}</td><td>${r[2]}</td></tr>`).join("")+"</tbody>";
+}
+
+/* ---- wiring ---- */
+function light(){ renderStep1(); renderStep2(); renderCheck(); }
+function all(){ light(); runReps(false); }
+let frame=0, pending=0;
+function changed(level){ /* 2 = rebake, 1 = retaste, 0 = repaint */
+  pending=Math.max(pending,level);
+  if(!frame) frame=requestAnimationFrame(()=>{ frame=0; if(pending>=2) bake(); if(pending>=1) taste(); const p=pending; pending=0; if(p>=1) all(); else light(); });
+}
+const seg=(id,key,level,f=v=>+v)=>$(id).addEventListener("change",e=>{ st[key]=f(e.target.value); changed(level); });
+$("grain").addEventListener("input",e=>{ st.grain=e.target.value/100; $("grain-v").textContent=e.target.value+"%"; changed(2); });
+$("blotch").addEventListener("input",e=>{ st.blotch=e.target.value/100; $("blotch-v").textContent=e.target.value+"%"; changed(2); });
+$("newpie").addEventListener("click",()=>{ st.seed=(Math.random()*1e9)|0; changed(2); });
+$("resample").addEventListener("click",()=>{ st.tasting++; taste(); light(); });
+seg("msel","m",1); seg("bsel","b",1); seg("lsel","lam",1); seg("ksel","k",1); seg("showsel","show",0,v=>v);
+$("rerun").addEventListener("click",()=>runReps(true));
+const repaint=()=>{ light(); renderHist(); };
+const mq=window.matchMedia("(prefers-color-scheme: dark)"); if(mq.addEventListener) mq.addEventListener("change",repaint);
+new MutationObserver(repaint).observe(document.documentElement,{attributes:true,attributeFilter:["data-theme"]});
+if(document.fonts&&document.fonts.ready) document.fonts.ready.then(renderHist);
+let lastW=0; if(window.ResizeObserver) new ResizeObserver(()=>{const w=$("hist").clientWidth; if(w&&w!==lastW){lastW=w; renderHist();}}).observe(document.body);
+bake(); taste(); all();
+})();
+</script>
+</body>
+</html>

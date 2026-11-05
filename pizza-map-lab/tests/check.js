@@ -12,6 +12,7 @@
 // 8. Area from the sample: Eq. 21 adds up, Eq. 22 equals Eq. 19 under stratified sampling, and under simple random
 //    sampling Eq. 19 spreads least (explainer 06).
 // 9. An imperfect taster: Foody's (2013) Eq. 4 figures, the two-class pizza, and simulated areas that match Eq. 4 (explainer 07).
+// 10. Normalizing forces every total to 1/c and makes user's equal producer's; Table 5's kappa is 0.653; kappa tracks overall accuracy (explainer 08).
 const fs = require("fs"), path = require("path"), vm = require("vm");
 const root = path.join(__dirname, "..");
 let failed = 0;
@@ -278,6 +279,137 @@ console.log("The taster is wrong too (explainer 07)");
   const pv = [], ps = [];
   for (let k = 0; k < 3000; k++) { const ids = st.flatMap(a => K.pickFrom(a, 100, r)), [a, s] = area(ids, panel[Math.floor(r() * 8)]); pv.push(a); ps.push(s); }
   ok(sd(pv) > 1.3 * m(ps), `a panel of tasters: spread ${p(sd(pv))} points against a formula SE of ${p(m(ps))}`);
+}
+
+// ---- 08 · Normalizing and Kappa ----
+console.log("Normalizing and kappa (explainer 08)");
+{
+  // the page's own matrix helpers, duplicated here: proportions of area, rows map, columns reference
+  const sum = a => a.reduce((x, y) => x + y, 0), rowT = m => m.map(sum), colT = m => m[0].map((_, j) => sum(m.map(r => r[j])));
+  const normPass = m => { const c = m.length, r = rowT(m); const x = m.map((row, i) => row.map(v => r[i] ? v / (c * r[i]) : 0)); const cl = colT(x); return x.map(row => row.map((v, j) => cl[j] ? v / (c * cl[j]) : 0)); };
+  const normalize = (p, n) => { let m = p; for (let s = 0; s < n; s++) m = normPass(m); return m; };
+  const accs = p => { const r = rowT(p), c = colT(p), O = sum(p.map((row, i) => row[i])), e = sum(r.map((v, i) => v * c[i])); return { O, e, k: (O - e) / (1 - e), U: p.map((row, i) => row[i] / r[i]), P: p.map((row, i) => row[i] / c[i]), row: r, col: c }; };
+  const T5 = K.TABLE5.map(r => r.map(v => v / 100)), T4 = [[21,3,1,0],[4,18,0,3],[0,2,20,3],[5,2,2,16]].map(r => r.map(v => v / 100));
+  for (const [name, p] of [["Table 5", T5], ["Table 4", T4]]) {
+    const n = normalize(p, 20), a = accs(n), worst = Math.max(...rowT(n).map(v => Math.abs(v - .25)), ...colT(n).map(v => Math.abs(v - .25)));
+    ok(worst < 1e-4, `${name} normalized: every row and column total is 1/c (worst off by ${worst.toExponential(1)})`);
+    ok([0, 1, 2, 3].every(k => Math.abs(a.U[k] - a.P[k]) < 1e-4), `${name} normalized: user's equals producer's for every class (${a.U.map(v => (100 * v).toFixed(1)).join("/")})`);
+  }
+  const n5 = normalize(T5, 20), n4 = normalize(T4, 20), same = Math.max(...n5.flat().map((v, q) => Math.abs(v - n4.flat()[q])));
+  ok(same < 1e-9, `Table 4 and Table 5 normalize to the same matrix (the map's shares are thrown away): biggest difference ${same.toExponential(1)}`);
+  ok(accs(n5).U.map(v => (100 * v).toFixed(1)).join("/") === "76.9/72.2/82.8/72.0" && (100 * accs(n5).O).toFixed(1) === "76.0", "normalized Table 5: accuracies 76.9/72.2/82.8/72.0, diagonal sum 76.0 (ours)");
+  const a5 = accs(T5), a4 = accs(T4);
+  ok(a5.k.toFixed(3) === "0.653" && a5.e.toFixed(3) === "0.413" && a5.O.toFixed(3) === "0.796", `Eq. 24 on Table 5: chance agreement ${a5.e.toFixed(3)}, kappa ${a5.k.toFixed(3)} (ours)`);
+  ok(a4.k.toFixed(3) === "0.667" && a4.e.toFixed(2) === "0.25", `Eq. 24 on Table 4's counts: chance agreement ${a4.e.toFixed(3)}, kappa ${a4.k.toFixed(3)} (ours)`);
+  const ch = accs(normalize([[.036, .096], [.004, .864]], 20));
+  ok(Math.abs(ch.col[0] - .5) < 1e-4 && Math.abs(ch.row[0] - .5) < 1e-4, `Sec. 1.2: a 4% change map normalizes to ${(100 * ch.col[0]).toFixed(1)}% change`);
+  ok(Math.abs((a5.O - a5.col[0]) / (1 - a5.col[0]) - (a5.O - .554) / .446) < 1e-9 && accs([[.554, .264, .108, .074], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]).k === 0, "a map that calls everything cheese has kappa 0 under Eq. 24");
+  // kappa against overall accuracy over 300 maps of the paper pizza, made the way the page makes them (ours)
+  const P = K.bakePaperPizza(K.SEED), r = K.rng(808), other = new Int8Array(K.N * K.N), od = new Float64Array(K.N * K.N);
+  for (const i of P.ids) { const t = P.truth[i]; let b = -1, bd = 1e9; for (let k = 0; k < 4; k++) if (k !== t && P.dist[k][i] < bd) { bd = P.dist[k][i]; b = k; } other[i] = b; od[i] = bd + 4 * P.jit[i]; }
+  const edge = P.ids.slice().sort((a, b) => od[a] - od[b]), lazy = P.ids.filter(i => P.truth[i] !== 0).sort((a, b) => (P.dist[0][a] + 4 * P.jit[a]) - (P.dist[0][b] + 4 * P.jit[b])), keen = P.ids.filter(i => P.truth[i] !== 3).sort((a, b) => (P.dist[3][a] + 4 * P.jit[a]) - (P.dist[3][b] + 4 * P.jit[b]));
+  const makeMap = (e, l, q) => { const map = Int8Array.from(P.truth); for (let s = 0, n = Math.round(e * P.T); s < n; s++) map[edge[s]] = other[edge[s]]; for (let s = 0, n = Math.round(l * lazy.length); s < n; s++) map[lazy[s]] = 0; for (let s = 0, n = Math.round(q * keen.length); s < n; s++) map[keen[s]] = 3;
+    const c = [[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]]; for (const i of P.ids) c[map[i]][P.truth[i]]++; return c.map(row => row.map(v => v / P.T)); };
+  const xs = [], ys = [];
+  for (let q = 0; q < 300; q++) { const u = r(), a = accs(makeMap(r() * .6, u >= .4 && u < .7 ? r() : 0, u >= .7 ? r() * .5 : 0)); xs.push(a.O); ys.push(a.k); }
+  const mx = sum(xs) / 300, my = sum(ys) / 300; let sxy = 0, sxx = 0, syy = 0; for (let i = 0; i < 300; i++) { sxy += (xs[i] - mx) * (ys[i] - my); sxx += (xs[i] - mx) ** 2; syy += (ys[i] - my) ** 2; }
+  const rr = sxy / Math.sqrt(sxx * syy);
+  ok(rr > .95, `kappa against overall accuracy over 300 maps of the paper pizza: r = ${rr.toFixed(3)} (Liu et al. 2007; ours)`);
+  const e0 = accs(makeMap(.2, 0, 0)), e1 = accs(makeMap(.2, .5, 0));
+  ok(e1.e > e0.e && Math.abs(e0.e - a5.e) < .03, `edge mistakes alone keep chance agreement near Table 5's (${(100 * e0.e).toFixed(1)}%); calling half the rest cheese raises it (${(100 * e1.e).toFixed(1)}%)`);
+}
+
+// ---- 10 · Tasting the Training Slice ----
+console.log("Tasting the training slice (explainer 10)");
+{
+  const K10 = new Function(kit + "; return {bakePaperPizza, SEED, rng, bakePhoto, knnClassify, splitHalf, sampleTwoStage, mapStrata, pickFrom, countMatrix, stratEstimate, N};")();
+  const fp = a => { let x = 2166136261 >>> 0; for (const v of a) { x ^= (v & 255); x = Math.imul(x, 16777619) >>> 0; } return x.toString(16); };
+  const P = K10.bakePaperPizza(K10.SEED), before = fp(P.truth) + fp(P.map), ph = K10.bakePhoto(P, K10.SEED);
+  ok(fp(P.truth) + fp(P.map) === before && before === "41055a28" + "1798ad01", "the photo leaves the paper pizza unchanged");
+  let inRange = true, crustOff = true; for (let i = 0; i < K10.N * K10.N; i++) for (let c = 0; c < 3; c++) { const v = ph.band[3 * i + c]; if (P.inside[i]) inRange = inRange && v >= 0 && v <= 1; else crustOff = crustOff && v === -1; }
+  ok(inRange && crustOff, "photo bands are 0-1 on the pizza and -1 on the crust");
+  const m = a => a.reduce((x, y) => x + y, 0) / a.length, sd = a => { const u = m(a); return Math.sqrt(a.reduce((x, y) => x + (y - u) ** 2, 0) / (a.length - 1)); };
+  const acc = (map, ids) => { let h = 0; for (const i of ids) h += map[i] === P.truth[i]; return 100 * h / ids.length; };
+  // the bucketed search is exact: same answer as brute force
+  { const r = K10.rng(3), g = K10.sampleTwoStage(16, 25, r), s = K10.splitHalf(g, false, r), lam = 40, k = 3, fast = K10.knnClassify(P, ph, s.train, k, lam);
+    let same = true; for (const i of P.ids.filter((_, q) => q % 37 === 0)) { const x = i % K10.N, y = (i / K10.N) | 0, d = s.train.map(j => { let c = 0; for (let b = 0; b < 3; b++) c += (ph.band[3 * i + b] - ph.band[3 * j + b]) ** 2; return [(j % K10.N - x) ** 2 + (((j / K10.N) | 0) - y) ** 2 + lam * lam * c, j]; }).sort((a, b) => a[0] - b[0]).slice(0, k);
+      const v = [0, 0, 0, 0]; for (const [, j] of d) v[P.truth[j]]++; let best = P.truth[d[0][1]]; for (let c = 0; c < 4; c++) if (v[c] > v[best]) best = c; same = same && fast[i] === best; }
+    ok(same, "knnClassify matches a brute-force search");
+    ok(s.train.length === 200 && s.test.length === 200 && !s.train.some(i => s.test.includes(i)), "split by spot: 200 / 200, disjoint");
+    const q = K10.splitHalf(g, true, r), sq = ids => new Set(ids.map(i => P.piece[i]));
+    ok(q.train.length === 200 && [...sq(q.train)].every(p => !sq(q.test).has(p)) && sq(q.train).size === 8, "split by square: 8 whole squares each way");
+    ok(acc(K10.knnClassify(P, ph, s.train, 1, lam), s.train) === 100, "tasting the training slice with 1 neighbour: 100%"); }
+  // 30 seeded tastings at the page's defaults (16 squares, 25 bites, position and colour, 3 neighbours)
+  const fresh = (map, r) => { const Q = { ids: P.ids, map, truth: P.truth }, st = K10.mapStrata(Q), W = st.map(s => s.length / P.T), ids = st.flatMap(s => K10.pickFrom(s, Math.min(25, s.length), r)); return 100 * K10.stratEstimate(K10.countMatrix(Q, ids), W).O; };
+  const run = (mm, b, lam, k, seed, n = 30) => { const r = K10.rng(seed), o = { spot: [], sq: [], ind: [], cSpot: [], cSq: [] };
+    for (let t = 0; t < n; t++) { const g = K10.sampleTwoStage(mm, b, r);
+      for (const bySq of [false, true]) { const s = K10.splitHalf(g, bySq, r), map = K10.knnClassify(P, ph, s.train, k, lam), real = acc(map, P.ids);
+        (bySq ? o.sq : o.spot).push(acc(map, s.test) - real); (bySq ? o.cSq : o.cSpot).push(acc(map, s.test)); if (!bySq) o.ind.push(fresh(map, r) - real); } } return o; };
+  const d = run(16, 25, 40, 3, 101);
+  ok(m(d.cSpot) > m(d.cSq) + 10, `split by spot claims more than split by square (${m(d.cSpot).toFixed(1)}% vs ${m(d.cSq).toFixed(1)}%)`);
+  ok(m(d.spot) > 8 && d.spot.filter(v => v > 0).length >= 28, `split by spot is graded too kindly: gap ${m(d.spot).toFixed(1)} points, kind ${d.spot.filter(v => v > 0).length} of 30 times`);
+  ok(Math.abs(m(d.sq)) < 6, `split by square lands near its real accuracy (gap ${m(d.sq).toFixed(1)} points)`);
+  ok(Math.abs(m(d.ind)) < 3 * sd(d.ind) / Math.sqrt(30) + 0.3, `a fresh sample stratified by the map is unbiased (gap ${m(d.ind).toFixed(2)} points, spread ${sd(d.ind).toFixed(1)})`);
+  const c = run(16, 25, 1000, 3, 102, 10), e = run(64, 25, 40, 3, 103, 10);
+  ok(m(c.spot) < 4 && m(c.spot) < m(d.spot) / 3, `colour only, the leak nearly vanishes (gap ${m(c.spot).toFixed(1)} points)`);
+  ok(m(e.spot) < 4 && m(e.spot) < m(d.spot) / 3, `with bites in all 64 squares, so does the inflation (gap ${m(e.spot).toFixed(1)} points)`);
+  const f = run(8, 100, 15, 3, 104, 10);
+  ok(m(f.spot) > m(d.spot), `fewer squares, more bites and more weight on position leak more (gap ${m(f.spot).toFixed(1)} points)`);
+}
+
+// ---- 09 · Wrong Amount, Wrong Place ----
+console.log("Quantity, exchange and shift (explainer 09)");
+{
+  // the page's own helpers, lifted from its source: components() is S&F Eqs. 6-11 and P&S Eqs. 1-9, merge() joins two classes
+  const src = fs.readFileSync(path.join(root, "src", "09-wrong-amount-wrong-place.html"), "utf8");
+  const a = src.indexOf("function components(M){"), b = src.indexOf("\n}\n", src.indexOf("function merge(M,a,b){")) + 3;
+  const H = new Function("const sum=a=>a.reduce((x,y)=>x+y,0);" + src.slice(a, b) + "; return {components, merge};")();
+  const e1 = v => v.toFixed(1), near = (x, y, d = 1e-9) => Math.abs(x - y) <= d;
+  const T5 = H.components(K.TABLE5);
+  ok(e1(T5.O) === "79.6" && e1(T5.D) === "20.4" && e1(T5.Q) === "4.6" && e1(T5.A) === "15.8" && near(T5.Q + T5.A, T5.D),
+    `Table 5: D = 100 - 79.6 = ${e1(T5.D)} = Q ${e1(T5.Q)} + A ${e1(T5.A)} (Eqs. 6-11)`);
+  ok(e1(T5.E) === "9.6" && e1(T5.S) === "6.2" && near(T5.Q + T5.E + T5.S, T5.D) && near(T5.E + T5.S, T5.A),
+    `Table 5: exchange ${e1(T5.E)} + shift ${e1(T5.S)} = A, so D = ${e1(T5.Q)} + ${e1(T5.E)} + ${e1(T5.S)} (P&S Eq. 9)`);
+  const pairs = T5.ex.flat().reduce((x, y) => x + y, 0);
+  ok(e1(T5.ex[1][0]) === "8.0" && near(pairs, T5.E) && e1(T5.ex[3][1]) === "0.8" && e1(T5.ex[3][2]) === "0.8",
+    `Table 5: cheese-mushroom exchange ${e1(T5.ex[1][0])} of ${e1(T5.E)}; the six pair exchanges add to E (P&S Eq. 3)`);
+  ok(e1(T5.q[3]) === "2.4" && e1(T5.e[3]) === "1.6" && e1(T5.s[3]) === "2.0" && e1(T5.d[3]) === "6.0",
+    `Table 5, anchovy: quantity ${e1(T5.q[3])}, exchange ${e1(T5.e[3])}, shift ${e1(T5.s[3])}, d = ${e1(T5.d[3])}`);
+  ok([0, 1, 2, 3].every(k => near(T5.a[k], T5.e[k] + T5.s[k]) && near(T5.a[k], T5.d[k] - T5.q[k])), "each topping's a_k (Eq. 8) is its exchange plus its shift, and d_k - q_k");
+  // P&S Fig. 1 (p. 7545): seven six-pixel cases, map then reference, two columns of three read across
+  const cases = [["AAAAAA", "BBBBBB", "6/0/0"], ["ABABAB", "BABABA", "0/6/0"], ["AABBCC", "CCAABB", "0/0/6"], ["AABBCC", "BBAAAA", "2/4/0"],
+    ["AAAABB", "BBBBCC", "4/0/2"], ["AABBCC", "BCAABC", "0/2/3"], ["AABBCC", "BCAABB", "1/2/3"]];
+  const got = cases.map(([m, r]) => { const M = [[0, 0, 0], [0, 0, 0], [0, 0, 0]]; for (let i = 0; i < 6; i++) M["ABC".indexOf(m[i])]["ABC".indexOf(r[i])]++; const c = H.components(M); return `${c.Q}/${c.E}/${c.S}`; });
+  ok(got.every((v, k) => v === cases[k][2]), `P&S Fig. 1's seven cases: ${got.join(", ")}`);
+  // any square matrix: Q + E + S = D = Q + A = total - trace, nothing negative, two classes have no shift
+  const r = K.rng(909); let bad = 0, worst = 0, twoShift = 0;
+  for (let t = 0; t < 600; t++) { const c = 2 + Math.floor(r() * 5), M = []; for (let i = 0; i < c; i++) { M.push([]); for (let j = 0; j < c; j++) M[i].push(r() < .3 ? 0 : Math.floor(r() * (i === j ? 50 : 12))); }
+    const o = H.components(M), tot = M.flat().reduce((x, y) => x + y, 0), tr = M.reduce((s, row, k) => s + row[k], 0);
+    worst = Math.max(worst, Math.abs(o.Q + o.E + o.S - o.D), Math.abs(o.Q + o.A - o.D), Math.abs(tot - tr - o.D));
+    if ([o.Q, o.E, o.S, o.A, ...o.q, ...o.e, ...o.s].some(v => v < -1e-9)) bad++;
+    if (c === 2 && o.S !== 0) twoShift++; }
+  ok(worst < 1e-9 && !bad && !twoShift, `600 random matrices (2-6 classes): Q + E + S = Q + A = D = total - trace (worst gap ${worst.toExponential(1)}), nothing negative, two classes never shift`);
+  // merging cheese and mushroom
+  const Cm = H.components(H.merge(K.TABLE5, 0, 1));
+  ok(e1(Cm.D) === "9.2" && e1(T5.D - Cm.D) === "11.2" && e1(Cm.E) === "5.2" && e1(Cm.Q) === "3.2" && e1(Cm.S) === "0.8",
+    `merge cheese + mushroom: D ${e1(T5.D)} -> ${e1(Cm.D)} (11.2 gone: their 8.0 exchange and 3.2 one-sided); then Q ${e1(Cm.Q)}, E ${e1(Cm.E)}, S ${e1(Cm.S)}`);
+  // the page's three edits each move one component. Quantity: correct mushroom -> map cheese. Exchange: pairs, correct cheese -> map
+  // mushroom and correct mushroom -> map cheese. Shift: correct mushroom -> map cheese, correct anchovy -> map mushroom, correct cheese -> map anchovy
+  const P = K.bakePaperPizza(K.SEED), base = H.components(P.cell), pts = v => 100 * v / P.T;
+  const edit = (nq, ne, ns) => { const M = P.cell.map(row => row.slice());
+    M[0][1] += nq; M[1][1] -= nq;
+    M[1][0] += ne; M[0][0] -= ne; M[0][1] += ne; M[1][1] -= ne;
+    M[0][1] += ns; M[1][1] -= ns; M[1][3] += ns; M[3][3] -= ns; M[3][0] += ns; M[0][0] -= ns;
+    return H.components(M); };
+  const same = (x, y) => near(pts(x), pts(y), 1e-9);
+  let pure = true;
+  for (const n of [1, 144, 1152]) { const o = edit(n, 0, 0); pure = pure && same(o.Q, base.Q + n) && same(o.E, base.E) && same(o.S, base.S) && same(o.D, base.D + n); }
+  for (const n of [1, 72, 432]) { const o = edit(0, n, 0); pure = pure && same(o.Q, base.Q) && same(o.E, base.E + 2 * n) && same(o.S, base.S) && same(o.D, base.D + 2 * n); }
+  for (const n of [1, 48, 144]) { const o = edit(0, 0, n); pure = pure && same(o.Q, base.Q) && same(o.E, base.E) && same(o.S, base.S + 3 * n) && same(o.D, base.D + 3 * n); }
+  const all = edit(1152, 432, 144);
+  ok(pure && same(all.Q, base.Q + 1152) && same(all.E, base.E + 864) && same(all.S, base.S + 432),
+    "the page's edits: quantity, exchange and shift each move their own component only, up to the slider limits, and add up together");
+  ok(e1(pts(base.D)) === "20.4" && e1(pts(base.Q)) === "4.6" && e1(pts(base.E)) === "9.6" && e1(pts(base.S)) === "6.2", "this pizza's census splits like Table 5: 20.4 = 4.6 + 9.6 + 6.2");
 }
 
 console.log(failed ? `\n${failed} check(s) failed` : "\nAll checks passed");

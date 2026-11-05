@@ -546,6 +546,50 @@ function foody(E,rt,ro,ct,co){
   const a=E*rt*ct+(1-ro)*(1-co)*(1-E), b=E*ct*(1-rt)+ro*(1-co)*(1-E), c=E*rt*(1-ct)+co*(1-ro)*(1-E), d=E*(1-rt)*(1-ct)+ro*co*(1-E);
   return {EA, Pt, Po, Ut:U(EA,Pt,Po), O:a+d, cells:{a,b,c,d}, truth:{Pt:ct, Po:co, Ut:U(E,ct,co), O:E*ct+(1-E)*co}};
 }
+/* ---- a noisy photo of the pizza and a toy classifier (10). The paper pizza itself is untouched ----
+   bakePhoto(P, seed, {grain, blotch}): three bands (0-1) per spot, from each topping's base colour (mushroom and anchovy
+   close), blotches that make neighbouring spots look alike at two scales (opt.blotch, 0-1, default .5), a shine at P.glare,
+   and per-spot grain (opt.grain, 0-1, default .5). Returns {band: Float32Array(3*N*N), grain, blotch}; crust spots are -1 */
+const PHOTO_BASE=[[.86,.70,.26],[.58,.50,.40],[.62,.17,.12],[.52,.55,.60]];
+function bakePhoto(P,seed,opt){
+  const grain=opt&&opt.grain!=null?opt.grain:.5, blotch=opt&&opt.blotch!=null?opt.blotch:.5, r=rng(seed*7+11), band=new Float32Array(3*N*N).fill(-1);
+  const gauss=()=>Math.sqrt(-2*Math.log(1-r()))*Math.cos(2*Math.PI*r());
+  const oct=[16,4].map(C=>{const G=N/C+1, c=new Float32Array(3*G*G); for(let q=0;q<c.length;q++) c[q]=gauss(); return {C,G,c};});
+  const gl=P.glare||[N/2,N/2];
+  for(const i of P.ids){ const x=i%N, y=(i/N)|0, b=PHOTO_BASE[P.truth[i]], shine=.35*Math.exp(-((x+.5-gl[0])**2+(y+.5-gl[1])**2)/(2*14*14));
+    for(let c=0;c<3;c++){ let a=0;
+      for(const o of oct){ const fx=x/o.C, fy=y/o.C, x0=Math.floor(fx), y0=Math.floor(fy), tx=fx-x0, ty=fy-y0, q=k=>o.c[3*k+c];
+        a+=(o.C>8?.7:.5)*(q(y0*o.G+x0)*(1-tx)*(1-ty)+q(y0*o.G+x0+1)*tx*(1-ty)+q((y0+1)*o.G+x0)*(1-tx)*ty+q((y0+1)*o.G+x0+1)*tx*ty); }
+      band[3*i+c]=Math.max(0,Math.min(1,b[c]+.2*blotch*a+shine*(1-b[c])+.25*grain*gauss())); } }
+  return {band,grain,blotch};
+}
+/* k-nearest-neighbour classifier on position and colour: distance^2 = spots apart^2 + (lam * colour difference)^2, so lam is
+   how many spots one unit of colour difference is worth (0 = position only; 1000 is as good as colour only). Training spots
+   are pixel ids labelled with P.truth. Exact search over 8x8 buckets; 5-40 ms for a few hundred training spots, ~100 ms
+   colour-only with thousands. Returns Int8Array(N*N), -1 off the pizza */
+function knnClassify(P,ph,train,k,lam){
+  const CELL=8, GC=N/CELL, cells=[...Array(GC*GC)].map(()=>[]), band=ph.band, l2=lam*lam;
+  for(const i of train) cells[(((i/N)|0)>>3)*GC+((i%N)>>3)].push(i);
+  const out=new Int8Array(N*N).fill(-1), bd=new Float64Array(k), bi=new Int32Array(k);
+  for(const i of P.ids){ const x=i%N, y=(i/N)|0, cx=x>>3, cy=y>>3; let got=0; bd.fill(Infinity);
+    for(let ring=0;ring<GC;ring++){ if(got===k&&ring>0){ const m=(ring-1)*CELL+1; if(m*m>bd[k-1]) break; }
+      const x0=cx-ring, x1=cx+ring, y0=cy-ring, y1=cy+ring;
+      for(let gy=Math.max(0,y0);gy<=Math.min(GC-1,y1);gy++){ const step=(gy===y0||gy===y1||!ring)?1:x1-x0;
+        for(let gx=x0;gx<=x1;gx+=step){ if(gx<0||gx>=GC) continue;
+          for(const j of cells[gy*GC+gx]){ const dx=j%N-x, dy=((j/N)|0)-y, d0=band[3*i]-band[3*j], d1=band[3*i+1]-band[3*j+1], d2=band[3*i+2]-band[3*j+2];
+            const d=dx*dx+dy*dy+l2*(d0*d0+d1*d1+d2*d2); if(d>=bd[k-1]) continue;
+            let p=got<k?got:k-1; if(got<k) got++; while(p>0&&bd[p-1]>d){bd[p]=bd[p-1]; bi[p]=bi[p-1]; p--;} bd[p]=d; bi[p]=j; } } } }
+    const v=[0,0,0,0]; for(let p=0;p<got;p++) v[P.truth[bi[p]]]++;
+    let best=got?P.truth[bi[0]]:0; for(let c=0;c<4;c++) if(v[c]>v[best]) best=c; out[i]=best; }
+  return out;
+}
+/* split reference spots (one list per square) into training and test halves: by square (whole squares go one way, Sec. 2.7)
+   or by spot (each spot on its own). Returns {train, test} as pixel id lists */
+function splitHalf(groups,bySquare,r){
+  const sh=a=>{a=a.slice(); for(let q=a.length-1;q>0;q--){const j=Math.floor(r()*(q+1)); const t=a[q]; a[q]=a[j]; a[j]=t;} return a;};
+  const a=sh(bySquare?groups:groups.flat()), h=Math.ceil(a.length/2), f=x=>bySquare?x.flat():x;
+  return {train:f(a.slice(0,h)), test:f(a.slice(h))};
+}
 /* ---- end shared kit ---- */
 const TABLE4=[[21,3,1,0],[4,18,0,3],[0,2,20,3],[5,2,2,16]];
 const WPRESET={paper:[.60,.25,.10,.05],equal:[.25,.25,.25,.25],flip:[.05,.10,.25,.60]};

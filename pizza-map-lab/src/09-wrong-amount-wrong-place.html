@@ -1,0 +1,582 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Wrong Amount, Wrong Place</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&family=IBM+Plex+Mono:ital,wght@0,400;0,600;1,400&display=swap">
+<style>
+/* Layout: same lab bench as 01-08. Step 1 is six-spot pizzas after Pontius & Santacruz's Fig. 1, Step 2 is the paper
+   pizza with three sliders that each move one component (quantity, exchange, shift), Step 3 merges two toppings, then
+   the paper check beside the notes. */
+:root{
+  --bg:#efe2c8; --check:rgba(196,52,32,.085); --panel:#fffaf0; --ink:#2b1b12; --muted:#6e584a;
+  --line:#2b1b12; --shadow:#2b1b12; --tomato:#c4341f;
+  --qty:#d9730d; --exch:#6b4bc4; --shift:#118a36; --agree:#8a6f5c;
+  --tint-e:rgba(217,115,13,.13); --tint-d:rgba(43,27,18,.06);
+  --cheese-a:#f2c23c; --cheese-b:#f7d567; --mush-a:#cbb59a; --mush-b:#a68c70;
+  --pep-a:#b3261e; --pep-b:#8c1a14; --anch-a:#8ea3ba; --anch-b:#647891;
+  --crust-a:#c98a4b; --crust-b:#ad7036;
+  --f-display:"Silkscreen","Courier New",ui-monospace,monospace;
+  --f-body:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#1b1310; --check:rgba(196,52,32,.13); --panel:#2a1e18; --ink:#f3e7d3; --muted:#c3ae98;
+  --line:#f3e7d3; --shadow:#8a2a16; --tomato:#ff6a4d;
+  --qty:#ff9d4d; --exch:#a98bff; --shift:#3ddc6e; --agree:#b89c86;
+  --tint-e:rgba(255,157,77,.15); --tint-d:rgba(243,231,211,.07);
+  color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --bg:#1b1310; --check:rgba(196,52,32,.13); --panel:#2a1e18; --ink:#f3e7d3; --muted:#c3ae98;
+  --line:#f3e7d3; --shadow:#8a2a16; --tomato:#ff6a4d;
+  --qty:#ff9d4d; --exch:#a98bff; --shift:#3ddc6e; --agree:#b89c86;
+  --tint-e:rgba(255,157,77,.15); --tint-d:rgba(243,231,211,.07);
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{margin:0; background-color:var(--bg); color:var(--ink); font-family:var(--f-body); font-size:15px; line-height:1.55;
+  background-image:linear-gradient(90deg,var(--check) 50%,transparent 50%),linear-gradient(var(--check) 50%,transparent 50%);
+  background-size:56px 56px}
+.wrap{max-width:1120px; margin:0 auto; padding-block:28px 56px;
+  padding-left:max(16px,env(safe-area-inset-left,0px)); padding-right:max(16px,env(safe-area-inset-right,0px));
+  display:grid; gap:22px}
+h1,h2,h3,.eyebrow,.lbl,.btn,.seg label,th,.crumb,.big,.flbl,.spot,.comp b{font-family:var(--f-display); font-weight:400; letter-spacing:.02em}
+h1{font-size:clamp(28px,5.4vw,52px); line-height:1.05; margin:0; text-wrap:balance}
+h2{font-size:20px; margin:0 0 10px; text-wrap:balance}
+h3{font-size:15px; margin:18px 0 6px}
+p{margin:0 0 10px; max-width:66ch}
+a{color:var(--tomato)}
+.box{background:var(--panel); border:3px solid var(--line); box-shadow:6px 6px 0 var(--shadow); padding:18px; min-width:0}
+.mast{display:grid; gap:12px}
+.crumb{font-size:12px; color:var(--ink); justify-self:start}
+.eyebrow{font-size:13px; display:inline-block; background:var(--tomato); color:#fffaf0; padding:4px 8px; justify-self:start}
+.mast p{font-size:16px}
+.lab{display:grid; grid-template-columns:minmax(0,320px) minmax(0,1fr); gap:22px}
+@media (max-width:820px){.lab{grid-template-columns:minmax(0,1fr)}}
+.lab > h2, .lab > .full{grid-column:1/-1; margin:0}
+.controls{display:grid; gap:16px; align-content:start}
+.ctl{display:grid; gap:6px}
+.lbl{font-size:13px; display:flex; justify-content:space-between; gap:8px}
+.lbl output{font-family:var(--f-body); font-weight:600; font-size:14px}
+.hint{font-size:12.5px; color:var(--muted); margin:0}
+input[type=range]{-webkit-appearance:none; appearance:none; width:100%; height:24px; background:transparent; margin:0}
+input[type=range]::-webkit-slider-runnable-track{height:10px; background:var(--tint-d); border:2px solid var(--line)}
+input[type=range]::-moz-range-track{height:6px; background:var(--tint-d); border:2px solid var(--line)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none; width:20px; height:20px; margin-top:-7px; background:var(--tomato); border:2px solid var(--line); border-radius:0}
+input[type=range]::-moz-range-thumb{width:16px; height:16px; background:var(--tomato); border:2px solid var(--line); border-radius:0}
+input[type=range]:focus-visible{outline:3px dashed var(--tomato); outline-offset:3px}
+input[type=range].q::-webkit-slider-thumb{background:var(--qty)} input[type=range].q::-moz-range-thumb{background:var(--qty)}
+input[type=range].e::-webkit-slider-thumb{background:var(--exch)} input[type=range].e::-moz-range-thumb{background:var(--exch)}
+input[type=range].s::-webkit-slider-thumb{background:var(--shift)} input[type=range].s::-moz-range-thumb{background:var(--shift)}
+.seg{display:grid; grid-template-columns:minmax(0,1fr); gap:6px; border:0; padding:0; margin:0; min-width:0}
+.seg.two{grid-template-columns:repeat(2,minmax(0,1fr))}
+.seg.three{grid-template-columns:repeat(3,minmax(0,1fr))}
+.seg legend{padding:0; margin-bottom:6px}
+.seg input{position:absolute; opacity:0; pointer-events:none}
+.seg label{border:2px solid var(--line); padding:7px 8px; font-size:12px; cursor:pointer; display:flex; align-items:center; justify-content:center; text-align:center; gap:7px; background:var(--panel)}
+.seg label:hover{background:var(--tint-d)}
+.seg input:checked + label{background:var(--ink); color:var(--panel)}
+.seg input:focus-visible + label{outline:3px dashed var(--tomato); outline-offset:2px}
+.btns{display:flex; flex-wrap:wrap; gap:8px}
+.btn{font-size:12px; border:2px solid var(--line); background:var(--panel); color:var(--ink); padding:7px 9px; cursor:pointer; box-shadow:3px 3px 0 var(--shadow); border-radius:0}
+.btn:hover{background:var(--tint-d)}
+.btn:active{transform:translate(3px,3px); box-shadow:0 0 0 var(--shadow)}
+.btn:focus-visible{outline:3px dashed var(--tomato); outline-offset:2px}
+.btn.on{background:var(--ink); color:var(--panel)}
+select{font-family:var(--f-body); font-size:14px; border:2px solid var(--line); background:var(--panel); color:var(--ink); padding:6px 8px; border-radius:0; max-width:100%}
+select:focus-visible{outline:3px dashed var(--tomato); outline-offset:2px}
+.views{display:grid; gap:12px; align-content:start; min-width:0}
+.readout{display:flex; flex-wrap:wrap; align-items:baseline; gap:6px 14px}
+.big{font-size:clamp(30px,5vw,44px); line-height:1; color:var(--tomato)}
+.readout span:not(.big){font-size:14px; max-width:52ch}
+figure{margin:0; display:grid; gap:8px; min-width:0; justify-items:start; align-content:start}
+figcaption{font-size:12.5px; color:var(--muted)}
+figcaption b{font-family:var(--f-display); font-weight:400; font-size:13px; color:var(--ink)}
+canvas{display:block; border:2px solid var(--line); background:var(--tint-d)}
+.pie{width:100%; max-width:440px; aspect-ratio:1; image-rendering:pixelated; image-rendering:crisp-edges}
+.legend{display:flex; flex-wrap:wrap; gap:6px 14px; font-size:12.5px}
+.legend span{display:inline-flex; align-items:center; gap:6px}
+.sw{width:12px; height:12px; border:2px solid var(--line); flex:none; display:inline-block}
+.sw.q{background:var(--qty)} .sw.e{background:var(--exch)} .sw.s{background:var(--shift)} .sw.ok{background:var(--agree)} .sw.ring{background:var(--panel)} .sw.x{background:var(--tomato)}
+.k-q{color:var(--qty); font-weight:600} .k-e{color:var(--exch); font-weight:600} .k-s{color:var(--shift); font-weight:600}
+/* six-spot pizzas (Step 1): two little 2x3 trays and a 3x3 matrix */
+.six{display:grid; grid-template-columns:auto auto minmax(0,1fr); gap:18px; align-items:start}
+@media (max-width:620px){.six{grid-template-columns:auto auto} .six .mtx{grid-column:1/-1}}
+.tray{display:grid; gap:6px; justify-items:center}
+.tray .lbl{font-size:12px}
+.spots{display:grid; grid-template-columns:repeat(2,44px); gap:4px; padding:6px; border:2px solid var(--line); background:var(--crust-a)}
+.spot{width:44px; height:44px; border:2px solid var(--line); font-size:16px; cursor:pointer; color:var(--ink); display:grid; place-items:center; padding:0; border-radius:0}
+.spot:hover{outline:2px dashed var(--ink); outline-offset:-4px}
+.spot:focus-visible{outline:3px dashed var(--tomato); outline-offset:2px}
+.spot.A{background:var(--cheese-a)} .spot.B{background:var(--mush-a)} .spot.C{background:var(--pep-a); color:#fffaf0}
+.comp{display:flex; flex-wrap:wrap; gap:6px 16px; font-size:14px; margin:8px 0 4px}
+.comp b{font-size:12px}
+.cases{display:flex; flex-wrap:wrap; gap:6px}
+.cases .btn{padding:6px 7px; font-size:11px}
+/* bars: one track per row, segments placed on a shared scale */
+.fall{display:grid; gap:8px}
+.frow{display:grid; grid-template-columns:minmax(0,170px) minmax(0,1fr) 4.6em; gap:10px; align-items:center}
+@media (max-width:520px){.frow{grid-template-columns:minmax(0,1fr) 4.6em} .frow .track{grid-column:1/-1; grid-row:2}}
+.flbl{font-size:11.5px; line-height:1.3}
+.flbl small{display:block; font-family:var(--f-body); font-size:11px; color:var(--muted); letter-spacing:0}
+.track{position:relative; height:26px; border-bottom:2px solid var(--line); background:repeating-linear-gradient(90deg,transparent 0 calc(10% - 1px),var(--tint-d) calc(10% - 1px) 10%)}
+.track i{position:absolute; top:3px; bottom:3px; border:2px solid var(--line); display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:600; color:#fffaf0; overflow:hidden; white-space:nowrap}
+.track i.q{background:var(--qty)} .track i.e{background:var(--exch)} .track i.s{background:var(--shift)}
+.track i.ghost{border-style:dashed; background:transparent; color:var(--muted)}
+.fval{font-weight:600; text-align:right; font-variant-numeric:tabular-nums; font-size:13.5px}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse; font-variant-numeric:tabular-nums; width:100%}
+th,td{border:2px solid var(--line); padding:7px 6px; text-align:center; font-size:13.5px}
+th{font-size:11.5px; background:var(--tint-d)}
+th.rowh{text-align:left; white-space:nowrap}
+th .sw{vertical-align:-1px; margin-right:5px}
+th .pc{font-family:var(--f-body); color:var(--muted); margin-left:3px}
+td.diag{font-weight:600; background:var(--tint-d)}
+td.tot,th.tot{color:var(--muted); font-style:italic}
+td.pair{cursor:pointer}
+td.pair:hover,td.lit{background:var(--tint-e); outline:2px solid var(--exch); outline-offset:-2px}
+td.zero{color:var(--muted)}
+.mtx table{width:auto; min-width:0}
+.mtx td,.mtx th{padding:5px 8px; font-size:13px}
+#t2{min-width:460px} #tp{min-width:400px} #t3{min-width:430px}
+#t2 th,#t2 td,#t3 th,#t3 td{padding:6px 4px}
+#t2 th .pc,#t3 th .pc{display:inline-block}
+#chk th.rowh{white-space:normal; min-width:170px}
+.lower{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:22px; align-items:start}
+@media (max-width:980px){.lower{grid-template-columns:minmax(0,1fr)}}
+.sum{font-size:14px; margin-top:10px}
+.notes p{font-size:14px}
+.formula{display:inline-block; border:2px solid var(--line); padding:4px 8px; margin:2px 0 8px; font-weight:600; background:var(--tint-d)}
+.two{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:18px; align-items:start}
+@media (max-width:820px){.two{grid-template-columns:minmax(0,1fr)}}
+/* Paper equations: MathML that build.py makes from tex tags. Live numbers are tagged \id{...} and set with setEq. */
+math{font-family:"STIX Two Math","Cambria Math","Latin Modern Math",math; font-size:1.15em; font-style:normal; font-weight:normal; line-height:normal; letter-spacing:normal; text-transform:none; direction:ltr; font-feature-settings:"dtls" off}
+mfrac > :nth-child(2), msqrt, mover > :first-child{math-shift:compact}
+.eqs{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; margin-top:16px}
+@media (max-width:820px){.eqs{grid-template-columns:minmax(0,1fr)}}
+.eq{border:2px solid var(--line); background:var(--tint-d); padding:10px 12px; display:grid; gap:6px; align-content:start; min-width:0}
+.eq-tag{font-family:var(--f-display); font-size:11.5px; letter-spacing:.02em; display:flex; justify-content:space-between; gap:4px 10px; flex-wrap:wrap}
+.eq-tag i{font-style:normal; color:var(--muted)}
+.eq-m{overflow-x:auto; overflow-y:hidden; padding:3px 0}
+@media (max-width:480px){.eq-m math{font-size:1em}}
+.eq-cap{font-size:12.5px; color:var(--muted); margin:0}
+footer{font-size:13px; color:var(--muted)}
+footer p{max-width:none}
+@media (prefers-reduced-motion:reduce){.btn:active{transform:none}}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <header class="mast">
+    <a class="crumb" href="index.html">← Pizza Map Lab</a>
+    <span class="eyebrow">Pizza Map Lab · Explainer 09</span>
+    <h1>Wrong Amount, Wrong Place</h1>
+    <p>The map gets 20.4% of the pizza wrong (Table 5: overall accuracy 79.6%). That one number hides two different sins. The map puts down too much cheese and too little anchovy: the <span class="k-q">wrong amount</span>. And even where the amounts are right, it drops toppings on the wrong spots. Pontius and Millones split the 20.4 into quantity and allocation (Eqs. 6 to 11), and Pontius and Santacruz split allocation again into <span class="k-e">exchange</span> (two spots that traded labels) and <span class="k-s">shift</span> (everything else). This page pulls the map's mistakes apart those three ways, and lets you add mistakes of exactly one kind.</p>
+  </header>
+
+  <section class="box">
+    <h2>Step 1 · Six-spot pizzas</h2>
+    <p>Pontius and Santacruz open with seven tiny maps of six pixels each (their Fig. 1, p. 7545). Here they are as six-spot pizzas with three toppings. Click a spot to change it: the left tray is what the map says, the right tray is what is really there. The matrix and the three components follow. Only the matrix matters for the sums, so two spots that "swap" needn't be neighbours.</p>
+    <div class="cases" id="cases"></div>
+    <div class="six" style="margin-top:14px">
+      <div class="tray"><span class="lbl">The map</span><div class="spots" id="tray-m"></div></div>
+      <div class="tray"><span class="lbl">Real pizza</span><div class="spots" id="tray-r"></div></div>
+      <div class="mtx">
+        <div class="scroll"><table id="t1"></table></div>
+        <div class="comp" id="comp1"></div>
+        <p class="hint" id="say1"></p>
+      </div>
+    </div>
+    <div class="fall" id="fall1" style="margin-top:10px"></div>
+  </section>
+
+  <section class="box lab" aria-label="The paper pizza, pulled apart">
+    <h2>Step 2 · The paper pizza, pulled apart</h2>
+    <div class="controls">
+      <fieldset class="seg three" id="view">
+        <legend class="lbl">Show</legend>
+        <input type="radio" name="view" id="v-map" value="map" checked><label for="v-map">The map</label>
+        <input type="radio" name="view" id="v-err" value="err"><label for="v-err">Mistakes</label>
+        <input type="radio" name="view" id="v-truth" value="truth"><label for="v-truth">Real pizza</label>
+      </fieldset>
+      <div class="ctl">
+        <label class="lbl" for="sq"><span>Add <span class="k-q">quantity</span></span><output id="sq-o">0.0</output></label>
+        <input type="range" id="sq" class="q" min="0" max="8" step="0.5" value="0">
+        <p class="hint">Points of the pizza. The map calls more real mushroom "cheese": a cheese signature too broad. Cheese is already over, mushroom already under, so both amounts get worse.</p>
+      </div>
+      <div class="ctl">
+        <label class="lbl" for="se"><span>Add <span class="k-e">exchange</span></span><output id="se-o">0.0</output></label>
+        <input type="range" id="se" class="e" min="0" max="6" step="0.5" value="0">
+        <p class="hint">Pairs of spots swap labels: a real cheese spot is mapped mushroom and a real mushroom spot is mapped cheese. Amounts don't move.</p>
+      </div>
+      <div class="ctl">
+        <label class="lbl" for="ss"><span>Add <span class="k-s">shift</span></span><output id="ss-o">0.0</output></label>
+        <input type="range" id="ss" class="s" min="0" max="3" step="0.5" value="0">
+        <p class="hint">A three-way shuffle: real mushroom mapped cheese, real anchovy mapped mushroom, real cheese mapped anchovy. Every row total stays put, and nothing pairs up.</p>
+      </div>
+      <div class="btns">
+        <button class="btn" type="button" id="reset">Undo the edits</button>
+        <button class="btn" type="button" id="newpie">Bake a new pizza</button>
+      </div>
+      <div class="readout"><span class="big" id="d-big">20.4</span><span id="d-say"></span></div>
+    </div>
+    <div class="views">
+      <figure>
+        <canvas class="pie" id="cv2" width="512" height="512" aria-label="The map, with the added mistakes marked"></canvas>
+        <figcaption id="cv2-cap"></figcaption>
+      </figure>
+      <div class="legend" id="legend2"></div>
+    </div>
+  </section>
+
+  <section class="box">
+    <h2>Where the 20.4 goes</h2>
+    <p>One bar for the whole pizza, then one per topping. A topping's own difference <tex>d_k</tex> counts every spot in its row or column that is off the diagonal, so the four add to twice the total and the paper halves the sum (Eqs. 7, 9; Pontius &amp; Santacruz Eqs. 6 to 9). Click a row to put that topping in the equation cards.</p>
+    <div class="fall" id="fall2"></div>
+    <div class="legend" style="margin-top:10px"><span><i class="sw q"></i>Quantity: wrong amount</span><span><i class="sw e"></i>Exchange: pairs that swapped</span><span><i class="sw s"></i>Shift: the rest</span></div>
+    <div class="two" style="margin-top:16px">
+      <div>
+        <h3>The error matrix</h3>
+        <p class="hint" style="margin-bottom:8px">Points of the pizza. Rows are the map, columns the real pizza, like the paper's Table 3. Hover an off-diagonal cell to see its mirror: the smaller of the two, twice, is their exchange.</p>
+        <div class="scroll"><table id="t2"></table></div>
+      </div>
+      <div>
+        <h3>Exchange by pair</h3>
+        <p class="hint" style="margin-bottom:8px">Like Pontius &amp; Santacruz's Table 4 (p. 7553), one number per pair of toppings. Pick a pair to put it in the Eq. 3 card.</p>
+        <div class="scroll"><table id="tp"></table></div>
+      </div>
+    </div>
+    <div class="eqs">
+      <div class="eq">
+        <div class="eq-tag"><span>Eqs. 5 and 6 · map bias and quantity</span><i id="q6-tag">anchovy (class 4)</i></div>
+        <div class="eq-m"><tex display>q_k = \left| p_{k+} - p_{+k} \right|</tex></div>
+        <div class="eq-m"><tex display>q_{\id{q6-k}{4}} = \left| \id{q6-m}{5.0} - \id{q6-r}{7.4} \right| = \id{q6-v}{2.4} \text{ points}</tex></div>
+        <p class="eq-cap">The map's share minus the real share is Eq. 5, map bias (06 was all about it). Its absolute value is a topping's quantity disagreement. Here <tex>p_{k+}</tex> is the row total and <tex>p_{+k}</tex> the column total, both in points.</p>
+      </div>
+      <div class="eq">
+        <div class="eq-tag"><span>Eq. 7 · overall quantity</span><i>halved, because every point counts twice</i></div>
+        <div class="eq-m"><tex display>Q = \sum_{k=1}^{c} q_k / 2</tex></div>
+        <div class="eq-m"><tex display>Q = \left( \id{q7-1}{4.6} + \id{q7-2}{1.4} + \id{q7-3}{0.8} + \id{q7-4}{2.4} \right) / 2 = \id{q7-v}{4.6}</tex></div>
+        <p class="eq-cap">Cheese, mushroom, pepperoni, anchovy. Too much of one topping is too little of another, so the sum of the four is twice the overall quantity disagreement.</p>
+      </div>
+      <div class="eq">
+        <div class="eq-tag"><span>Eqs. 8 and 9 · allocation</span><i id="q8-tag">anchovy (class 4)</i></div>
+        <div class="eq-m"><tex display>a_k = 2 \min \left[ p_{+k} - p_{kk}, \; p_{k+} - p_{kk} \right], \qquad A = \sum_{k=1}^{c} a_k / 2</tex></div>
+        <div class="eq-m"><tex display>a_{\id{q8-k}{4}} = 2 \min \left[ \id{q8-c}{4.2}, \; \id{q8-r}{1.8} \right] = \id{q8-v}{3.6}, \qquad A = \id{q9-v}{15.8}</tex></div>
+        <p class="eq-cap">The smaller of a topping's omission (rest of its column) and commission (rest of its row), twice: the part of its mistakes that the amounts can't explain. <tex>a_k</tex> is also <tex>d_k - q_k</tex>, so each topping's allocation is its exchange plus its shift.</p>
+      </div>
+      <div class="eq">
+        <div class="eq-tag"><span>Eqs. 10 and 11 · total disagreement</span><i>Pontius &amp; Millones (2011)</i></div>
+        <div class="eq-m"><tex display>D = 1 - \sum_{k=1}^{c} p_{kk} = Q + A</tex></div>
+        <div class="eq-m"><tex display>D = 100 - \id{q10-o}{79.6} = \id{q10-d}{20.4} = \id{q11-q}{4.6} + \id{q11-a}{15.8}</tex></div>
+        <p class="eq-cap">One minus overall accuracy, in points. The paper's Table 5 gives 79.6% overall, so the map is wrong on 20.4% of the pizza.</p>
+      </div>
+      <div class="eq">
+        <div class="eq-tag"><span>P&amp;S Eq. 3 · exchange between a pair</span><i id="e3-tag">mushroom–cheese</i></div>
+        <div class="eq-m"><tex display>\varepsilon_{ij} = 2 \min \left( C_{ij}, \; C_{ji} \right) \quad \text{for } i > j</tex></div>
+        <div class="eq-m"><tex display>\varepsilon_{\id{e3-i}{2},\id{e3-j}{1}} = 2 \min \left( \id{e3-a}{4.0}, \; \id{e3-b}{7.2} \right) = \id{e3-v}{8.0}</tex></div>
+        <p class="eq-cap">Pontius &amp; Santacruz write the cells as <tex>C_{ij}</tex>, row <tex>i</tex> (the map) and column <tex>j</tex> (the reference), the same way round as the paper's Table 3. Each mirror pair is counted once, so the sum over pairs is the pizza's exchange.</p>
+      </div>
+      <div class="eq">
+        <div class="eq-tag"><span>P&amp;S Eqs. 1, 4 and 5 · one topping's exchange and shift</span><i id="e4-tag">anchovy (class 4)</i></div>
+        <div class="eq-m"><tex display>d_j = \sum_{i} \left( C_{ij} + C_{ji} \right) - 2 C_{jj}, \qquad e_j = 2 \left[ \sum_{i} \min \left( C_{ij}, C_{ji} \right) - C_{jj} \right], \qquad s_j = d_j - q_j - e_j</tex></div>
+        <div class="eq-m"><tex display>d_{\id{e1-k}{4}} = \id{e1-r}{5.0} + \id{e1-c}{7.4} - 2 \times \id{e1-d}{3.2} = \id{e1-v}{6.0}</tex></div>
+        <div class="eq-m"><tex display>e_{\id{e4-k}{4}} = 2 \left[ \id{e4-s}{4.0} - \id{e4-d}{3.2} \right] = \id{e4-v}{1.6}, \qquad s_{\id{e5-k}{4}} = \id{e5-d}{6.0} - \id{e5-q}{2.4} - \id{e5-e}{1.6} = \id{e5-v}{2.0}</tex></div>
+        <p class="eq-cap">A topping's difference is its row plus its column, minus the diagonal twice. Its exchange adds up its mirror-pair minimums, with the diagonal taken back out. Shift is whatever is left. For error assessment the time terms in their Eqs. 1 to 4 drop out (p. 7548).</p>
+      </div>
+      <div class="eq">
+        <div class="eq-tag"><span>P&amp;S Eq. 9 · the three-way split</span><i>exchange + shift = A</i></div>
+        <div class="eq-m"><tex display>D = Q + E + S</tex></div>
+        <div class="eq-m"><tex display>\id{e9-d}{20.4} = \id{e9-q}{4.6} + \id{e9-e}{9.6} + \id{e9-s}{6.2}</tex></div>
+        <p class="eq-cap" id="e9-cap"></p>
+      </div>
+    </div>
+  </section>
+
+  <section class="box">
+    <h2>Step 3 · Merge two toppings</h2>
+    <p>Pontius and Santacruz's biggest exchange was between coniferous and deciduous forest: 6.49% of the town of Ipswich. Call both "forest" and that error vanishes (Sec. 4, p. 7550). On this pizza the lookalikes are cheese and mushroom. Pick two toppings to merge and watch the matrix shrink to three rows.</p>
+    <div class="two">
+      <div>
+        <div class="ctl" style="max-width:360px"><label class="lbl" for="pair">Merge</label><select id="pair"></select></div>
+        <div class="readout" style="margin-top:12px"><span class="big" id="m-big">11.2</span><span id="m-say"></span></div>
+        <div class="fall" id="fall3" style="margin-top:12px"></div>
+      </div>
+      <div>
+        <h3 style="margin-top:0">The merged matrix</h3>
+        <div class="scroll"><table id="t3"></table></div>
+        <p class="sum" id="m-note"></p>
+      </div>
+    </div>
+  </section>
+
+  <section class="lower">
+    <div class="box">
+      <h2>Check against the papers</h2>
+      <p>Figures from Stehman &amp; Foody (Sec. 4.1) and Pontius &amp; Santacruz, against this page's sums. Rows marked <i>ours</i> are our own numbers, computed from the papers' equations but not printed in them.</p>
+      <div class="scroll"><table id="chk"></table></div>
+      <p class="sum" id="chk-note"></p>
+    </div>
+    <div class="box notes">
+      <h2>What the papers say</h2>
+      <h3>Two sins, not one</h3>
+      <p>Quantity disagreement is the part of the map's error that comes from getting the amounts wrong; allocation disagreement is the rest, the mistakes that remain once the amounts are matched as well as they can be (Pontius &amp; Millones 2011; Eqs. 6 to 11, p. 11). Map bias (Eq. 5) can sit near zero while both error rates are high, because omission and commission cancel (Sec. 4.1). That is exactly a map with quantity 0 and allocation high.</p>
+      <span class="formula">D = quantity + exchange + shift</span>
+      <h3>Exchange and shift</h3>
+      <p>Pontius and Santacruz split allocation again. Exchange is allocation that pairwise confusion explains: for every spot mapped A that is really B, a spot mapped B that is really A. Shift is allocation that no pairing explains, and needs at least three classes (their Sec. 2.1). Stehman and Foody mention both as a way to supplement, not replace, the matrix and the user's and producer's accuracies (p. 11).</p>
+      <h3>What each one hints at</h3>
+      <p>A spectral signature that is too narrow or too broad gives quantity error; two classes with similar signatures give exchange (their Sec. 4, p. 7550). They suggest fixing quantity first and then looking at the components again, because fixing amounts moves the other two as well. The anchovy slider on 06, read backwards, is this page's quantity.</p>
+      <h3>The caveats</h3>
+      <p>Exchange is a count from the matrix, not a list of spot pairs that traded places: no two spots on this pizza actually swapped. Stehman and Foody also warn that omission and commission are not interchangeable, so measures that pair <tex>p_{ij}</tex> with <tex>p_{ji}</tex> should sit next to the class-specific accuracies, not replace them (pp. 10–11). And these are census numbers from every spot; from a sample they would be estimated from the estimated matrix (Pontius &amp; Santacruz did this with a stratified sample, p. 7549) and would carry standard errors of their own.</p>
+    </div>
+  </section>
+
+  <footer>
+    <p>Based on Stehman, S.V. &amp; Foody, G.M. (2019). Key issues in rigorous accuracy assessment of land cover products. <i>Remote Sensing of Environment</i> 231, 111199, Section 4.1, Eqs. 5–11, Table 5. <a href="https://doi.org/10.1016/j.rse.2019.05.018">doi:10.1016/j.rse.2019.05.018</a>. And Pontius Jr., R.G. &amp; Santacruz, A. (2014). Quantity, exchange, and shift components of difference in a square contingency table. <i>Int. J. Remote Sens.</i> 35, 7543–7554, Secs. 2.1, 2.2 and 4, Fig. 1, Eqs. 1–9, Table 4. <a href="https://doi.org/10.1080/2150704X.2014.969814">doi:10.1080/2150704X.2014.969814</a></p>
+    <p>Previous: <a href="08-normalizing-and-kappa.html">08 · Normalizing and Kappa</a>. Next: <a href="10-tasting-the-training-slice.html">10 · Tasting the Training Slice</a>, where the classifier is tested on its own homework.</p>
+  </footer>
+</main>
+
+<script>
+(function(){
+"use strict";
+/* @@KIT@@ */
+const $=id=>document.getElementById(id);
+const sum=a=>a.reduce((x,y)=>x+y,0);
+const pt=v=>isFinite(v)?v.toFixed(1):"–";
+const sgn=v=>(v<0?"−":v>0?"+":"")+Math.abs(v).toFixed(1);
+const fmt=v=>Math.round(v).toLocaleString("en");
+const sw=k=>`<i class="sw" style="background:var(${VAR[k][0]})"></i>`;
+const setEq=(id,v)=>{$(id).textContent=v;};
+const top=k=>`${TITLE[k]}<span class="pc">(${PAPER_CLASS[k]})</span>`;
+const SPOTS_PER_POINT=144; /* 1% of the 14,400-spot pizza */
+
+/* ---- the maths: quantity, exchange and shift from a square matrix (rows map, columns reference) ----
+   Stehman & Foody Eqs. 6-11 and Pontius & Santacruz Eqs. 1-9 in their error-assessment form (no time terms).
+   Works in whatever units the matrix is in: spots, points, or proportions. */
+function components(M){
+  const K=M.length, rowT=M.map(r=>sum(r)), colT=M[0].map((_,j)=>sum(M.map(r=>r[j])));
+  const d=[], q=[], e=[], s=[], a=[], ex=M.map(()=>M.map(()=>0));
+  for(let i=0;i<K;i++) for(let j=0;j<i;j++) ex[i][j]=2*Math.min(M[i][j],M[j][i]); /* Eq. 3, i > j */
+  for(let j=0;j<K;j++){
+    d[j]=rowT[j]+colT[j]-2*M[j][j];                       /* P&S Eq. 1 */
+    q[j]=Math.abs(rowT[j]-colT[j]);                        /* Eq. 6, P&S Eq. 2 */
+    let m=0; for(let i=0;i<K;i++) m+=Math.min(M[i][j],M[j][i]);
+    e[j]=2*(m-M[j][j]);                                    /* P&S Eq. 4 */
+    s[j]=d[j]-q[j]-e[j];                                   /* P&S Eq. 5 */
+    a[j]=2*Math.min(colT[j]-M[j][j],rowT[j]-M[j][j]);      /* Eq. 8 */
+  }
+  const half=v=>sum(v)/2;
+  return {K, rowT, colT, d, q, e, s, a, ex, D:half(d), Q:half(q), E:half(e), S:half(s), A:half(a), O:sum(M.map((r,k)=>r[k]))};
+}
+/* merge classes a and b (a < b) of a matrix: add row b into row a and column b into column a */
+function merge(M,a,b){
+  const keep=[...Array(M.length).keys()].filter(k=>k!==b), g=k=>k===b?a:k, out=keep.map(()=>keep.map(()=>0));
+  for(let i=0;i<M.length;i++) for(let j=0;j<M.length;j++) out[keep.indexOf(g(i))][keep.indexOf(g(j))]+=M[i][j];
+  return out;
+}
+
+/* ---- Step 1: six-spot pizzas, after Pontius & Santacruz's Fig. 1 (p. 7545). Letters A, B, C = cheese, mushroom, pepperoni.
+   Six spots read across then down in two columns of three, map first, then the real pizza. The titles are theirs. ---- */
+const CASES=[
+  ["Quantity 6",                  "AAAAAA","BBBBBB"],
+  ["Exchange 6",                  "ABABAB","BABABA"],
+  ["Shift 6",                     "AABBCC","CCAABB"],
+  ["Quantity 2 + exchange 4",     "AABBCC","BBAAAA"],
+  ["Quantity 4 + shift 2",        "AAAABB","BBBBCC"],
+  ["Exchange 2 + shift 3",        "AABBCC","BCAABC"],
+  ["Quantity 1, exchange 2, shift 3","AABBCC","BCAABB"],
+];
+const six={m:"AAAAAA".split(""), r:"BBBBBB".split(""), kase:0};
+const L2K={A:0,B:1,C:2};
+function sixMatrix(){ const M=[[0,0,0],[0,0,0],[0,0,0]]; for(let i=0;i<6;i++) M[L2K[six.m[i]]][L2K[six.r[i]]]++; return M; }
+function renderSix(){
+  for(const [id,arr] of [["tray-m",six.m],["tray-r",six.r]])
+    $(id).innerHTML=arr.map((c,i)=>`<button class="spot ${c}" type="button" data-t="${id}" data-i="${i}" aria-label="spot ${i+1}: ${NAMES[L2K[c]]}, click to change">${c}</button>`).join("");
+  const M=sixMatrix(), c=components(M), ABC=["A","B","C"];
+  let h=`<thead><tr><th class="rowh">Map \\ Real</th>${ABC.map((l,j)=>`<th>${sw(j)}${l}</th>`).join("")}<th class="tot">Total</th></tr></thead><tbody>`;
+  M.forEach((row,i)=>{ h+=`<tr><th class="rowh">${sw(i)}${ABC[i]}</th>${row.map((v,j)=>`<td class="${i===j?"diag":v?"":"zero"}">${v}</td>`).join("")}<td class="tot">${c.rowT[i]}</td></tr>`; });
+  h+=`<tr><th class="rowh tot">Total</th>${c.colT.map(v=>`<td class="tot">${v}</td>`).join("")}<td class="tot">6</td></tr></tbody>`;
+  $("t1").innerHTML=h;
+  $("comp1").innerHTML=`<span><b class="k-q">Quantity</b> ${c.Q}</span><span><b class="k-e">Exchange</b> ${c.E}</span><span><b class="k-s">Shift</b> ${c.S}</span><span><b>Wrong spots</b> ${c.D} of 6</span>`;
+  const K=CASES[six.kase], same=K&&six.m.join("")===K[1]&&six.r.join("")===K[2];
+  let say=same?`Their case ${six.kase+1}, top to bottom in Fig. 1. `:"Your own case. ";
+  if(c.D===0) say+="The map is right everywhere, so there is nothing to split.";
+  else if(c.Q===c.D) say+="Every mistake is an amount: the map's totals (right column) don't match the real totals (bottom row), and no spot can be fixed without changing a total.";
+  else if(c.E===c.D) say+="The totals match, so quantity is 0, and every mistake has a mirror image across the diagonal. Swap labels in pairs and the map is perfect.";
+  else if(c.S===c.D) say+="The totals match, and no mistake has a mirror image: A is really C, C is really B, B is really A. That is shift, and it needs three toppings.";
+  else say+=`${c.Q?`${c.Q} spot${c.Q>1?"s":""} of mismatched totals. `:""}${c.E?`${c.E} spot${c.E>1?"s":""} in mirror pairs. `:""}${c.S?`${c.S} left over that nothing pairs with.`:""}`;
+  $("say1").textContent=say;
+  const hi=6, X=v=>(100*v/hi).toFixed(2)+"%", seg=(cls,a,b,lbl)=>b>a?`<i class="${cls}" style="left:${X(a)};width:${X(b-a)}">${b-a>=1?lbl:""}</i>`:"";
+  $("fall1").innerHTML=`<div class="frow"><span class="flbl">Six spots<small>${c.D} wrong, on a 0–6 scale</small></span><div class="track">${seg("q",0,c.Q,"Q "+c.Q)}${seg("e",c.Q,c.Q+c.E,"E "+c.E)}${seg("s",c.Q+c.E,c.D,"S "+c.S)}</div><span class="fval">${c.D}</span></div>`;
+}
+function loadCase(k){ six.kase=k; six.m=CASES[k][1].split(""); six.r=CASES[k][2].split(""); renderSix(); markCase(); }
+function markCase(){ $("cases").querySelectorAll(".btn").forEach((b,k)=>{ const K=CASES[k]; b.classList.toggle("on",six.m.join("")===K[1]&&six.r.join("")===K[2]); }); }
+$("cases").innerHTML=CASES.map((c,k)=>`<button class="btn" type="button" data-k="${k}">${k+1} · ${c[0]}</button>`).join("");
+$("cases").addEventListener("click",e=>{ const b=e.target.closest("[data-k]"); if(b) loadCase(+b.dataset.k); });
+for(const id of ["tray-m","tray-r"]) $(id).addEventListener("click",e=>{ const b=e.target.closest(".spot"); if(!b) return;
+  const arr=b.dataset.t==="tray-m"?six.m:six.r, i=+b.dataset.i; arr[i]="ABC"[("ABC".indexOf(arr[i])+1)%3]; renderSix(); markCase(); });
+
+/* ---- Step 2: the paper pizza and three edits that each move one component ----
+   Each edit relabels spots on the map that the map had right, chosen near the topping they get mistaken for, like the baker does.
+   quantity: real mushroom -> map says cheese. Row cheese grows, row mushroom shrinks, so Q grows by the same amount; the
+             cheese-mushroom cell already outweighs its mirror (7.2 vs 4.0), so no new pairs form and E and S stay put.
+   exchange: pairs. A real cheese spot -> map says mushroom, a real mushroom spot -> map says cheese. Totals unchanged, so Q stays;
+             the smaller of the two mirror cells grows by one per pair, so E grows by two per pair and S stays put.
+   shift:    a three-way shuffle. Real mushroom -> map says cheese, real anchovy -> map says mushroom, real cheese -> map says anchovy.
+             Every row total stays, so Q stays; each of the three cells already outweighs its mirror, so E stays; S grows by 3 per shuffle. */
+const st={seed:SEED, view:"map", q:0, e:0, s:0, k:3, pair:[1,0], mergeA:0, mergeB:1};
+let P, pools, M2, cells, C, edit;
+const near=(list,k)=>list.slice().sort((a,b)=>(P.dist[k][a]+4*P.jit[a])-(P.dist[k][b]+4*P.jit[b]));
+function setup(){
+  P=bakePaperPizza(st.seed);
+  const corr=k=>P.ids.filter(i=>P.truth[i]===k&&P.map[i]===k);
+  const mush=near(corr(1),0); /* correct mushroom, nearest real cheese first; dealt out so the three edits never fight over a spot */
+  pools={
+    qMush:mush.filter((_,i)=>i%5<3),
+    eMush:mush.filter((_,i)=>i%5===3), eCheese:near(corr(0),1),
+    sMush:mush.filter((_,i)=>i%5===4), sAnch:near(corr(3),1), sCheese:near(corr(0),3),
+  };
+}
+function applyEdits(){
+  M2=Int8Array.from(P.map); edit=new Int8Array(N*N); /* 1 quantity, 2 exchange, 3 shift */
+  const used=new Set(), take=(list,n)=>{ const out=[]; for(const i of list){ if(out.length>=n) break; if(!used.has(i)){used.add(i); out.push(i);} } return out; };
+  const put=(ids,lab,tag)=>{ for(const i of ids){ M2[i]=lab; edit[i]=tag; } };
+  const nq=Math.round(st.q*SPOTS_PER_POINT), ne=Math.round(st.e*SPOTS_PER_POINT/2), ns=Math.round(st.s*SPOTS_PER_POINT/3);
+  put(take(pools.qMush,nq),0,1);
+  put(take(pools.eCheese,ne),1,2); put(take(pools.eMush,ne),0,2);
+  put(take(pools.sMush,ns),0,3); put(take(pools.sAnch,ns),1,3); put(take(pools.sCheese,ns),3,3);
+  cells=[[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]]; for(const i of P.ids) cells[M2[i]][P.truth[i]]++;
+  C=components(cells.map(r=>r.map(v=>100*v/P.T)));
+}
+function drawPizza(){
+  const cv=$("cv2"), pal=pizzaPalette(), col=[null,hexRGB(cssVar("--qty")),hexRGB(cssVar("--exch")),hexRGB(cssVar("--shift"))], v=st.view, edited=st.q+st.e+st.s>0;
+  paintPizza(cv,i=>{
+    if(P.crust[i]) return pal.crust[P.tex[i]];
+    if(!P.inside[i]) return null;
+    if(v==="truth") return pal.top[P.truth[i]][P.tex[i]];
+    const m=M2[i], c=pal.top[m][P.tex[i]];
+    if(edit[i]&&v!=="truth"){ const e=col[edit[i]]; return [e[0],e[1],e[2],255]; }
+    if(v==="map") return c;
+    return [c[0],c[1],c[2],m===P.truth[i]?45:255];
+  });
+  $("cv2-cap").innerHTML={map:`<b>The map</b> What the classifier says${edited?", with the spots the sliders relabelled in their component's colour":""}. Table 5 is baked in: cheese, mushroom, pepperoni and anchovy are 60, 25, 10 and 5% of the map.`,
+    err:`<b>Mistakes</b> Bright spots are wrong on the map, in the map's colour; ${fmt(sum(C.d)/2*P.T/100)} spots, ${pt(C.D)}% of the pizza. Faded spots are right.`,
+    truth:`<b>The real pizza</b> What a taster finds at every spot: 55.4 / 26.4 / 10.8 / 7.4%. The sliders never touch it.`}[v];
+  $("legend2").innerHTML=NAMES.map((x,j)=>`<span>${sw(j)}${TITLE[j]}</span>`).join("")+(edited&&v!=="truth"?`<span><i class="sw q"></i>Quantity edit</span><span><i class="sw e"></i>Exchange edit</span><span><i class="sw s"></i>Shift edit</span>`:"");
+}
+function renderBars(){
+  const hi=Math.max(25,Math.ceil(Math.max(C.D,...C.d)/5)*5), X=v=>(100*v/hi).toFixed(2)+"%";
+  const seg=(cls,a,b,lbl)=>b-a>0.049?`<i class="${cls}" style="left:${X(a)};width:${X(b-a)}">${(b-a)/hi>0.09?lbl:""}</i>`:"";
+  const bar=(q,e,s,d)=>seg("q",0,q,"Q "+pt(q))+seg("e",q,q+e,"E "+pt(e))+seg("s",q+e,d,"S "+pt(s));
+  let h=`<div class="frow"><span class="flbl">Whole pizza<small>D = Q + E + S, on a 0–${hi} scale</small></span><div class="track">${bar(C.Q,C.E,C.S,C.D)}</div><span class="fval">${pt(C.D)}</span></div>`;
+  for(let k=0;k<4;k++){ const b=C.rowT[k]-C.colT[k];
+    h+=`<div class="frow pickrow" data-k="${k}" style="cursor:pointer"><span class="flbl">${sw(k)}${TITLE[k]} (${PAPER_CLASS[k]})<small>d<sub>${k+1}</sub>: map says ${Math.abs(b)<.05?"the right amount":b>0?"too much (+"+pt(b)+")":"too little (−"+pt(-b)+")"}${k===st.k?" · in the cards":""}</small></span><div class="track">${bar(C.q[k],C.e[k],C.s[k],C.d[k])}</div><span class="fval">${pt(C.d[k])}</span></div>`; }
+  $("fall2").innerHTML=h;
+  $("fall2").querySelectorAll(".pickrow").forEach(r=>r.addEventListener("click",()=>{st.k=+r.dataset.k; renderStep2();}));
+}
+function renderMatrix(){
+  const M=cells.map(r=>r.map(v=>100*v/P.T));
+  let h=`<thead><tr><th class="rowh">Map \\ Real</th>${NAMES.map((n,j)=>`<th>${sw(j)}${top(j)}</th>`).join("")}<th class="tot">Map total</th></tr></thead><tbody>`;
+  M.forEach((row,i)=>{ h+=`<tr><th class="rowh">${sw(i)}${top(i)}</th>${row.map((v,j)=>`<td class="${i===j?"diag":"pair"}${!v&&i!==j?" zero":""}" data-i="${i}" data-j="${j}">${pt(v)}</td>`).join("")}<td class="tot">${pt(C.rowT[i])}</td></tr>`; });
+  h+=`<tr><th class="rowh tot">Real total</th>${C.colT.map(v=>`<td class="tot">${pt(v)}</td>`).join("")}<td class="tot">100</td></tr></tbody>`;
+  $("t2").innerHTML=h;
+  const lit=(i,j,on)=>$("t2").querySelectorAll(`td[data-i="${i}"][data-j="${j}"],td[data-i="${j}"][data-j="${i}"]`).forEach(td=>td.classList.toggle("lit",on));
+  $("t2").querySelectorAll("td.pair").forEach(td=>{ const i=+td.dataset.i, j=+td.dataset.j;
+    td.addEventListener("mouseenter",()=>lit(i,j,true)); td.addEventListener("mouseleave",()=>lit(i,j,false));
+    td.addEventListener("click",()=>{st.pair=[Math.max(i,j),Math.min(i,j)]; renderMatrix(); renderEqs();}); });
+  /* exchange by pair, like P&S Table 4 */
+  let p=`<thead><tr><th class="rowh">Pair</th><th>Map A, really B</th><th>Map B, really A</th><th>Exchange (Eq. 3)</th></tr></thead><tbody>`;
+  for(let i=1;i<4;i++) for(let j=0;j<i;j++){ const cur=st.pair[0]===i&&st.pair[1]===j;
+    p+=`<tr class="pick${cur?" cur":""}" data-i="${i}" data-j="${j}" style="cursor:pointer${cur?";background:var(--tint-e)":""}"><th class="rowh">${sw(j)}${TITLE[j]} – ${sw(i)}${TITLE[i]}</th><td>${pt(M[j][i])}</td><td>${pt(M[i][j])}</td><td class="${C.ex[i][j]?"diag":"zero"}">${pt(C.ex[i][j])}</td></tr>`; }
+  p+=`<tr><th class="rowh tot">All pairs</th><td></td><td></td><td class="tot">${pt(C.E)}</td></tr></tbody>`;
+  $("tp").innerHTML=p;
+  $("tp").querySelectorAll("tr[data-i]").forEach(r=>r.addEventListener("click",()=>{st.pair=[+r.dataset.i,+r.dataset.j]; renderMatrix(); renderEqs();}));
+}
+function renderEqs(){
+  const k=st.k, M=cells.map(r=>r.map(v=>100*v/P.T)), n=NAMES[k], [i,j]=st.pair;
+  const tag=`${n} (class ${k+1})`;
+  setEq("q6-tag",tag); setEq("q6-k",k+1); setEq("q6-m",pt(C.rowT[k])); setEq("q6-r",pt(C.colT[k])); setEq("q6-v",pt(C.q[k]));
+  for(let x=0;x<4;x++) setEq("q7-"+(x+1),pt(C.q[x])); setEq("q7-v",pt(C.Q));
+  setEq("q8-tag",tag); setEq("q8-k",k+1); setEq("q8-c",pt(C.colT[k]-M[k][k])); setEq("q8-r",pt(C.rowT[k]-M[k][k])); setEq("q8-v",pt(C.a[k])); setEq("q9-v",pt(C.A));
+  setEq("q10-o",pt(C.O)); setEq("q10-d",pt(C.D)); setEq("q11-q",pt(C.Q)); setEq("q11-a",pt(C.A));
+  setEq("e3-tag",`${NAMES[i]}–${NAMES[j]} (${i+1},${j+1})`); setEq("e3-i",i+1); setEq("e3-j",j+1); setEq("e3-a",pt(M[i][j])); setEq("e3-b",pt(M[j][i])); setEq("e3-v",pt(C.ex[i][j]));
+  setEq("e4-tag",tag); setEq("e1-k",k+1); setEq("e1-r",pt(C.rowT[k])); setEq("e1-c",pt(C.colT[k])); setEq("e1-d",pt(M[k][k])); setEq("e1-v",pt(C.d[k]));
+  let mins=0; for(let x=0;x<4;x++) mins+=Math.min(M[x][k],M[k][x]);
+  setEq("e4-k",k+1); setEq("e4-s",pt(mins)); setEq("e4-d",pt(M[k][k])); setEq("e4-v",pt(C.e[k]));
+  setEq("e5-k",k+1); setEq("e5-d",pt(C.d[k])); setEq("e5-q",pt(C.q[k])); setEq("e5-e",pt(C.e[k])); setEq("e5-v",pt(C.s[k]));
+  setEq("e9-d",pt(C.D)); setEq("e9-q",pt(C.Q)); setEq("e9-e",pt(C.E)); setEq("e9-s",pt(C.S));
+  $("e9-cap").textContent=`Exchange plus shift is ${pt(C.E+C.S)}, the paper's A. Of the ${pt(C.E)} points of exchange, ${pt(C.ex[1][0])} are cheese and mushroom trading places.`;
+}
+function renderReadout(){
+  const edited=st.q+st.e+st.s>0;
+  $("sq-o").textContent=pt(st.q); $("se-o").textContent=pt(st.e); $("ss-o").textContent=pt(st.s);
+  $("d-big").textContent=pt(C.D);
+  $("d-say").innerHTML=`% of the pizza is wrong on the map: <span class="k-q">${pt(C.Q)} quantity</span> + <span class="k-e">${pt(C.E)} exchange</span> + <span class="k-s">${pt(C.S)} shift</span>.`+
+    (edited?` Table 5 was 20.4 = 4.6 + 9.6 + 6.2; your edits moved ${[st.q&&"quantity",st.e&&"exchange",st.s&&"shift"].filter(Boolean).join(" and ")} and nothing else.`:` Overall accuracy is ${pt(C.O)}%, as in Table 5.`);
+}
+function renderStep2(){ drawPizza(); renderBars(); renderMatrix(); renderEqs(); renderReadout(); renderMerge(); renderCheck(); }
+
+/* ---- Step 3: merge two toppings ---- */
+function renderMerge(){
+  const a=st.mergeA, b=st.mergeB, M=cells.map(r=>r.map(v=>100*v/P.T)), Mm=merge(M,a,b), Cm=components(Mm), keep=[0,1,2,3].filter(k=>k!==b);
+  const gone=M[a][b]+M[b][a], name=k=>k===a?`${TITLE[a]}+${TITLE[b]}`:TITLE[k], swm=k=>k===a?sw(a)+sw(b):sw(k);
+  $("m-big").textContent=pt(gone);
+  $("m-say").innerHTML=`points of error vanish when ${NAMES[a]} and ${NAMES[b]} become one topping: the two cells where they were confused, ${pt(M[a][b])} + ${pt(M[b][a])}. Their exchange of <span class="k-e">${pt(C.ex[Math.max(a,b)][Math.min(a,b)])}</span> is gone, and so is the one-sided ${pt(Math.abs(M[a][b]-M[b][a]))} that counted as ${Math.abs(M[a][b]-M[b][a])<0.05?"nothing":"quantity or shift"}.`;
+  const hi=Math.max(25,Math.ceil(Math.max(C.D,Cm.D)/5)*5), X=v=>(100*v/hi).toFixed(2)+"%";
+  const seg=(cls,x,y,lbl)=>y-x>0.049?`<i class="${cls}" style="left:${X(x)};width:${X(y-x)}">${(y-x)/hi>0.09?lbl:""}</i>`:"";
+  const bar=c=>seg("q",0,c.Q,"Q "+pt(c.Q))+seg("e",c.Q,c.Q+c.E,"E "+pt(c.E))+seg("s",c.Q+c.E,c.D,"S "+pt(c.S));
+  $("fall3").innerHTML=`<div class="frow"><span class="flbl">Four toppings<small>as above</small></span><div class="track">${bar(C)}</div><span class="fval">${pt(C.D)}</span></div>`+
+    `<div class="frow"><span class="flbl">Three toppings<small>${NAMES[a]} + ${NAMES[b]} merged</small></span><div class="track">${bar(Cm)}</div><span class="fval">${pt(Cm.D)}</span></div>`;
+  let h=`<thead><tr><th class="rowh">Map \\ Real</th>${keep.map(k=>`<th>${swm(k)}${name(k)}</th>`).join("")}<th class="tot">Map total</th></tr></thead><tbody>`;
+  Mm.forEach((row,i)=>{ h+=`<tr><th class="rowh">${swm(keep[i])}${name(keep[i])}</th>${row.map((v,j)=>`<td class="${i===j?"diag":""}${!v&&i!==j?" zero":""}">${pt(v)}</td>`).join("")}<td class="tot">${pt(Cm.rowT[i])}</td></tr>`; });
+  h+=`<tr><th class="rowh tot">Real total</th>${Cm.colT.map(v=>`<td class="tot">${pt(v)}</td>`).join("")}<td class="tot">100</td></tr></tbody>`;
+  $("t3").innerHTML=h;
+  const ds=Cm.S-C.S, de=Cm.E-C.E, dq=Cm.Q-C.Q;
+  $("m-note").innerHTML=`Overall accuracy goes from ${pt(C.O)}% to ${pt(Cm.O)}%. The components re-sort: quantity ${sgn(dq)}, exchange ${sgn(de)}, shift ${sgn(ds)}. `+
+    (a===0&&b===1?`Merging erases the cheese–mushroom exchange, but some shift turns into exchange too: mistakes between the merged topping and pepperoni or anchovy now mirror each other where they didn't before. Pontius and Santacruz's forest example is the same move, with 6.49% at stake.`:
+     `With cheese and mushroom, the pair with the big exchange, the merge erases the most.`)+
+    ` Whether merging is honest depends on whether the user cares about the difference; a map with fewer classes is always "more accurate".`;
+}
+
+/* ---- check against the papers ---- */
+function renderCheck(){
+  const T5=components(TABLE5), e=v=>v.toFixed(1), fig=CASES.map(([t,m,r])=>{ const M=[[0,0,0],[0,0,0],[0,0,0]]; for(let i=0;i<6;i++) M[L2K[m[i]]][L2K[r[i]]]++; const c=components(M); return `${c.Q}/${c.E}/${c.S}`; });
+  const want=["6/0/0","0/6/0","0/0/6","2/4/0","4/0/2","0/2/3","1/2/3"], figOk=fig.every((v,k)=>v===want[k]);
+  const Mm=merge(TABLE5,0,1), Cm=components(Mm);
+  let worst=0; for(let i=0;i<4;i++) for(let j=0;j<4;j++) worst=Math.max(worst,Math.abs(100*P.cell[i][j]/P.T-TABLE5[i][j]));
+  const rows=[
+    ["Table 5: overall accuracy 79.6%, so D = 20.4 (Eq. 10)","79.6% (p. 14)",`${e(T5.O)}%, D = ${e(T5.D)}`],
+    ["Table 5: quantity Q and allocation A, D = Q + A (Eqs. 6–11) <i>ours</i>","not printed",`Q ${e(T5.Q)} + A ${e(T5.A)} = ${e(T5.Q+T5.A)}`],
+    ["Table 5: exchange and shift (P&amp;S Eqs. 3–9) <i>ours</i>","not printed",`${e(T5.D)} = ${e(T5.Q)} + ${e(T5.E)} + ${e(T5.S)}; E + S = ${e(T5.E+T5.S)} = A`],
+    ["Table 5: cheese–mushroom exchange <i>ours</i>","P&amp;S Table 4: coniferous–deciduous 6.49% of Ipswich (p. 7553)",`${e(T5.ex[1][0])} of ${e(T5.E)} points`],
+    ["Table 5: merge cheese and mushroom <i>ours</i>","P&amp;S: merging forest classes erases the 6.49% (p. 7550)",`D ${e(T5.D)} → ${e(Cm.D)}; ${e(TABLE5[0][1]+TABLE5[1][0])} points gone, ${e(T5.ex[1][0])} of them exchange`],
+    ["Table 5: anchovy's quantity, exchange, shift <i>ours</i>","not printed",`${e(T5.q[3])}, ${e(T5.e[3])}, ${e(T5.s[3])} (d<sub>4</sub> = ${e(T5.d[3])}); map bias −${e(T5.q[3])} (Eq. 5)`],
+    ["P&amp;S Fig. 1: seven six-pixel cases (p. 7545)","6/0/0, 0/6/0, 0/0/6, 2/4/0, 4/0/2, 0/2/3, 1/2/3",`${fig.join(", ")}${figOk?" ✓":""}`],
+    ["P&amp;S Sec. 2.1: shift needs at least three categories","true","with two toppings, every mistake has a mirror cell, so d − q is all exchange"],
+    ["This pizza's census against Table 5","exact to 0.01",`worst cell off by ${worst.toFixed(4)} points${st.q+st.e+st.s?" (before your edits)":""}`],
+  ];
+  $("chk").innerHTML=`<thead><tr><th class="rowh">Check</th><th>Papers</th><th>This page</th></tr></thead><tbody>`+rows.map(r=>`<tr><th class="rowh">${r[0]}</th><td>${r[1]}</td><td>${r[2]}</td></tr>`).join("")+"</tbody>";
+  $("chk-note").innerHTML=`The Table 5 rows use the paper's printed percentages, not this pizza. Pontius &amp; Santacruz's own figures are land-cover numbers from Massachusetts, so only their Fig. 1 cases and the shape of their forest example can be checked here.`;
+}
+
+/* ---- wiring ---- */
+$("pair").innerHTML=[[0,1],[0,2],[0,3],[1,2],[1,3],[2,3]].map(([a,b])=>`<option value="${a}${b}">${TITLE[a]} + ${TITLE[b]}</option>`).join("");
+$("pair").addEventListener("change",e=>{ st.mergeA=+e.target.value[0]; st.mergeB=+e.target.value[1]; renderMerge(); });
+$("view").addEventListener("change",e=>{st.view=e.target.value; drawPizza();});
+for(const [id,key] of [["sq","q"],["se","e"],["ss","s"]]) $(id).addEventListener("input",e=>{ st[key]=+e.target.value; applyEdits(); renderStep2(); });
+$("reset").addEventListener("click",()=>{ st.q=st.e=st.s=0; $("sq").value=$("se").value=$("ss").value=0; applyEdits(); renderStep2(); });
+$("newpie").addEventListener("click",()=>{ st.seed=(Math.random()*1e9)|0; setup(); applyEdits(); renderStep2(); });
+const repaint=()=>drawPizza();
+const mq=window.matchMedia("(prefers-color-scheme: dark)"); if(mq.addEventListener) mq.addEventListener("change",repaint);
+new MutationObserver(repaint).observe(document.documentElement,{attributes:true,attributeFilter:["data-theme"]});
+
+loadCase(1);
+setup(); applyEdits(); renderStep2();
+})();
+</script>
+</body>
+</html>
